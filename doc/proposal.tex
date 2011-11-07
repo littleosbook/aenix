@@ -1,0 +1,88 @@
+\documentclass[11pt,oneside,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[swedish]{babel}
+\usepackage{enumerate}
+\usepackage{hyperref}
+
+\begin{document}
+\title{Avancerad individuell kurs, 15 hp}
+\author{Erik Helin \& Adam Renberg}
+\date{\today}
+\maketitle
+
+\section{Ämne}
+Kursen kommer vara en projektkurs inom operativsystem (OS).
+
+\section{Handledare}
+Torbjörn Granlund
+
+\section{Syfte}
+Syftet med kursen är att bygga vidare på kursen ID2206 Operativsystem
+, 7.5 hp, med en mer praktisk inriktning. Kursen kommer att fokusera 
+på implementationen av en OS kärna för att tillämpa den teori som lärs 
+ut i kursen ID2206.
+
+\section{Förkunskapskrav}
+Kursen ID2206 Operativsystem samt IS1200 Datorteknik
+
+\section{Tid}
+Kursen går i period 3 och det kommer vara den enda kurs som vi läser under
+den perioden. Vi räknar med att lägga 40 timmar i veckan under hela period 3.
+
+\section{Kursmål}
+Kursen mål är:
+\begin{itemize}
+    \item Ge kunskap inom x86 assembly programmering
+    \item Ge förståelse för hur drivrutiner implementeras
+    \item Ge förståelse för hur timers implementeras
+    \item Ge god insikt i svårigheterna med att implementera en OS kärna
+    \item Ge god förståelse för hur virtuellt minne implementeras
+    \item Ge god förståelse för hur ett fleranvändar-OS implementeras
+    \item Ge väldigt god förståelse för programmering i C
+\end{itemize}
+
+\section{Examination}
+För att kursen ska anses avklarad krävs det att OS kärnan kan starta i
+simulatorn. När OS väl har startat skall man kunna text kunna skrivas ut på
+skärmen och användaren ska kunna använda tangentbordet. För endast godkänt
+krävs alltså \emph{inte} stöd för userspace, processer eller virtuellt minne.
+Vidare, för att betona vikten av OS kärnor måste vara korrekta måste koden vara
+väl dokumenterad och tydlig för att uppnå godkänt betyg.
+Slutligen skall även rapport lämnas in som sammanfattar projektet.
+
+För högsta betyg krävs att det finns en distinktion mellan kernelspace och
+userspace, att flera program kan exekveras samtidigt samt att virtuellt minne är
+implementerat. Notera att det \emph{ej} krävs ett filsystem för att nå högsta
+betyg, men för att kunna demonstrera att flera program kan köras samtidigt
+kommer förmodligen ett readonly RAM filsystem att behövas.
+
+Betyg mellan godkänt och högsta betyg delas ut beroende på hur mycket som har
+hunnit bli implementerat av kriterierna för högsta betyg.
+
+\section{Förenklingar}
+För att det skall vara rimligt att bli klar med projektet under period 3 så
+kommer en del förenklingar att göras.
+Projektet behöver ej köra på riktig hårdvara, det räcker med om OS:t går att
+köra i x86 emulatorn bochs~\cite{bochs}. Projektet kommer även att använda
+GRUB~\ref{grub} som bootloader. Projektet kommer \emph{förmodligen} använda en
+simplifierad segmenteringsmodell. Vi kommer bara att använda minsta möjliga
+antal segment, 4 stycken, för att underlätta segmenthanteringen.
+
+\section{Kursplan}
+\begin{enumerate}
+    \item Sätta upp en utvecklingsmiljö (lyckas bygga minsta möjliga kärna och
+    starta den i bochs)
+    \item Implementera drivrutiner för konsol, timer och tangentbord.
+    \item Implementera readonly RAM filsystem (eller integrera befintligt)
+    \item Implementera virtuellt minne
+    \item Implementera stöd för flera användare
+\end{enumerate}
+
+\section{Kurslitteratur}
+Finns till stora delar tillgänglig på internet, sidan
+\url{http://wiki.osdev.org/Main_Page} har väldigt mycket relevant information.
+Det finns en liknande kurs på CMU, \url{http://www.cs.cmu.edu/~410/} som också
+har mycket bra information.
+
+\end{document}
