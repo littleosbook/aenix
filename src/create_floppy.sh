@@ -23,6 +23,10 @@ cat $GRUB/stage1 $GRUB/stage2 pad1 kernel > $BIN/floppy.img
 
 rm pad1
 
+KERNEL_SIZE=`du --apparent-size --block-size=512 -s kernel | cut -f 1`
+echo "-- starting block: 200"
+echo "-- size in blocks: $KERNEL_SIZE"
+
 echo "==== DONE ===="
 
 # TODO
