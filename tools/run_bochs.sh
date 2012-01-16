@@ -6,7 +6,7 @@ LOG=bochslog.txt
 
 cd bochs
 
-if [-e $LOG]; then
+if [ -e $LOG ]; then
     rm $LOG
 fi
     
