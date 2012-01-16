@@ -33,26 +33,27 @@ den perioden. Vi räknar med att lägga 40 timmar i veckan under hela period 3.
 \section{Kursmål}
 Kursen mål är:
 \begin{itemize}
-    \item Ge kunskap inom x86 assembly programmering
     \item Ge förståelse för hur drivrutiner implementeras
     \item Ge förståelse för hur timers implementeras
     \item Ge god insikt i svårigheterna med att implementera en OS kärna
     \item Ge god förståelse för hur virtuellt minne implementeras
     \item Ge god förståelse för hur ett fleranvändar-OS implementeras
-    \item Ge väldigt god förståelse för programmering i C
 \end{itemize}
 
 \section{Examination}
 För att kursen ska anses avklarad krävs det att OS kärnan kan starta i
 simulatorn. När OS väl har startat skall text kunna skrivas ut på
-skärmen och användaren ska kunna använda tangentbordet. För endast godkänt
-krävs alltså \emph{inte} stöd för userspace, processer eller virtuellt minne.
+skärmen och användaren ska kunna använda tangentbordet. 
+För godkänt krävs att det finns en distinktion mellan user-space och
+kernel-space, det program som körs i user-space ska \emph{inte} kunna komma åt
+kärnans minne.  För godkänt
+krävs alltså \emph{inte} stöd för processer eller virtuellt minne.
 Vidare, för att betona vikten av OS kärnor måste vara korrekta måste koden vara
 väl dokumenterad och tydlig för att uppnå godkänt betyg.
-Slutligen skall även rapport lämnas in som sammanfattar projektet.
+Slutligen skall även en rapport lämnas in som sammanfattar projektet.
 
-För högsta betyg krävs att det finns en distinktion mellan kernelspace och
-userspace, att flera program kan exekveras samtidigt samt att virtuellt minne är
+För högsta betyg krävs att flera program kan exekveras samtidigt samt att 
+virtuellt minne är
 implementerat. Notera att det \emph{ej} krävs ett filsystem för att nå högsta
 betyg, men för att kunna demonstrera att flera program kan köras samtidigt
 kommer förmodligen ett readonly RAM filsystem att behövas.
@@ -65,9 +66,7 @@ För att det skall vara rimligt att bli klar med projektet under period 3 så
 kommer en del förenklingar att göras.
 Projektet behöver ej köra på riktig hårdvara, det räcker med om OS:t går att
 köra i x86 emulatorn bochs~\cite{bochs}. Projektet kommer även att använda
-GRUB~\cite{grub} som bootloader. Projektet kommer \emph{förmodligen} använda en
-simplifierad segmenteringsmodell. Vi kommer bara att använda minsta möjliga
-antal segment, 4 stycken, för att underlätta segmenthanteringen.
+GRUB~\cite{grub} som bootloader. 
 
 \section{Kursplan}
 \begin{enumerate}
