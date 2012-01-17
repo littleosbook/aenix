@@ -14,12 +14,47 @@
 #define BLACK_ON_WHITE 0x0F
 
 static uint8_t *fb = (uint8_t *) FB_MEMORY;
+static uint16_t cursor_pos;
 
-void fb_write(uint8_t c, uint32_t row, uint32_t col)
+static void write_cell(uint8_t *cell, uint8_t b)
+{
+    cell[0] = b;
+    cell[1] = BLACK_ON_WHITE;
+}
+
+static void set_cursor(uint16_t loc)
+{
+    outb(FB_CURSOR_INDEX_PORT, FB_HIGH_BYTE);
+    outb(FB_CURSOR_DATA_PORT, loc >> 8);
+    outb(FB_CURSOR_INDEX_PORT, FB_LOW_BYTE);
+    outb(FB_CURSOR_DATA_PORT, loc);
+}
+
+static void advance_cursor(void)
+{
+    cursor_pos++;
+    set_cursor(cursor_pos);
+}
+
+void fb_putb(uint8_t b)
+{
+    uint8_t *cell = fb + 2 * cursor_pos;
+    write_cell(cell, b);
+
+    advance_cursor();
+}
+
+void fb_puts(uint8_t *s)
+{
+    while (*s != '\0') {
+        fb_putb(*s++);
+    }
+}
+
+void fb_write(uint8_t b, uint32_t row, uint32_t col)
 {
     uint8_t *cell = fb + 2 * (row*FB_NUM_COLS + col);
-    cell[0] = c;
-    cell[1] = BLACK_ON_WHITE;
+    write_cell(cell, b);
 }
 
 void fb_clear()
@@ -35,8 +70,5 @@ void fb_clear()
 void fb_move_cursor(uint16_t row, uint16_t col)
 {
     uint16_t loc = row*FB_NUM_COLS + col;
-    outb(FB_CURSOR_INDEX_PORT, FB_HIGH_BYTE);
-    outb(FB_CURSOR_DATA_PORT, loc >> 8);
-    outb(FB_CURSOR_INDEX_PORT, FB_LOW_BYTE);
-    outb(FB_CURSOR_DATA_PORT, loc);
+    set_cursor(loc);
 }
