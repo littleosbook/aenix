@@ -4,10 +4,13 @@
 
 int kmain(void *mboot, unsigned int magic_number)
 {
+    int i;
     UNUSED_ARGUMENT(mboot);
     UNUSED_ARGUMENT(magic_number);
     fb_clear();
-    fb_puts("\n");
-    fb_puts("=========== AENIX ===========\n");
+    for (i = 0; i < 25; i++) {
+        fb_puts("BABA\n");
+    }
+    fb_puts("GEGE\n");
     return 0xDEADBEEF;
 }
