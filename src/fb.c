@@ -24,27 +24,48 @@ static void write_cell(uint8_t *cell, uint8_t b)
 
 static void set_cursor(uint16_t loc)
 {
+    loc = loc % (FB_NUM_ROWS * FB_NUM_COLS);
     outb(FB_CURSOR_INDEX_PORT, FB_HIGH_BYTE);
     outb(FB_CURSOR_DATA_PORT, loc >> 8);
     outb(FB_CURSOR_INDEX_PORT, FB_LOW_BYTE);
     outb(FB_CURSOR_DATA_PORT, loc);
 }
 
-static void advance_cursor(void)
+static void move_cursor_forward(void)
 {
     cursor_pos++;
     set_cursor(cursor_pos);
 }
 
-void fb_putb(uint8_t b)
+static void move_cursor_down()
 {
-    uint8_t *cell = fb + 2 * cursor_pos;
-    write_cell(cell, b);
-
-    advance_cursor();
+    cursor_pos += FB_NUM_COLS;
+    set_cursor(cursor_pos);
 }
 
-void fb_puts(uint8_t *s)
+static void move_cursor_start()
+{
+    cursor_pos -= cursor_pos % FB_NUM_COLS;
+    set_cursor(cursor_pos);
+}
+
+void fb_putb(uint8_t b)
+{
+    if (b != '\n') {
+        uint8_t *cell = fb + 2 * cursor_pos;
+        write_cell(cell, b);
+    }
+
+    if (b == '\n') {
+        move_cursor_down(); 
+        move_cursor_start();
+    } else {
+        move_cursor_forward();
+    }
+
+}
+
+void fb_puts(char *s)
 {
     while (*s != '\0') {
         fb_putb(*s++);
