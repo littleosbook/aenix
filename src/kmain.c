@@ -12,5 +12,6 @@ int kmain(void *mboot, unsigned int magic_number)
     fb_write('l', 0, 2);
     fb_write('l', 0, 3);
     fb_write('o', 0, 4);
+    fb_move_cursor(0, 5);
     return 0xDEADBEEF;
 }
