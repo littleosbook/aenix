@@ -11,11 +11,14 @@ ASFLAGS = -f elf
 
 all: kernel
 
-run: floppy
+run: image
 	cd ../tools; ./run_bochs.sh
 
 floppy: kernel
 	./create_floppy.sh
+
+image: kernel
+	./create_image.sh
 
 kernel: $(OBJECTS)
 	ld $(LDFLAGS) $(OBJECTS) -o kernel
