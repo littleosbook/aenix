@@ -51,3 +51,19 @@ Issues
 - the current floppy-build script requires sudo (to mount and use loopback
   devices), and it might cause nautilus (on ubuntu) to open the mounted
   directory, and complain when it is unmounted (can be turned off though)
+
+2012-01-18
+##########
+
+Achievements
+------------
+
+- the gdt loads correctly. yay!
+- wrote code to remap pic interrupts into the idt
+- started to write code to initialize the idt
+
+Issues
+------
+
+- the documentation on the x86 architecture is sparse at best - pic i/o port
+  address, especially. We take the values from a tutorial
