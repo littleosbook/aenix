@@ -29,7 +29,6 @@ struct gdt_ptr {
 typedef struct gdt_ptr gdt_ptr_t;
 
 gdt_entry_t gdt_entries[GDT_NUM_ENTRIES];
-gdt_ptr_t   gdt_ptr;
 
 /* external assembly function to set the gdt */
 void gdt_load_and_set(uint32_t);
@@ -37,6 +36,7 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type);
 
 void gdt_init()
 {
+	gdt_ptr_t gdt_ptr;
     gdt_ptr.limit   = sizeof(gdt_entry_t)*GDT_NUM_ENTRIES;
     gdt_ptr.base    = (uint32_t)&gdt_entries;
 
