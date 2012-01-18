@@ -1,7 +1,7 @@
 # Makefile for the kernel. Based on the makefile found at
 # http://www.jamesmolloy.co.uk/tutorial_html/1.-Environment%20setup.html
 
-OBJECTS = loader.o kmain.o fb.o io.o
+OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles \
 		 -nodefaultlibs -Wall -Wextra -c
