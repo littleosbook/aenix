@@ -3,8 +3,8 @@
 
 global gdt_load_and_set
 
-KERNEL_CODE_SEGMENT_OFFSET equ 0x08
-KERNEL_DATA_SEGMENT_OFFSET equ 0x10
+SEGSEL_KERNEL_CS equ 0x08
+SEGSEL_KERNEL_DS equ 0x10
 
 section .text
 
@@ -14,11 +14,11 @@ gdt_load_and_set:
     lgdt    [eax]               ; load gdt table
  
     ; load cs segment by doing a far jump
-    jmp     KERNEL_CODE_SEGMENT_OFFSET:.reload_segments
+    jmp     SEGSEL_KERNEL_CS:.reload_segments
 
 .reload_segments:
     ; we only use one segment for data
-    mov     ax, KERNEL_DATA_SEGMENT_OFFSET
+    mov     ax, SEGSEL_KERNEL_DS
     mov     ds, ax
     mov     ss, ax
     mov     es, ax
