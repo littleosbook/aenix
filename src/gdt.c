@@ -72,7 +72,7 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type)
      * AVL  |     0 |    1 | "available for use by system software"
      * LIM  |   0xF |    4 | the four highest bits of segment limit
      */
-    gdt_entries[n].granularity  |= 0x80 | 0x40 | 0x0F;
+    gdt_entries[n].granularity  |= (0x01 << 7) | (0x01 << 6) | 0x0F;
 
     /*
      * name | value | size | desc
@@ -82,6 +82,6 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type)
      * S    |     1 |    1 | descriptor type, 0 = system, 1 = code or data
      * Type |  type |    4 | segment type, how the segment can be accessed
      */
-    gdt_entries[n].access       = 0x80 | ((pl & 0x03) << 5) | 0x10 | (type & 0x0F);
+    gdt_entries[n].access       = (0x01 << 7) | ((pl & 0x03) << 5) | (0x01 << 4) | (type & 0x0F);
 }
 
