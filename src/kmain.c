@@ -1,5 +1,6 @@
 #include "fb.h"
 #include "gdt.h"
+#include "pic.h"
 
 #define UNUSED_ARGUMENT(x) (void) x
 
@@ -19,6 +20,8 @@ int kmain(void *mboot, unsigned int magic_number)
     UNUSED_ARGUMENT(magic_number);
 
     gdt_init();
+
+    pic_init();
 
     test_fb();
 
