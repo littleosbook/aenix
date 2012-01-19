@@ -78,7 +78,7 @@ void fb_putb(uint8_t b)
     } else {
         move_cursor_forward();
     }
-    
+
     if (cursor_pos >= FB_NUM_COLS * FB_NUM_ROWS) {
         scroll();
         fb_move_cursor(24, 0);
@@ -92,6 +92,25 @@ void fb_puts(char *s)
     }
 }
 
+void fb_putui(uint32_t i)
+{
+    /* FIXME: please make this code more beautiful */
+    uint32_t n, digit;
+    if (i >= 1000000000) {
+        n = 1000000000;
+    } else {
+        n = 1;
+        while (n*10 < i) {
+            n *= 10;
+        }
+    }
+    while (n > 0) {
+        digit = i / n;
+        fb_putb('0'+digit);
+        i %= n;
+        n /= 10;
+    }
+}
 void fb_write(uint8_t b, uint32_t row, uint32_t col)
 {
     uint8_t *cell = TO_ADDRESS(row, col);
