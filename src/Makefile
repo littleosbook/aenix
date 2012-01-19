@@ -3,8 +3,8 @@
 
 OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o
 CC = gcc
-CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles \
-		 -nodefaultlibs -Wall -Wextra -c
+CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror
 LDFLAGS = -T link.ld -melf_i386
 AS = nasm
 ASFLAGS = -f elf
@@ -30,4 +30,4 @@ kernel: $(OBJECTS)
 	$(AS) $(ASFLAGS) $< 
 
 clean:
-	rm -r *.o kernel bin
+	rm -rf *.o kernel bin
