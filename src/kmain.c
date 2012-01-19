@@ -1,17 +1,18 @@
 #include "fb.h"
 #include "gdt.h"
 #include "pic.h"
+#include "idt.h"
+#include "interrupt.h"
 
 #define UNUSED_ARGUMENT(x) (void) x
 
-void test_fb()
+void kinit()
 {
-    int i;
-    fb_clear();
-    for (i = 0; i < 25; i++) {
-        fb_puts("BABA\n");
-    }
-    fb_puts("GEGE\n");
+    disable_interrupts();
+    gdt_init();
+    pic_init();
+    idt_init();
+    enable_interrupts();
 }
 
 int kmain(void *mboot, unsigned int magic_number)
@@ -19,11 +20,8 @@ int kmain(void *mboot, unsigned int magic_number)
     UNUSED_ARGUMENT(mboot);
     UNUSED_ARGUMENT(magic_number);
 
-    gdt_init();
-
-    pic_init();
-
-    test_fb();
+    kinit();
+    fb_clear();
 
     return 0xDEADBEEF;
 }

@@ -30,7 +30,6 @@ loader:
     push eax                            ; eax contains the MAGIC number
     push ebx                            ; ebx contains the multiboot data 
                                         ; structure
-    cli                                 ; disable interrupts
     call kmain                          ; call the main function of the kernel
 
 hang:
