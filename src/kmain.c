@@ -3,8 +3,7 @@
 #include "pic.h"
 #include "idt.h"
 #include "interrupt.h"
-
-#define UNUSED_ARGUMENT(x) (void) x
+#include "common.h"
 
 void kinit()
 {
