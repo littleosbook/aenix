@@ -67,3 +67,23 @@ Issues
 
 - the documentation on the x86 architecture is sparse at best - pic i/o port
   address, especially. We take the values from a tutorial
+
+2012-01-19
+##########
+
+Achievements
+------------
+
+- interrupts is finally working correctly. This took a while to implement, 
+  mostly due to having to deal with the PIC and the keyboard.
+- added code for printing integers
+- improved the build scripts slightly
+- joined the #osdev irc channel on freenode where we got help with some 
+  keyboard hardware details. we also got help on the os-dev forum
+
+Issues
+------
+
+- We are still having problems with the lack of documentation for various 
+  hardware, these are the issues that takes the longest time to solve, since we 
+  often have to ask for help on irc or os-dev
