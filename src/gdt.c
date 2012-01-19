@@ -7,9 +7,6 @@
 #define CODE_RX_TYPE    0xA
 #define DATA_RW_TYPE    0x2
 
-#define PL0 0x0
-#define PL3 0x3
-
 #define GDT_NUM_ENTRIES 3
 
 struct gdt_entry {
@@ -62,7 +59,6 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type)
 
     gdt_entries[n].limit_low    = (SEGMENT_LIMIT & 0xFFFF);
  
-    /* set granularity to 4kB and operation size to 32 bits */
     /*
      * name | value | size | desc
      * ---------------------------
@@ -82,6 +78,7 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type)
      * S    |     1 |    1 | descriptor type, 0 = system, 1 = code or data
      * Type |  type |    4 | segment type, how the segment can be accessed
      */
-    gdt_entries[n].access       = (0x01 << 7) | ((pl & 0x03) << 5) | (0x01 << 4) | (type & 0x0F);
+    gdt_entries[n].access =
+        (0x01 << 7) | ((pl & 0x03) << 5) | (0x01 << 4) | (type & 0x0F);
 }
 
