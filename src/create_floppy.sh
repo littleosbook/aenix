@@ -9,6 +9,7 @@
 BIN="bin"
 GRUB="../tools/grub"
 
+set -e
 echo "==== Creating bootable floppy image ===="
 
 if [ -d $BIN ]; then

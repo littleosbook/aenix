@@ -12,6 +12,7 @@ LOOPBACK="/dev/loop0"
 FLOPPY="floppy.img"
 KERNEL="kernel"
 
+set -e
 echo "==== Creating bootable floppy image ===="
 
 if [ -d $BIN ]; then
