@@ -45,10 +45,18 @@ void pic_init(void)
     /* ICW4 */
     outb(PIC1_PORT_B, PIC1_ICW4);
     outb(PIC2_PORT_B, PIC2_ICW4);
+
+	pic_mask(0xFD, 0xFF);
 }
 
 void pic_acknowledge()
 {
     outb(PIC1_PORT_A, PIC_EOI);
     outb(PIC2_PORT_A, PIC_EOI);
+}
+
+void pic_mask(uint8_t mask1, uint8_t mask2)
+{
+	outb(PIC1_PORT_B, mask1);
+	outb(PIC2_PORT_B, mask2);
 }
