@@ -46,7 +46,7 @@ void pic_init(void)
     outb(PIC1_PORT_B, PIC1_ICW4);
     outb(PIC2_PORT_B, PIC2_ICW4);
 
-	pic_mask(0xFD, 0xFF);
+    pic_mask(0xFD, 0xFF);
 }
 
 void pic_acknowledge()
@@ -57,6 +57,6 @@ void pic_acknowledge()
 
 void pic_mask(uint8_t mask1, uint8_t mask2)
 {
-	outb(PIC1_PORT_B, mask1);
-	outb(PIC2_PORT_B, mask2);
+    outb(PIC1_PORT_B, mask1);
+    outb(PIC2_PORT_B, mask2);
 }
