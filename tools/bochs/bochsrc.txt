@@ -5,5 +5,5 @@ floppya:        1_44=../../src/bin/floppy.img, status=inserted, write_protected=
 boot:           floppy
 log:            bochslog.txt
 mouse:          enabled=1
-clock:          sync=none, time0=local
+clock:          sync=realtime, time0=local
 cpu:            count=1, ips=1000000

@@ -4,6 +4,7 @@
 #include "idt.h"
 #include "interrupt.h"
 #include "common.h"
+#include "pit.h"
 
 void kinit()
 {
@@ -11,7 +12,13 @@ void kinit()
     gdt_init();
     pic_init();
     idt_init();
+    pit_init();
     enable_interrupts();
+}
+
+void display_tick()
+{
+    fb_putb('.');
 }
 
 int kmain(void *mboot, unsigned int magic_number)
@@ -21,6 +28,7 @@ int kmain(void *mboot, unsigned int magic_number)
 
     kinit();
     fb_clear();
+    pit_set_callback(1, &display_tick); 
 
     return 0xDEADBEEF;
 }

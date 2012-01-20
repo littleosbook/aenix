@@ -4,6 +4,7 @@
 #include "pic.h"
 #include "keyboard.h"
 #include "common.h"
+#include "pit.h"
 
 struct irq_info {
 	uint32_t idt_index;
@@ -37,6 +38,10 @@ void interrupt_handler(cpu_state_t state, irq_info_t info)
 
     if (info.idt_index == KEYBOARD_INTERRUPT_INDEX) {
         print_keyboard_input();
+    }
+
+    if (info.idt_index == TIMER_INTERRUPT_INDEX) {
+        pit_handle_interrupt();
     }
 
     if (info.idt_index >= PIC1_START && 
