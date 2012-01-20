@@ -26,7 +26,6 @@ static void write_cell(uint8_t *cell, uint8_t b)
 
 static void set_cursor(uint16_t loc)
 {
-    /*loc = loc % (FB_NUM_ROWS * FB_NUM_COLS);*/
     outb(FB_CURSOR_INDEX_PORT, FB_HIGH_BYTE);
     outb(FB_CURSOR_DATA_PORT, loc >> 8);
     outb(FB_CURSOR_INDEX_PORT, FB_LOW_BYTE);
@@ -37,6 +36,14 @@ static void move_cursor_forward(void)
 {
     cursor_pos++;
     set_cursor(cursor_pos);
+}
+
+static void move_cursor_back(void)
+{
+    if (cursor_pos != 0) {
+        cursor_pos--;
+        set_cursor(cursor_pos);
+    }
 }
 
 static void move_cursor_down()
@@ -67,7 +74,7 @@ static void scroll()
 
 void fb_putb(uint8_t b)
 {
-    if (b != '\n') {
+    if (b != '\n' && b != 8) {
         uint8_t *cell = fb + 2 * cursor_pos;
         write_cell(cell, b);
     }
@@ -75,6 +82,10 @@ void fb_putb(uint8_t b)
     if (b == '\n') {
         move_cursor_down(); 
         move_cursor_start();
+    } else if (b == 8) {
+        move_cursor_back();
+        uint8_t *cell = fb + 2 * cursor_pos;
+        write_cell(cell, ' ');
     } else {
         move_cursor_forward();
     }

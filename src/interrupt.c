@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "stdint.h"
 #include "fb.h"
 #include "pic.h"
@@ -22,16 +23,24 @@ struct cpu_state {
 } __attribute__((packed));
 typedef struct cpu_state cpu_state_t;
 
+void print_keyboard_input(void)
+{
+    uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
+    if (ch != 0) {
+        fb_putb(ch);
+    }
+}
+
 void interrupt_handler(cpu_state_t state, irq_info_t info)
 {
-	UNUSED_ARGUMENT(state);
-	fb_puts("Interrupt number: ");
-	fb_putui(info.idt_index);
-	fb_puts("\n");
-	if (info.idt_index == 0x21) {
-		kbd_read();
-	}
-	if (info.idt_index >= 0x20 && info.idt_index < (0x20+16)) {
-		pic_acknowledge();
-	}
+    UNUSED_ARGUMENT(state);
+
+    if (info.idt_index == KEYBOARD_INTERRUPT_INDEX) {
+        print_keyboard_input();
+    }
+
+    if (info.idt_index >= PIC1_START && 
+        info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
+        pic_acknowledge();
+    }
 }
