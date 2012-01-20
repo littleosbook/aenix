@@ -15,6 +15,8 @@
 
 #define TO_ADDRESS(row, col) (fb + 2 * (row * FB_NUM_COLS + col))
 
+#define FB_BACKSPACE_ASCII 8
+
 static uint8_t *fb = (uint8_t *) FB_MEMORY;
 static uint16_t cursor_pos;
 
@@ -74,7 +76,7 @@ static void scroll()
 
 void fb_putb(uint8_t b)
 {
-    if (b != '\n' && b != 8) {
+    if (b != '\n' && b != '\t' && b != FB_BACKSPACE_ASCII) {
         uint8_t *cell = fb + 2 * cursor_pos;
         write_cell(cell, b);
     }
@@ -82,10 +84,15 @@ void fb_putb(uint8_t b)
     if (b == '\n') {
         move_cursor_down(); 
         move_cursor_start();
-    } else if (b == 8) {
+    } else if (b == FB_BACKSPACE_ASCII) {
         move_cursor_back();
         uint8_t *cell = fb + 2 * cursor_pos;
         write_cell(cell, ' ');
+    } else if (b == '\t') {
+        int i;
+        for (i = 0; i < 3; ++i) {
+            fb_putb(' ');
+        }
     } else {
         move_cursor_forward();
     }

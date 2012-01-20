@@ -63,6 +63,7 @@
 #define KBD_SC_FSLASH   0x35
 #define KBD_SC_TILDE    0x29
 #define KBD_SC_CAPSLOCK 0x3a
+#define KBD_SC_TAB      0x0f
 
 static uint8_t is_lshift_down       = 0;
 static uint8_t is_rshift_down       = 0;
@@ -332,6 +333,9 @@ uint8_t kbd_scan_code_to_ascii(uint8_t scan_code)
             break;
         case KBD_SC_TILDE:
             ch = '`';
+            break;
+        case KBD_SC_TAB:
+            ch = '\t';
             break;
         case KBD_SC_LSHIFT:
             toggle_left_shift();
