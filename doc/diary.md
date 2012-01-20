@@ -87,3 +87,36 @@ Issues
 - We are still having problems with the lack of documentation for various 
   hardware, these are the issues that takes the longest time to solve, since we 
   often have to ask for help on irc or os-dev
+
+2012-01-20
+##########
+
+Achievements
+------------
+
+- the keyboard driver is more or less finished (all normal keys are covered, 
+  but support for numpad, F1 - F12, Insert, Home etc are missing). We will add 
+  support for them later on if needed.
+- the PIT (Programmable Interrupt Timer) driver seems to be finished 
+  (hard to test), at least the timer 
+  fires at different intervals depending on the frequency you set via the 
+  driver.
+- started reading up on paging. Also implemented full support for GRUB 
+  multiboot info. We can now find reserved and available memory areas, which 
+  is crucial to set uo the page table.
+
+Issues
+------
+
+- Testing things such as timers will be hard. They seems to work correctly, but 
+  it is hard to know if they fire at the exact correct interval.
+- We will have to implement a function that print integers in hexadecimal 
+  notation to ease debugging.
+
+Notes
+-----
+
+- Since the basic infrastucture is now working (console, keyboard, timer), 
+  the road ahead is not as clear any longer. Now we will probably have to read 
+  a bit more theory and also start to discuss how we want to design the kernel,
+  since at the moment we do not need any more low-level plumbing.
