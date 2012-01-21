@@ -24,7 +24,7 @@ void display_tick()
 
 void display_memory_info(multiboot_info_t *mbinfo)
 {
-    /* From the GRUB manual section 3.3 boot information format
+    /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be 
      * accessed.
      * If flags[6] is set, then the fields mmap_length and mmap_addr can be
@@ -40,7 +40,7 @@ void display_memory_info(multiboot_info_t *mbinfo)
         fb_putb('\n');
     }
 
-    if (mbinfo->flags & 0x00000006) {
+    if (mbinfo->flags & 0x00000020) {
         multiboot_memory_map_t *entry = 
             (multiboot_memory_map_t *) mbinfo->mmap_addr;
         while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
