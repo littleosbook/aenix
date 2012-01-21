@@ -31,10 +31,10 @@ void display_memory_info(multiboot_info_t *mbinfo)
      * accessed, which contains a complete memory map.
      */
     if (mbinfo->flags & 0x00000001) {
-        fb_puts("size of lower memory: ");
+        fb_puts("Size of lower memory: ");
         fb_putui(mbinfo->mem_lower);
         fb_puts(" kB\n");
-        fb_puts("size of upper memory: ");
+        fb_puts("Size of upper memory: ");
         fb_putui(mbinfo->mem_upper);
         fb_puts(" kB\n");
         fb_putb('\n');
@@ -47,13 +47,13 @@ void display_memory_info(multiboot_info_t *mbinfo)
             if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
                 fb_puts("Avaliable memory: ");
             } else {
-                fb_puts("Reserved memory: ");
+                fb_puts("Reserved memory:  ");
             }
             /* FIXME: This should fb_putull instead fb_putui, 
              * but fb_putull isn't written yet!
              */
             fb_puts("address: ");
-            fb_putui((uint32_t) entry->addr);
+            fb_putui_hex_pad((uint32_t) entry->addr, 8);
             fb_puts(", length: ");
             fb_putui((uint32_t) entry->len);
             fb_putb('\n');
