@@ -129,6 +129,50 @@ void fb_putui(uint32_t i)
         n /= 10;
     }
 }
+
+void fb_putui_hex(uint32_t i)
+{
+    fb_putui_hex_pad(i, 0);
+}
+
+void fb_putui_hex_pad(uint32_t i, uint8_t min_digits)
+{
+    char *digits = "0123456789ABCDEF";
+    uint32_t n, digit;
+
+    /* find the largest nibble to output */
+    if (i >= 0xF0000000) {
+        n = 28;
+    } else {
+        n = 0;
+        while ((((uint32_t)0x01) << (n+4)) < i) {
+            n += 4;
+        }
+    }
+
+    fb_puts("0x");
+
+    /* pad with zeroes */
+    if (min_digits > 0) {
+        min_digits -= 1;
+    }
+    min_digits <<= 2;
+    while (min_digits > n) {
+        fb_putb('0');
+        min_digits -= 4;
+    }
+    /* print the number */
+    while (1) {
+        digit = (i >> n) & 0x0000000F;
+        fb_putb(digits[digit]);
+        if (n == 0) {
+            break;
+        }
+        n -= 4;
+    }
+
+}
+
 void fb_write(uint8_t b, uint32_t row, uint32_t col)
 {
     uint8_t *cell = TO_ADDRESS(row, col);
