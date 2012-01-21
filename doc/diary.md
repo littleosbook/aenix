@@ -120,3 +120,11 @@ Notes
   the road ahead is not as clear any longer. Now we will probably have to read 
   a bit more theory and also start to discuss how we want to design the kernel,
   since at the moment we do not need any more low-level plumbing.
+
+2012-01-21
+##########
+
+Achievements
+------------
+
+- wrote a function that prints integers in hexadecimal notation
