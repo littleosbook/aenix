@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include "fb.h"
 #include "gdt.h"
 #include "pic.h"
@@ -19,7 +20,7 @@ void kinit()
 
 void display_tick()
 {
-    fb_putb('.');
+    printf(".");
 }
 
 void display_memory_info(multiboot_info_t *mbinfo)
@@ -31,13 +32,9 @@ void display_memory_info(multiboot_info_t *mbinfo)
      * accessed, which contains a complete memory map.
      */
     if (mbinfo->flags & 0x00000001) {
-        fb_puts("Size of lower memory: ");
-        fb_putui(mbinfo->mem_lower);
-        fb_puts(" kB\n");
-        fb_puts("Size of upper memory: ");
-        fb_putui(mbinfo->mem_upper);
-        fb_puts(" kB\n");
-        fb_putb('\n');
+        printf("size of lower memory: %u kB\n", mbinfo->mem_lower);
+        printf("size of upper memory: %u kB\n", mbinfo->mem_upper);
+        printf("\n");
     }
 
     if (mbinfo->flags & 0x00000020) {
@@ -45,18 +42,13 @@ void display_memory_info(multiboot_info_t *mbinfo)
             (multiboot_memory_map_t *) mbinfo->mmap_addr;
         while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
             if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                fb_puts("Avaliable memory: ");
+                printf("avaliable memory: ");
             } else {
-                fb_puts("Reserved memory:  ");
+                printf("reserverd memory: ");
             }
-            /* FIXME: This should fb_putull instead fb_putui, 
-             * but fb_putull isn't written yet!
-             */
-            fb_puts("address: ");
-            fb_putui_hex_pad((uint32_t) entry->addr, 8);
-            fb_puts(", length: ");
-            fb_putui((uint32_t) entry->len);
-            fb_putb('\n');
+            /* FIXME: printf should implement %llu */
+            printf("address: %X length: %u\n", 
+                    (uint32_t) entry->addr, (uint32_t) entry->len);
             entry = (multiboot_memory_map_t *) 
                 (((uint32_t) entry) + entry->size + sizeof(entry->size));
         }
@@ -68,14 +60,14 @@ int kmain(multiboot_info_t *mbinfo, uint32_t magic_number)
     fb_clear();
 
     if (magic_number != MULTIBOOT_BOOTLOADER_MAGIC) {
-        fb_puts("ERROR: magic number is wrong!\n");
-        fb_puts("magic_number: ");
-        fb_putui(magic_number);
+        printf("ERROR: magic number is wrong!\n");
+        printf("magic_number: %u\n", magic_number);
         return 0xDEADDEAD;
     }
 
     kinit();
 
+    printf("Welcome to aenix!\n");
     display_memory_info(mbinfo);
 
     /*pit_set_callback(1, &display_tick); */

@@ -74,7 +74,7 @@ static void scroll()
     }
 }
 
-void fb_putb(uint8_t b)
+void fb_put_b(uint8_t b)
 {
     if (b != '\n' && b != '\t' && b != FB_BACKSPACE_ASCII) {
         uint8_t *cell = fb + 2 * cursor_pos;
@@ -91,7 +91,7 @@ void fb_putb(uint8_t b)
     } else if (b == '\t') {
         int i;
         for (i = 0; i < 3; ++i) {
-            fb_putb(' ');
+            fb_put_b(' ');
         }
     } else {
         move_cursor_forward();
@@ -103,14 +103,14 @@ void fb_putb(uint8_t b)
     }
 }
 
-void fb_puts(char *s)
+void fb_put_s(char *s)
 {
     while (*s != '\0') {
-        fb_putb(*s++);
+        fb_put_b(*s++);
     }
 }
 
-void fb_putui(uint32_t i)
+void fb_put_ui(uint32_t i)
 {
     /* FIXME: please make this code more beautiful */
     uint32_t n, digit;
@@ -124,18 +124,18 @@ void fb_putui(uint32_t i)
     }
     while (n > 0) {
         digit = i / n;
-        fb_putb('0'+digit);
+        fb_put_b('0'+digit);
         i %= n;
         n /= 10;
     }
 }
 
-void fb_putui_hex(uint32_t i)
+void fb_put_ui_hex(uint32_t i)
 {
-    fb_putui_hex_pad(i, 0);
+    fb_put_ui_hex_pad(i, 0);
 }
 
-void fb_putui_hex_pad(uint32_t i, uint8_t min_digits)
+void fb_put_ui_hex_pad(uint32_t i, uint8_t min_digits)
 {
     char *digits = "0123456789ABCDEF";
     uint32_t n, digit;
@@ -150,7 +150,7 @@ void fb_putui_hex_pad(uint32_t i, uint8_t min_digits)
         }
     }
 
-    fb_puts("0x");
+    fb_put_s("0x");
 
     /* pad with zeroes */
     if (min_digits > 0) {
@@ -158,19 +158,18 @@ void fb_putui_hex_pad(uint32_t i, uint8_t min_digits)
     }
     min_digits <<= 2;
     while (min_digits > n) {
-        fb_putb('0');
+        fb_put_b('0');
         min_digits -= 4;
     }
     /* print the number */
     while (1) {
         digit = (i >> n) & 0x0000000F;
-        fb_putb(digits[digit]);
+        fb_put_b(digits[digit]);
         if (n == 0) {
             break;
         }
         n -= 4;
     }
-
 }
 
 void fb_write(uint8_t b, uint32_t row, uint32_t col)

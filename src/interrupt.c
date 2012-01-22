@@ -1,10 +1,10 @@
 #include "interrupt.h"
 #include "stdint.h"
-#include "fb.h"
 #include "pic.h"
 #include "keyboard.h"
 #include "common.h"
 #include "pit.h"
+#include "stdio.h"
 
 struct irq_info {
 	uint32_t idt_index;
@@ -28,7 +28,7 @@ void print_keyboard_input(void)
 {
     uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
     if (ch != 0) {
-        fb_putb(ch);
+        printf("%u", ch);
     }
 }
 
