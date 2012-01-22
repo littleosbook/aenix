@@ -30,5 +30,8 @@ kernel: $(OBJECTS)
 .s.o: 
 	$(AS) $(ASFLAGS) $< 
 
+doc:
+	cd .. ; doxygen doc/Doxyfile
+
 clean:
 	rm -rf *.o kernel bin
