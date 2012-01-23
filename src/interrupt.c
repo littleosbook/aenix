@@ -28,7 +28,7 @@ void print_keyboard_input(void)
 {
     uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
     if (ch != 0) {
-        printf("%u", ch);
+        printf("%c", ch);
     }
 }
 
