@@ -90,7 +90,7 @@ void fb_put_b(uint8_t b)
         write_cell(cell, ' ');
     } else if (b == '\t') {
         int i;
-        for (i = 0; i < 3; ++i) {
+        for (i = 0; i < 4; ++i) {
             fb_put_b(' ');
         }
     } else {
