@@ -23,7 +23,7 @@ void display_tick()
     printf(".");
 }
 
-void display_memory_info(multiboot_info_t *mbinfo)
+void display_memory_info(multiboot_info_t *mbinfo, uint32_t end_of_kernel)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be 
@@ -53,9 +53,11 @@ void display_memory_info(multiboot_info_t *mbinfo)
                 (((uint32_t) entry) + entry->size + sizeof(entry->size));
         }
     }
+
+    printf("kernel ends at: %X\n", end_of_kernel);
 }
 
-int kmain(multiboot_info_t *mbinfo, uint32_t magic_number)
+int kmain(multiboot_info_t *mbinfo, uint32_t magic_number, uint32_t end_of_kernel)
 {
     fb_clear();
 
@@ -68,7 +70,7 @@ int kmain(multiboot_info_t *mbinfo, uint32_t magic_number)
     kinit();
 
     printf("Welcome to aenix!\n");
-    display_memory_info(mbinfo);
+    display_memory_info(mbinfo, end_of_kernel);
 
     /*pit_set_callback(1, &display_tick); */
 

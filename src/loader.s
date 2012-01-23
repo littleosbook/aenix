@@ -7,6 +7,7 @@
 global loader                           ; the entry point for the linker
 
 extern kmain                            ; kmain is defined in kmain.c
+extern end_of_kernel
 
 ; setting up the multiboot headers for GRUB
 MODULEALIGN equ 1<<0                    ; align loaded modules on page 
@@ -27,6 +28,7 @@ align 4
 ; the entry point, called by GRUB
 loader:
     mov esp, stack+STACKSIZE            ; sets up the stack pointer
+    push end_of_kernel
     push eax                            ; eax contains the MAGIC number
     push ebx                            ; ebx contains the multiboot data 
                                         ; structure
