@@ -6,11 +6,11 @@
 #include "pit.h"
 #include "stdio.h"
 
-struct irq_info {
+struct idt_info {
 	uint32_t idt_index;
 	uint32_t error_code;
 } __attribute__((packed));
-typedef struct irq_info irq_info_t;
+typedef struct idt_info idt_info_t;
 
 struct cpu_state {
 	uint32_t edi;
@@ -32,7 +32,7 @@ void print_keyboard_input(void)
     }
 }
 
-void interrupt_handler(cpu_state_t state, irq_info_t info)
+void interrupt_handler(cpu_state_t state, idt_info_t info)
 {
     UNUSED_ARGUMENT(state);
 
