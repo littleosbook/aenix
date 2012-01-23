@@ -19,6 +19,10 @@ void printf(char *s, ...)
         }
 
         switch (*++p) {
+            case 'c':
+                uival = va_arg(ap, uint32_t);
+                fb_put_b((uint8_t) uival);
+                break;
             case 'u':
                 uival = va_arg(ap, uint32_t);          
                 fb_put_ui(uival);
