@@ -2,30 +2,27 @@ ENTRY(loader)
 
 SECTIONS
 {
-    . = 0x00100000;
+    . = 0xC0100000;
     
-    .text ALIGN (0x1000) :
+    .text ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
     {
         *(.text)
     }
 
-    .rodata ALIGN (0x1000) :
+    .rodata ALIGN (0x1000) : AT(ADDR(.rodata)-0xC0000000)
     {
         *(.rodata*)
     }
 
-    .data ALIGN (0x1000) :
+    .data ALIGN (0x1000) : AT(ADDR(.data)-0xC0000000)
     {
         *(.data)
     }
 
-    .bss :
+    .bss : AT(ADDR(.bss)-0xC0000000)
     {
         *(COMMON)
         *(.bss)
-    }
-    . :
-    {
-        end_of_kernel = ALIGN(0x1000);
+        end_of_kernel = .;
     }
 }

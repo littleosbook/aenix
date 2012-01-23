@@ -11,18 +11,28 @@
 
 void kinit(uint32_t end_of_kernel)
 {
+    UNUSED_ARGUMENT(end_of_kernel)
     disable_interrupts();
     gdt_init();
     pic_init();
     idt_init();
     pit_init();
-	paging_init(end_of_kernel);
+	// paging_init(end_of_kernel);
     enable_interrupts();
 }
 
 void display_tick()
 {
     printf(".");
+}
+
+multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
+{
+    multiboot_info_t *mbinfo = (multiboot_info_t *) (mbaddr + KERNEL_BASE_ADDR);
+
+    mbinfo->mmap_addr += KERNEL_BASE_ADDR;
+
+    return mbinfo;
 }
 
 void display_memory_info(multiboot_info_t *mbinfo, uint32_t end_of_kernel)
@@ -59,8 +69,9 @@ void display_memory_info(multiboot_info_t *mbinfo, uint32_t end_of_kernel)
     printf("kernel ends at: %X\n", end_of_kernel);
 }
 
-int kmain(multiboot_info_t *mbinfo, uint32_t magic_number, uint32_t end_of_kernel)
+int kmain(uint32_t mbaddr, uint32_t magic_number, uint32_t end_of_kernel)
 {
+    multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
     fb_clear();
 
     if (magic_number != MULTIBOOT_BOOTLOADER_MAGIC) {

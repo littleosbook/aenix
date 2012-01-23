@@ -1,7 +1,9 @@
 #include "fb.h"
 #include "io.h"
+#include "common.h"
 
-#define FB_MEMORY 0xB8000
+#define FB_MEMORY KERNEL_BASE_ADDR + 0x000B8000
+
 #define FB_NUM_COLS 80
 #define FB_NUM_ROWS 25
 
