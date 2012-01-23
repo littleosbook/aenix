@@ -42,9 +42,9 @@ void display_memory_info(multiboot_info_t *mbinfo)
             (multiboot_memory_map_t *) mbinfo->mmap_addr;
         while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
             if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                printf("avaliable memory: ");
+                printf("available memory: ");
             } else {
-                printf("reserverd memory: ");
+                printf("reserved memory:  ");
             }
             /* FIXME: printf should implement %llu */
             printf("address: %X length: %u\n", 
