@@ -141,11 +141,11 @@ void fb_put_ui_hex_pad(uint32_t i, uint8_t min_digits)
     uint32_t n, digit;
 
     /* find the largest nibble to output */
-    if (i >= 0xF0000000) {
+    if (i >= 0x10000000) {
         n = 28;
     } else {
         n = 0;
-        while ((((uint32_t)0x01) << (n+4)) < i) {
+        while ((((uint32_t)0x01) << (n+4)) <= i) {
             n += 4;
         }
     }
