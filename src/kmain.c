@@ -7,14 +7,16 @@
 #include "common.h"
 #include "pit.h"
 #include "multiboot.h"
+#include "paging.h"
 
-void kinit()
+void kinit(uint32_t end_of_kernel)
 {
     disable_interrupts();
     gdt_init();
     pic_init();
     idt_init();
     pit_init();
+	paging_init(end_of_kernel);
     enable_interrupts();
 }
 
@@ -67,7 +69,7 @@ int kmain(multiboot_info_t *mbinfo, uint32_t magic_number, uint32_t end_of_kerne
         return 0xDEADDEAD;
     }
 
-    kinit();
+    kinit(end_of_kernel);
 
     printf("Welcome to aenix!\n");
     display_memory_info(mbinfo, end_of_kernel);

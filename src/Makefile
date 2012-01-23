@@ -2,7 +2,8 @@
 # http://www.jamesmolloy.co.uk/tutorial_html/1.-Environment%20setup.html
 
 OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o idt.o idt_asm.o \
-		  interrupt.o interrupt_asm.o keyboard.o pit.o stdio.o
+		  interrupt.o interrupt_asm.o keyboard.o pit.o stdio.o string.o \
+		  paging.o paging_asm.o
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror
