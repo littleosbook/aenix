@@ -128,3 +128,47 @@ Achievements
 ------------
 
 - wrote a function that prints integers in hexadecimal notation
+
+2012-01-22
+##########
+
+Achievements
+------------
+
+- wrote a simple printf() based on the one in K&R
+- added configuration file for doxygen
+- wrote some doxygen documentation
+
+Issues
+------
+
+- We need to document some more :D
+
+2012-01-23
+##########
+
+Achievements
+------------
+
+- wrote and enabled identity (1:1) paging for the first 4MB of memory (this
+  is where the kernel resides)
+- rewrote the paging so that the kernel is an "upper-half" ("higher-half")
+  kernel, which means that memory from 0xC0000000..0XFFFFFFFF is mapped to
+  the kernel (the kernel is still at the physical memory at 1MB)
+
+Issues
+------
+
+- We need to write more documentation on the paging and upper-half kernel
+  stuff.
+
+2012-01-24
+##########
+
+Achievements
+------------
+
+- wrote a script to generate a bootable ISO file with GRUB 2
+- rewrote the script to generate a bootable ISO file with GRUB 1 and possibly
+  arbitrary binary modules that the kernel load into memory
+- we now only depend on genisoimage to create the bootable media
