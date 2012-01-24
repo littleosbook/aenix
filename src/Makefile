@@ -1,23 +1,21 @@
-# Makefile for the kernel. Based on the makefile found at
-# http://www.jamesmolloy.co.uk/tutorial_html/1.-Environment%20setup.html
-
 OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o idt.o idt_asm.o \
 		  interrupt.o interrupt_asm.o keyboard.o pit.o stdio.o string.o \
 		  paging.o paging_asm.o
-MODULES = 
+MODULES = test_module.mod
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror
 LDFLAGS = -T link.ld -melf_i386
 AS = nasm
 ASFLAGS = -f elf
+MODULE_AS_FLAGS=-f bin
 
 all: kernel.elf
 
 run: iso
 	./run_bochs.sh
 
-iso: kernel.elf
+iso: kernel.elf $(MODULES)
 	./create_iso.sh $(MODULES)
 
 kernel.elf: $(OBJECTS)
@@ -29,8 +27,11 @@ kernel.elf: $(OBJECTS)
 .s.o: 
 	$(AS) $(ASFLAGS) $< 
 
+%.mod: %.s
+	$(AS) $(MODULE_AS_FLAGS) $< -o $@
+
 doc:
 	cd .. ; doxygen doc/Doxyfile
 
 clean:
-	rm -rf *.o kernel.elf aenix.iso
+	rm -rf *.o kernel.elf aenix.iso *.mod
