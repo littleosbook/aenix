@@ -7,7 +7,10 @@
 global loader                           ; the entry point for the linker
 
 extern kmain                            ; kmain is defined in kmain.c
-extern end_of_kernel
+extern kernel_virtual_end               ; these are defined in the link script
+extern kernel_virtual_start
+extern kernel_physical_end
+extern kernel_physical_start
 
 ; setting up the multiboot headers for GRUB
 MODULEALIGN equ 1<<0                    ; align loaded modules on page 
@@ -65,7 +68,10 @@ higher_half:
     invlpg  [0]                             ; and flush any tlb-references to it
 
     mov esp, stack+STACKSIZE            ; sets up the stack pointer
-    push end_of_kernel
+    push kernel_virtual_end             ; these are used by kmain, see
+    push kernel_virtual_start           ; kernel_limits_t in kmain.c
+    push kernel_physical_end
+    push kernel_physical_start
     push eax                            ; eax contains the MAGIC number
     push ebx                            ; ebx contains the multiboot data 
                                         ; structure

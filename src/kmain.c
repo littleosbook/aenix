@@ -9,9 +9,16 @@
 #include "multiboot.h"
 #include "paging.h"
 
-void kinit(uint32_t end_of_kernel)
+struct kernel_limits {
+    uint32_t kernel_physical_start;
+    uint32_t kernel_physical_end;
+    uint32_t kernel_virtual_start;
+    uint32_t kernel_virtual_end;
+} __attribute__((packed));
+typedef struct kernel_limits kernel_limits_t;
+
+void kinit()
 {
-    UNUSED_ARGUMENT(end_of_kernel)
     disable_interrupts();
     gdt_init();
     pic_init();
@@ -35,7 +42,7 @@ multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-void display_memory_info(multiboot_info_t *mbinfo, uint32_t end_of_kernel)
+void display_memory_info(multiboot_info_t *mbinfo, kernel_limits_t *limits)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be 
@@ -66,10 +73,13 @@ void display_memory_info(multiboot_info_t *mbinfo, uint32_t end_of_kernel)
         }
     }
 
-    printf("kernel ends at: %X\n", end_of_kernel);
+    printf("kernel physical start: %X\n", limits->kernel_physical_start);
+    printf("kernel physical end: %X\n", limits->kernel_physical_end);
+    printf("kernel virtual start: %X\n", limits->kernel_virtual_start);
+    printf("kernel virtual end: %X\n", limits->kernel_virtual_end);
 }
 
-int kmain(uint32_t mbaddr, uint32_t magic_number, uint32_t end_of_kernel)
+int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_limits_t limits)
 {
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
     fb_clear();
@@ -80,10 +90,10 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, uint32_t end_of_kernel)
         return 0xDEADDEAD;
     }
 
-    kinit(end_of_kernel);
+    kinit();
 
     printf("Welcome to aenix!\n");
-    display_memory_info(mbinfo, end_of_kernel);
+    display_memory_info(mbinfo, &limits);
 
     /*pit_set_callback(1, &display_tick); */
 
