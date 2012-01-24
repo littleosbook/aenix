@@ -172,3 +172,14 @@ Achievements
 - rewrote the script to generate a bootable ISO file with GRUB 1 and possibly
   arbitrary binary modules that the kernel load into memory
 - we now only depend on genisoimage to create the bootable media
+- managed to jump to a loaded module and perform an INT 0x86 instruction to 
+  trigger a sys call interrupt
+- make can now automatically build all modules and copy them to the iso
+
+Issues
+------
+
+- We were not able to jump back to the kernel code after jumping loaded binary 
+  code. This will require more investigation.
+- The document about paging and kernel is still not written, Erik will write it 
+  tomorrow morning.
