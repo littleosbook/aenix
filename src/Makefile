@@ -33,4 +33,4 @@ doc:
 	cd .. ; doxygen doc/Doxyfile
 
 clean:
-	rm -rf *.o kernel.elf
+	rm -rf *.o kernel.elf aenix.iso
