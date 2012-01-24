@@ -28,15 +28,15 @@ common_interrupt_handler:
 	push	esi
 	push	edi
 	call	interrupt_handler
-	pop		edi
-	pop		esi
-	pop		ebp
-	pop		esp
-	pop		ebx
-	pop		edx
-	pop		ecx
-	pop		eax
-	add		esp, 8
+	pop	edi
+	pop	esi
+	pop	ebp
+	pop	esp
+	pop	ebx
+	pop	edx
+	pop	ecx
+	pop	eax
+	add	esp, 8
 	iret
 
 section .text:
