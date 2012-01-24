@@ -48,4 +48,9 @@ void interrupt_handler(cpu_state_t state, idt_info_t info)
         info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
         pic_acknowledge();
     }
+
+    if (info.idt_index == SYS_CALL_INTERRUPT_INDEX) {
+        printf("sys call interrupt");
+    }
+
 }

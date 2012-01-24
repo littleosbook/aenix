@@ -3,6 +3,7 @@
 
 #define TIMER_INTERRUPT_INDEX    PIC1_START
 #define KEYBOARD_INTERRUPT_INDEX PIC1_START + 1
+#define SYS_CALL_INTERRUPT_INDEX 0x86
 
 void enable_interrupts(void);
 void disable_interrupts(void);
