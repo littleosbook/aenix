@@ -41,6 +41,11 @@ MENU="default=0
 timeout=0
 "
 
+# add the menu entry for aenix
+MENU="$MENU
+title aenix
+kernel /boot/kernel.elf"
+
 # create one entry for each module
 for m in $MODULES
 do
@@ -48,14 +53,6 @@ do
 module /modules/$m"
 done
 
-# add a newline for beuty ;)
-MENU="$MENU
-"
-
-# add the menu entry for aenix
-MENU="$MENU
-title aenix 
-kernel /boot/kernel.elf"
 
 echo "$MENU" > $ISO_FOLDER/boot/grub/menu.lst
 
