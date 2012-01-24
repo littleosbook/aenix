@@ -1,44 +1,80 @@
 #!/bin/bash
 # Creates a bootable ISO for aenix.
-# Dependencies: xorriso and grub-mkrescue
-# NOTE: grub-mkrescue is part of GRUB 2, so if your OS doesn't use GRUB 2 as 
-#       the bootloader, you will not have grub-mkrescue and it will probably 
-#       be a little bit of trouble installing it without removing your old
-#       bootloader.
-
-# check if the program xorriso is in the path
-XORRISO_PATH=`which xorriso`
-if [ -z $XORRISO_PATH ]; then
-    echo "ERROR: The program xorriso must be installed"
-    exit 1
-fi
+# Arguments: A list of modules to load at boot
+# Dependencies: genisoimage
 
 # check if the program grub-mkrescue is in the path
-GRUB_MKRESCUE_PATH=`which grub-mkrescue`
-if [ -z $GRUB_MKRESCUE_PATH ]; then
-    echo "ERROR: The program grub-mkrescue must be installed"
+GENISOIMAGE_PATH=`which genisoimage`
+if [ -z $GENISOIMAGE_PATH ]; then
+    echo "ERROR: The program genisoimage must be installed"
     exit 1
 fi
 
 set -e # fail as soon as one command fails
 
+MODULES="$@"
+ISO_FOLDER="iso"
+STAGE2_ELTORITO="../tools/grub/stage2_eltorito"
+
+# create the ISO catalog structure
+mkdir -p $ISO_FOLDER/boot/grub
+mkdir $ISO_FOLDER/modules
+
+# copy the stage2_eltorito into the correct place
+cp $STAGE2_ELTORITO $ISO_FOLDER/boot/grub/
+
 # copy the kernel to the correct location
 KERNEL=kernel.elf
-mkdir -p iso/boot/grub
-cp $KERNEL iso/boot/$KERNEL
+cp $KERNEL $ISO_FOLDER/boot/$KERNEL
 
-# create the grub.cfg file
-GRUB_CFG="set default=0
-set timeout=0
+# copy all the modules
+for m in $MODULES
+do
+    cp $m $ISO_FOLDER/modules/
+done
 
-menuentry \"aenix\" {
-    multiboot /boot/$KERNEL
-    boot
-}"
-echo "$GRUB_CFG" > iso/boot/grub/grub.cfg
+# create the menu.lst file
 
-# create the iso with the help of GRUB
-grub-mkrescue -o aenix.iso iso
+# set default=0: boot from the first entry (which will be aenix)
+# set timeout=0: immediatly boot from the first entry
+MENU="default=0
+timeout=0
+"
+
+# create one entry for each module
+for m in $MODULES
+do
+    MENU="$MENU
+module /modules/$m"
+done
+
+# add a newline for beuty ;)
+MENU="$MENU
+"
+
+# add the menu entry for aenix
+MENU="$MENU
+title aenix 
+kernel /boot/kernel.elf"
+
+echo "$MENU" > $ISO_FOLDER/boot/grub/menu.lst
+
+# build the ISO image
+# -R:                   Use the Rock Ridge protocol (needed by GRUB)
+# -b file:              The file to boot from (relative to the root folder of 
+#                       the ISO)
+# -no-emul-boot:        Do not perform any disk emulation
+# -boot-load-size sz:   The number 512 byte sectors to load. Apparently most 
+#                       BIOS likes the number 4.
+# -boot-info-table:     Writes information about the ISO layout to ISO (needed 
+#                       by GRUB)
+# -o name:              The name of the iso
+# -A name:              The label of the iso
+# -input-charset cs:    The charset for the input files
+# -quiet:               Disable any output from genisoimage
+genisoimage -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 \
+            -A aenix -input-charset utf8 -quiet -boot-info-table \
+            -o aenix.iso $ISO_FOLDER
 
 # clean up
-rm -r iso
+rm -r $ISO_FOLDER
