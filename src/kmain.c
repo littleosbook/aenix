@@ -8,23 +8,17 @@
 #include "pit.h"
 #include "multiboot.h"
 #include "paging.h"
+#include "kernel.h"
 
-struct kernel_limits {
-    uint32_t kernel_physical_start;
-    uint32_t kernel_physical_end;
-    uint32_t kernel_virtual_start;
-    uint32_t kernel_virtual_end;
-} __attribute__((packed));
-typedef struct kernel_limits kernel_limits_t;
-
-void kinit()
+void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
+    UNUSED_ARGUMENT(mem);
     disable_interrupts();
     gdt_init();
     pic_init();
     idt_init();
     pit_init();
-	// paging_init(end_of_kernel);
+	paging_init(boot_page_directory);
     enable_interrupts();
 }
 
@@ -42,7 +36,7 @@ multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-void display_memory_info(multiboot_info_t *mbinfo, kernel_limits_t *limits)
+void display_memory_info(multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be 
@@ -73,13 +67,14 @@ void display_memory_info(multiboot_info_t *mbinfo, kernel_limits_t *limits)
         }
     }
 
-    printf("kernel physical start: %X\n", limits->kernel_physical_start);
-    printf("kernel physical end: %X\n", limits->kernel_physical_end);
-    printf("kernel virtual start: %X\n", limits->kernel_virtual_start);
-    printf("kernel virtual end: %X\n", limits->kernel_virtual_end);
+    printf("kernel physical start: %X\n", mem->kernel_physical_start);
+    printf("kernel physical end: %X\n", mem->kernel_physical_end);
+    printf("kernel virtual start: %X\n", mem->kernel_virtual_start);
+    printf("kernel virtual end: %X\n", mem->kernel_virtual_end);
 }
 
-int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_limits_t limits)
+int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
+          uint32_t boot_page_directory)
 {
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
     fb_clear();
@@ -90,10 +85,10 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_limits_t limits)
         return 0xDEADDEAD;
     }
 
-    kinit();
+    kinit(&mem, boot_page_directory);
 
     printf("Welcome to aenix!\n");
-    display_memory_info(mbinfo, &limits);
+    display_memory_info(mbinfo, &mem);
 
     /*pit_set_callback(1, &display_tick); */
 

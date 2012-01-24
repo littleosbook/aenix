@@ -3,6 +3,6 @@
 
 #include "stdint.h"
 
-void paging_init(uint32_t end_of_kernel);
+void paging_init(uint32_t boot_page_directory);
 
 #endif /* PAGING_H */

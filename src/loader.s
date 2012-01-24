@@ -5,6 +5,7 @@
 ; based on http://wiki.osdev.org/Bare_bones#NASM
 
 global loader                           ; the entry point for the linker
+global boot_page_directory
 
 extern kmain                            ; kmain is defined in kmain.c
 extern kernel_virtual_end               ; these are defined in the link script
@@ -68,6 +69,7 @@ higher_half:
     invlpg  [0]                             ; and flush any tlb-references to it
 
     mov esp, stack+STACKSIZE            ; sets up the stack pointer
+    push boot_page_directory
     push kernel_virtual_end             ; these are used by kmain, see
     push kernel_virtual_start           ; kernel_limits_t in kmain.c
     push kernel_physical_end

@@ -2,12 +2,18 @@
 #include "string.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "common.h"
 
 #define NUM_ENTRIES 1024
 #define PDT_SIZE NUM_ENTRIES * sizeof(pde_t)
 #define PT_SIZE  NUM_ENTRIES * sizeof(pte_t)
 
 #define VIRTUAL_TO_PDT_IDX(a) ((a >> 20) & 0x3FF)
+
+#define PS_4KB 0x00
+#define PS_4MB 0x01
+
+#define IS_ENTRY_PRESENT(e) ((e)->config && 0x01)
 
 /* pde: page directory entry */
 struct pde {
@@ -30,11 +36,12 @@ typedef struct pte pte_t;
  *
  * @param pdt   The page descriptor table
  * @param n     The index in the PDT
- * @param pt    The address to the first entry in the page table
+ * @param addr  The address to the first entry in the page table, or a 
+ *              4MB page frame
+ * @param ps    Page size, either PS_4KB or PS_4MB
  */
-static void create_pdt_entry(pde_t *pdt, uint32_t n, pte_t *pte)
+static void create_pdt_entry(pde_t *pdt, uint32_t n, uint32_t addr, uint8_t ps)
 {
-    uint32_t addr = (uint32_t) pte;
     /* Since page tables are aligned at 4kB boundaries, we only need to store 
      * the 20 highest bits */
     /* The lower 4 bits */
@@ -57,14 +64,14 @@ static void create_pdt_entry(pde_t *pdt, uint32_t n, pte_t *pte)
      *     PCD |     0 |    1 | Page-level cache disable
      *       A |     0 |    1 | Is set if the entry has been accessed
      * Ignored |     0 |    1 | Ignored
-     *      PS |     0 |    1 | Page size:
+     *      PS |    ps |    1 | Page size:
      *                              0 = address point to pt entry, 
      *                              1 = address points to 4 MB page
      * Ignored |     0 |    4 | Ignored
      *
      * NOTE: Ignored is not part of pdt[n].config!
      */
-    pdt[n].config = (0x01 << 3) | (0x01 << 1) | 0x01;
+    pdt[n].config = ((ps && 0x01) << 7) | (0x01 << 3) | (0x01 << 1) | 0x01;
 }
 
 /**
@@ -109,28 +116,24 @@ static void create_pt_entry(pte_t *pt, uint32_t n, uint32_t addr)
 
 extern void pdt_set(uint32_t pdt_addr); /* defined in paging_asm.s */
 
-void paging_init(uint32_t end_of_kernel)
+void paging_init(uint32_t boot_page_directory)
 {
-    uint32_t i, cr3 = 0;
-    pde_t *pdt = (pde_t *) end_of_kernel;
-    pte_t *pt = (pte_t *) (end_of_kernel + PDT_SIZE);
+    uint32_t i, cr3;
+    pde_t *pdt = (pde_t *) boot_page_directory;
 
-    memset(pdt, 0, PDT_SIZE);
-    memset(pt, 0, PT_SIZE);
+    create_pdt_entry(pdt, 1, 0x10000000, PS_4MB);
 
-    /* identity paging for first 4 MB */
-    for (i = 0; i < 1024; ++i) {
-        create_pt_entry(pt, i, 0x00000000 + i * 4096);
+    cr3 = VIRTUAL_TO_PHYSICAL(boot_page_directory) | (0x01 << 3);
+    pdt_set(cr3);
+
+    printf("boot page directory: %X\n", (uint32_t)pdt);
+    printf("present pages:\n");
+
+    for (i = 0; i < NUM_ENTRIES; ++i) {
+        if (IS_ENTRY_PRESENT(pdt+i)) {
+            printf("%u: %X\n", i, pdt[i]);
+        }
     }
 
-    create_pdt_entry(pdt, 0, pt);
-
-    printf("pdt: %X\n", (uint32_t) pdt);
-    printf("pt: %X\n", (uint32_t) pt);
-    printf("pdt[0].config %X\n", pdt[0].config);
-    printf("pdt[0].low_addr %X\n", pdt[0].low_addr);
-    printf("pdt[0].high_addr %X\n", pdt[0].high_addr);
-    
-    cr3 = ((uint32_t) pdt & 0xFFFFF000) | (0x01 << 3);
-    pdt_set(cr3);
+    UNUSED_ARGUMENT(create_pt_entry);
 }
