@@ -32,4 +32,4 @@ doc:
 	cd .. ; doxygen doc/Doxyfile
 
 clean:
-	rm -rf *.o kernel bin
+	rm -rf *.o kernel.elf

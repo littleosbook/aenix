@@ -6,22 +6,21 @@
 #       be a little bit of trouble installing it without removing your old
 #       bootloader.
 
-set -e # fail as soon as one command fails
-
 # check if the program xorriso is in the path
 XORRISO_PATH=`which xorriso`
-if [ $XORRISO_PATH == "" ]; then
-    echo "ERROR: The program xorriso must be installed\n"
+if [ -z $XORRISO_PATH ]; then
+    echo "ERROR: The program xorriso must be installed"
     exit 1
 fi
 
 # check if the program grub-mkrescue is in the path
 GRUB_MKRESCUE_PATH=`which grub-mkrescue`
-if [ $GRUB_MKRESCUE_PATH == "" ]; then
-    echo "ERROR: The program grub-mkrescue must be installed\n"
+if [ -z $GRUB_MKRESCUE_PATH ]; then
+    echo "ERROR: The program grub-mkrescue must be installed"
     exit 1
 fi
 
+set -e # fail as soon as one command fails
 
 # copy the kernel to the correct location
 KERNEL=kernel.elf
