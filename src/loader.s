@@ -26,6 +26,8 @@ KERNEL_PAGE_IDX         equ (KERNEL_VIRTUAL_BASE >> 22) ; PDT index for 4MB PDE
 section .data
 align 4096                               ; align on 4kB blocks
 boot_page_directory:
+    ; we want, from left to right:
+    ; 4MB page, Page write-through, Writable, Present
     dd 00000000000000000000000010001011b ; identity mapped first 4MB
     times (KERNEL_PAGE_IDX-1) dd 0       ; no pages here
     dd 00000000000000000000000010001011b ; map 0xC0000000 to the first 4MB
