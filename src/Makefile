@@ -11,19 +11,16 @@ LDFLAGS = -T link.ld -melf_i386
 AS = nasm
 ASFLAGS = -f elf
 
-all: kernel
+all: kernel.elf
 
-run: image
-	cd ../tools; ./run_bochs.sh
+run: iso
+	./run_bochs.sh
 
-floppy: kernel
-	./create_floppy.sh
+iso: kernel.elf
+	./create_iso.sh
 
-image: kernel
-	./create_image.sh
-
-kernel: $(OBJECTS)
-	ld $(LDFLAGS) $(OBJECTS) -o kernel
+kernel.elf: $(OBJECTS)
+	ld $(LDFLAGS) $(OBJECTS) -o kernel.elf
 
 .o: 
 	$(CC) $(CFLAGS) $< -o $@
