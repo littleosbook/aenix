@@ -1,3 +1,7 @@
+% How to install bochs
+% Erik Helin, Adam Renberg
+% 25 January, 2012
+
 How to install bochs
 ====================
 
