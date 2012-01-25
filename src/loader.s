@@ -25,6 +25,12 @@ CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
 ; paging for the kernel
 KERNEL_VIRTUAL_BASE     equ 0xC0000000                  ; we start at 3GB
 KERNEL_PAGE_IDX         equ (KERNEL_VIRTUAL_BASE >> 22) ; PDT index for 4MB PDE
+KERNEL_PAGE_SIZE        equ 0x00400000                  ; the page is 4 MB
+
+; stack management
+; the stack grows from the end of the page towards lower address
+; the stack must be aligned at 4 bytes, hence -4 instead of -1
+KERNEL_STACK_VIRTURAL_ADDRESS equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE - 4
 
 ; the page directory used to boot the kernel into the higher half
 section .data
@@ -55,9 +61,9 @@ loader:
     or  ecx, 0x00000010     ; set bit enabling 4MB pages
     mov cr4, ecx            ; enable it by writing to cr4
 
-    mov	ecx, cr0		    ; read current config from cr0
-	or	ecx, 0x80000000	    ; the highest bit controls paging
-	mov cr0, ecx		    ; enable paging by writing config to cr0
+    mov	ecx, cr0	    ; read current config from cr0
+    or  ecx, 0x80000000	    ; the highest bit controls paging
+    mov cr0, ecx	    ; enable paging by writing config to cr0
 
     lea ecx, [higher_half]  ; store the address higher_half in ecx
     jmp ecx                 ; now we jump into 0xC0100000
@@ -68,7 +74,7 @@ higher_half:
     mov     DWORD [boot_page_directory], 0  ; erase identity mapping of kernel
     invlpg  [0]                             ; and flush any tlb-references to it
 
-    mov esp, stack+STACKSIZE            ; sets up the stack pointer
+    mov esp, KERNEL_STACK_VIRTURAL_ADDRESS  ; set up the stack
     push boot_page_directory
     push kernel_virtual_end             ; these are used by kmain, see
     push kernel_virtual_start           ; kernel_limits_t in kmain.c
@@ -78,18 +84,5 @@ higher_half:
     push ebx                            ; ebx contains the multiboot data
                                         ; structure
     call kmain                          ; call the main function of the kernel
-
-    call 0xC010B000
-
-    int 0xAE
 hang:
     jmp hang                            ; loop forever
-
-; reserve initial stack space
-STACKSIZE equ 0x4000                    ; 16kB
-
-section .bss
-align 4
-stack:
-    resb STACKSIZE                      ; reserve memory for stack on
-                                        ; doubleworded memory
