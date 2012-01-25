@@ -1,5 +1,5 @@
 section .text:
 align 4
-    pop ebx
-    int 0x86
-    jmp ebx
+    int 0xAE
+    int 0xAE
+    ret

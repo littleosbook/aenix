@@ -72,22 +72,22 @@ no_error_code_handler 18
 no_error_code_handler 19
 
 ; irqs
-no_error_code_handler 32 
-no_error_code_handler 33 
-no_error_code_handler 34 
-no_error_code_handler 35 
-no_error_code_handler 36 
-no_error_code_handler 37 
-no_error_code_handler 38 
-no_error_code_handler 39 
-no_error_code_handler 40 
-no_error_code_handler 41 
-no_error_code_handler 42 
-no_error_code_handler 43 
-no_error_code_handler 44 
-no_error_code_handler 45 
-no_error_code_handler 46 
-no_error_code_handler 47 
+no_error_code_handler 32
+no_error_code_handler 33
+no_error_code_handler 34
+no_error_code_handler 35
+no_error_code_handler 36
+no_error_code_handler 37
+no_error_code_handler 38
+no_error_code_handler 39
+no_error_code_handler 40
+no_error_code_handler 41
+no_error_code_handler 42
+no_error_code_handler 43
+no_error_code_handler 44
+no_error_code_handler 45
+no_error_code_handler 46
+no_error_code_handler 47
 
 ; system call interrupt
-no_error_code_handler 134
+no_error_code_handler 174 ; 0xAE

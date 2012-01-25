@@ -14,11 +14,11 @@ extern kernel_physical_end
 extern kernel_physical_start
 
 ; setting up the multiboot headers for GRUB
-MODULEALIGN equ 1<<0                    ; align loaded modules on page 
+MODULEALIGN equ 1<<0                    ; align loaded modules on page
                                         ; boundaries
 MEMINFO     equ 1<<1                    ; provide memory map
 FLAGS       equ MODULEALIGN | MEMINFO   ; the multiboot flag field
-MAGIC       equ 0x1BADB002              ; magic number for bootloader to 
+MAGIC       equ 0x1BADB002              ; magic number for bootloader to
                                         ; find the header
 CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
 
@@ -75,10 +75,13 @@ higher_half:
     push kernel_physical_end
     push kernel_physical_start
     push eax                            ; eax contains the MAGIC number
-    push ebx                            ; ebx contains the multiboot data 
+    push ebx                            ; ebx contains the multiboot data
                                         ; structure
     call kmain                          ; call the main function of the kernel
 
+    call 0xC010B000
+
+    int 0xAE
 hang:
     jmp hang                            ; loop forever
 
@@ -88,5 +91,5 @@ STACKSIZE equ 0x4000                    ; 16kB
 section .bss
 align 4
 stack:
-    resb STACKSIZE                      ; reserve memory for stack on 
+    resb STACKSIZE                      ; reserve memory for stack on
                                         ; doubleworded memory

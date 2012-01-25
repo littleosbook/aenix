@@ -57,7 +57,7 @@ DECLARE_INTERRUPT_HANDLER(46);
 DECLARE_INTERRUPT_HANDLER(47);
 
 /* System call interrupt */
-DECLARE_INTERRUPT_HANDLER(134);
+DECLARE_INTERRUPT_HANDLER(174); /* 0xAE */
 
 struct idt_gate {
 	uint16_t handler_low;
@@ -65,7 +65,7 @@ struct idt_gate {
 	uint8_t zero;
 	uint8_t config;
 	uint16_t handler_high;
-} __attribute__((packed)); 
+} __attribute__((packed));
 typedef struct idt_gate idt_gate_t;
 
 struct idt_ptr {
@@ -128,7 +128,7 @@ void idt_init(void)
     CREATE_IDT_GATE(47);
 
     /* System call interrupt */
-    CREATE_IDT_GATE(134);
+    CREATE_IDT_GATE(174); /* OxAE */
 
     idt_load_and_set((uint32_t) &idt_ptr);
 }
@@ -151,11 +151,11 @@ static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type)
      * 1    |     1 |    1 | a one bit
      * T    |  type |    1 | the type of the gate, 1 = trap, 0 = interrupt
      */
-    idt[n].config = 
-        (0x01 << 7)          | 
-        ((PL0 & 0x03)  << 5) | 
-        (0x01 << 3)          | 
-        (0x01 << 2)          | 
-        (0x01 << 1)          | 
+    idt[n].config =
+        (0x01 << 7)          |
+        ((PL0 & 0x03)  << 5) |
+        (0x01 << 3)          |
+        (0x01 << 2)          |
+        (0x01 << 1)          |
         type;
 }

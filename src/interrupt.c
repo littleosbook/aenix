@@ -24,6 +24,13 @@ struct cpu_state {
 } __attribute__((packed));
 typedef struct cpu_state cpu_state_t;
 
+struct instr_state {
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+} __attribute__((packed));
+typedef struct instr_state instr_state_t;
+
 void print_keyboard_input(void)
 {
     uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
@@ -32,7 +39,7 @@ void print_keyboard_input(void)
     }
 }
 
-void interrupt_handler(cpu_state_t state, idt_info_t info)
+void interrupt_handler(cpu_state_t state, idt_info_t info, instr_state_t instr)
 {
     UNUSED_ARGUMENT(state);
 
@@ -44,13 +51,17 @@ void interrupt_handler(cpu_state_t state, idt_info_t info)
         pit_handle_interrupt();
     }
 
-    if (info.idt_index >= PIC1_START && 
+    if (info.idt_index >= PIC1_START &&
         info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
         pic_acknowledge();
+        return;
     }
 
     if (info.idt_index == SYS_CALL_INTERRUPT_INDEX) {
-        printf("sys call interrupt");
+        printf("sys call interrupt\n");
+        //return;
     }
+
+    printf("interrupt: %u, eip: %X, cs: %X, eflags: %X\n", info.idt_index, instr.eip, instr.cs, instr.eflags);
 
 }
