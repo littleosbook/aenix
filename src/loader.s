@@ -23,9 +23,9 @@ MAGIC       equ 0x1BADB002              ; magic number for bootloader to
 CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
 
 ; paging for the kernel
-KERNEL_VIRTUAL_BASE     equ 0xC0000000                  ; we start at 3GB
-KERNEL_PAGE_IDX         equ (KERNEL_VIRTUAL_BASE >> 22) ; PDT index for 4MB PDE
-KERNEL_PAGE_SIZE        equ 0x00400000                  ; the page is 4 MB
+KERNEL_VIRTUAL_BASE equ 0xC0000000                  ; we start at 3GB
+KERNEL_PAGE_SIZE    equ 0x00400000                  ; the page is 4 MB
+KERNEL_PDT_IDX      equ KERNEL_VIRTUAL_BASE >> 22   ; index = highest 10 bits
 
 ; stack management
 ; the stack grows from the end of the page towards lower address
@@ -36,13 +36,17 @@ KERNEL_STACK_VIRTURAL_ADDRESS equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE - 4
 section .data
 align 4096                               ; align on 4kB blocks
 boot_page_directory:
-    ; we want, from left to right:
-    ; 4MB page, Page write-through, Writable, Present
-    dd 00000000000000000000000010001011b ; identity mapped first 4MB
-    times (KERNEL_PAGE_IDX-1) dd 0       ; no pages here
-    dd 00000000000000000000000010001011b ; map 0xC0000000 to the first 4MB
-    times (1024-KERNEL_PAGE_IDX-1) dd 0  ; no more pages
-
+    ; the following macro identity maps all the memory except 0xC0000000 that
+    ; maps to 0x00000000
+    %assign mem 0
+    %rep    1024
+        %if mem == KERNEL_VIRTUAL_BASE
+            dd 00000000000000000000000010001011b
+        %else
+            dd (mem | 00000000000000000000000010001011b)
+        %endif
+        %assign mem mem+0x00400000
+    %endrep
 
 section .text
 align 4
@@ -52,6 +56,7 @@ align 4
 
 ; the entry point, called by GRUB
 loader:
+set_up_paging:
     mov ecx, (boot_page_directory-KERNEL_VIRTUAL_BASE)
     and ecx, 0xFFFFF000     ; we only care about the upper 20 bits
     or  ecx, 0x08           ; PWT, enable page write through?
@@ -71,9 +76,28 @@ loader:
 ; code executing from here on uses the page table, and is accessed through
 ; the upper half, 0xC0100000
 higher_half:
-    mov     DWORD [boot_page_directory], 0  ; erase identity mapping of kernel
-    invlpg  [0]                             ; and flush any tlb-references to it
 
+move_multiboot_modules:
+    mov     esp, mini_stack + MINI_STACK_SIZE   ; set up a temp min stack
+    push    eax                                 ; save eax on the stack
+    push    ebx                                 ; ebx = multiboot data
+    ; call move_modules
+    pop     ebx                                 ; restore ebx
+    pop     eax                                 ; restora eax
+
+restore_pdt:
+    %assign i 0
+    %assign mem 0
+    %rep    1024
+        %if i != KERNEL_PDT_IDX
+            mov DWORD [boot_page_directory + i*4], 0
+            invlpg [mem]
+        %endif
+        %assign i i+1
+        %assign mem mem+0x00400000
+    %endrep
+
+enter_kmain:
     mov esp, KERNEL_STACK_VIRTURAL_ADDRESS  ; set up the stack
     push boot_page_directory
     push kernel_virtual_end             ; these are used by kmain, see
@@ -86,3 +110,9 @@ higher_half:
     call kmain                          ; call the main function of the kernel
 hang:
     jmp hang                            ; loop forever
+
+MINI_STACK_SIZE equ 0x400
+section .bss:
+align 4
+mini_stack:
+    resb MINI_STACK_SIZE
