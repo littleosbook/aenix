@@ -183,3 +183,22 @@ Issues
   code. This will require more investigation.
 - The document about paging and kernel is still not written, Erik will write it 
   tomorrow morning.
+
+2012-01-25
+==========
+
+Achievements
+------------
+
+- wrote text about paging, the kernel, and putting the kernel in the upper half
+  of memory
+- configured pandoc/markdown2pdf to generate html and pdf from the markdown
+  files
+- changed the interrupt number for syscalls to 0xAE
+- we can call modules loaded by GRUB with call, and they can return to the
+  kernel with ret
+- determined to change the kernel stack to the end of the kernels 4MB page.
+  Started to write code to relocate the modules loaded by GRUB to make it
+  safe to put the stack there. The code written today creates an identity
+  mapping of all memory (except for the kernels upper-half place), and uses a
+  small temporary stack in bss. No module moving as of yet.
