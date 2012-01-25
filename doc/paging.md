@@ -1,42 +1,44 @@
-% How paging works with kernel
-% Erik Helin
+% How paging works with the kernel
+% Erik Helin, Adam Renberg
 % January 25, 2012
 
 # Paging and the kernel
 
-This document will describe how paging affects the kernel and how the issues 
+This document will describe how paging affects the kernel and how the issues
 can be solved.
 
 ## What is paging?
 
 Paging is the technique used in x86 to enable _virtual memory_. Virtual memory
-means that the each process will get the impression that the available memory 
-range is `0x00000000` - `0xFFFFFFFF` even though the actual size of the memory 
-is way less. When a process addresses a byte of memory, they will use a
-_virtual address_ instead of physical one (although the code in the user
-process won't notice any difference). The virtual address will then get
+means that the each process will get the impression that the available memory
+range is `0x00000000` - `0xFFFFFFFF` even though the actual size of the memory
+is way less. It also means that when a process addresses a byte of memory, they
+will use a _virtual address_ instead of physical one (although the code in the
+user process won't notice any difference). The virtual address will then get
 translated to a physical address by the MMU and the page table. If the virtual
 address isn't mapped to a physical address, the CPU will raise a page fault
 interrupt.
 
 ## How does this affect the kernel?
 
-Not at all, is the first answer, which is also correct. However, if one wants
-to have processes operating at different privilege level (PL) than the kernel,
-it does. A process operating at PL 3 will hereafter be called a user mode
+Not at all, is the first answer, which is also correct. Paging is optional.
+However, if one wants to have processes operating at different privilege level
+(PL) than the kernel, paging is required, and it is up to the kernel to set it
+up. A process operating at PL 3 will hereafter be called a user mode
 process. In order to protect the user mode processes from writing and reading
 other user mode processes (or the kernels) memory, each user process will map
-the virtual address space to a different physical piece of memory.
+the virtual address space to a different physical pieces of memory.
 
-## What does user mode processes has to with the kernel?
+## What does user mode processes have to with the kernel?
 
 The way a user mode process communicates with the kernel is by performing a
-`trap`, by issuing the `INT 0xAE` assembly instruction. When the CPU executes 
+`trap`, by issuing the `INT 0xAE` assembly instruction. When the CPU executes
 `INT 0xAE`, it will load the address stored in register `IDTR`, which contains
-the address to the interrupt vector table. Since paging is enabled, reading
-this address will cause page fault, _if_ the kernel isn't added to the user
-mode process table. Hence, the kernel must reside at some virtual address
-in each user mode process.
+the address to the interrupt descriptor table (IDT). It will then jump to entry
+0xAE in the table and call jump to the address stored there. Since paging is
+enabled, reading this address will cause page fault, _if_ the kernel isn't added
+to the user mode process table. Hence, the kernel must reside at some virtual
+address in each user mode process.
 
 ## Does it matter at which virtual address the kernel is placed?
 
@@ -47,13 +49,12 @@ mode process code. Normally, during linking, the linker assumes that the code
 will be loaded into the memory position `0x00000000`. Therefore, when resolving
 indirect references, `0x00000000` will be base address for calculating the
 exact position. But if the kernel is mapped onto the virtual address space
-(`0x00000000`, `"size of kernel"`), the user mode process will be loaded at
-virtual memory address `size of kernel` (probably a little bit after due to
-alignment). Therefore, the assumption from the linker that the user mode
-process is loaded into memory at position `0x00000000` is wrong. This can be
-corrected by using a linker script which tells the linker to assume a different
-starting address, but that is a very cumbersome solution for
-the users of the operating system.
+(`0x00000000`, `"size of kernel"`), the user mode process cannot be loaded at
+virtual address `0x00000000 - it must be placed somewhere else. Therefore, the
+assumption from the linker that the user mode process is loaded into memory at
+position `0x00000000` is wrong. This can be corrected by using a linker script
+which tells the linker to assume a different starting address, but that is
+very cumbersome solution for the users of the operating system.
 
 ## At which virtual address should the kernel then be placed?
 
@@ -72,8 +73,11 @@ process code (remember that the user mode process is loaded at virtual memory
 0x00000000). But, we can't simply tell the linker to assume that the kernel
 starts at `0xC01000000`, since we want it to be placed at 1 MB. The
 reason for having the kernel loaded at 1 MB is because it can't be loaded at
-`0x00000000`, since there is BIOS code and GRUB code loaded below 1 MB. This
-can be done by using both relocation (`.=0xC01000000`) and the `AT` instruction
+`0x00000000`, since there is BIOS and GRUB code loaded below 1 MB. (We also
+cannot assume that we can load the kernel at 0xC010000, since the machine might
+not have 3GB of physical memory).
+
+This can be solved by using both relocation (`.=0xC01000000`) and the `AT` instruction
 in the linker script.
 
 ## Now everything is cool, right?
@@ -83,25 +87,27 @@ physical address, and will therefore cause a general protection exception (GPE)
 at the very best, otherwise the OS will just crash.
 
 Therefore, some assembly that doesn't use indirect jumps must set up the page
-table and adding one entry for the first 4 MB of the virtual address space 
+table and adding one entry for the first 4 MB of the virtual address space
 that maps to the first 4 MB of the physical memory as well as an entry for
 `0xC0100000` that maps to `0x0010000`. If the identity mapping for the first 4
-MB wasn't added, the CPU would case a page fault when fetching the next
-instruction from memory. Then, when the table is created, an indirect jump can
-be done to a label, like
+MB wasn't added, the CPU would cuase a page fault immediately after paging was
+enabled when fetching the next instruction from memory. When the table is
+created, an indirect jump can be done to a label, like
 
 ~~~ {.nasm}
     lea ebx, [higher_half] ; load the address of the label in ebx
     jmp ebx                ; jump to the label
 ~~~
 
-Now `EIP` will point to a memory location somewhere right after `0xC0100000`
-and the entry mapping the first 4 MB of virtual memory to the first 4 MB of
-physical can now be removed from the page table.
+Now `EIP` will point to a memory location somewhere right after `0xC0100000` -
+all the code can now execute as if it were at `0xC0100000`, the higher half.
+The entry mapping the first 4 MB of virtual memory to the first 4 MB of
+physical can now be removed from the page table, and its corresponding entry in
+the TLB invalidated with `invlpg [0]`.
 
 ## Phew, that was all?
 Yes, that was all. However, one must now take care when using memory mapped I/O
-that uses very specific memory location. For example, the framebuffer is
-located `0x000B8000`, but since there is no entry in the page table for the
-address `0x000B8000`, the address `0xC00B8000` must be used, since the address
-`0xC0000000` maps to `0x00000000`.
+that uses very specific memory locations. For example, the framebuffer is
+located at `0x000B8000`, but since there is no entry in the page table for the
+address `0x000B8000` any longer, the address `0xC00B8000` must be used, since the
+virtual address `0xC0000000` maps to the physical address`0x00000000`.
