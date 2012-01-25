@@ -1,5 +1,5 @@
 2012-01-16
-##########
+==========
 
 Achievements
 ------------
@@ -28,7 +28,7 @@ Issues
 
 
 2012-01-17
-#########
+=========
 
 Achievements
 ------------
@@ -53,7 +53,7 @@ Issues
   directory, and complain when it is unmounted (can be turned off though)
 
 2012-01-18
-##########
+==========
 
 Achievements
 ------------
@@ -69,7 +69,7 @@ Issues
   address, especially. We take the values from a tutorial
 
 2012-01-19
-##########
+==========
 
 Achievements
 ------------
@@ -78,7 +78,7 @@ Achievements
   mostly due to having to deal with the PIC and the keyboard.
 - added code for printing integers
 - improved the build scripts slightly
-- joined the #osdev irc channel on freenode where we got help with some 
+- joined the =osdev irc channel on freenode where we got help with some 
   keyboard hardware details. we also got help on the os-dev forum
 
 Issues
@@ -89,7 +89,7 @@ Issues
   often have to ask for help on irc or os-dev
 
 2012-01-20
-##########
+==========
 
 Achievements
 ------------
@@ -122,7 +122,7 @@ Notes
   since at the moment we do not need any more low-level plumbing.
 
 2012-01-21
-##########
+==========
 
 Achievements
 ------------
@@ -130,7 +130,7 @@ Achievements
 - wrote a function that prints integers in hexadecimal notation
 
 2012-01-22
-##########
+==========
 
 Achievements
 ------------
@@ -145,7 +145,7 @@ Issues
 - We need to document some more :D
 
 2012-01-23
-##########
+==========
 
 Achievements
 ------------
@@ -163,7 +163,7 @@ Issues
   stuff.
 
 2012-01-24
-##########
+==========
 
 Achievements
 ------------
