@@ -3,3 +3,4 @@ kernel.elf
 aenix.iso
 bochsrc.txt
 bochslog.txt
+*.mod
