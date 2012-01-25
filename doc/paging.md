@@ -90,8 +90,10 @@ MB wasn't added, the CPU would case a page fault when fetching the next
 instruction from memory. Then, when the table is created, an indirect jump can
 be done to a label, like
 
+~~~ {.nasm}
     lea ebx, [higher_half] ; load the address of the label in ebx
     jmp ebx                ; jump to the label
+~~~
 
 Now `EIP` will point to a memory location somewhere right after `0xC0100000`
 and the entry mapping the first 4 MB of virtual memory to the first 4 MB of
