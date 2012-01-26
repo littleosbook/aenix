@@ -106,6 +106,9 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
           uint32_t boot_page_directory)
 {
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
+    void (*module_entry_point)(void) = (void (*)(void))0xC0400000;
+    uint32_t *module = (uint32_t *) 0xC0400000;
+    uint32_t i;
     fb_clear();
 
     if (magic_number != MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -120,6 +123,9 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
     display_kernel_mem_info(&mem);
     display_module_info(mbinfo);
 
+    for (i = 0; i < 4; ++i, ++module)
+        printf("m: %X -> %X\n", module, *module);
+    module_entry_point();
     /*pit_set_callback(1, &display_tick); */
 
     return 0xDEADBEEF;
