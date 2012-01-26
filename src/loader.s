@@ -50,14 +50,17 @@ KERNEL_STACK_VIRTURAL_ADDRESS equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE - 4
 section .data
 align 4096                               ; align on 4kB blocks
 boot_page_directory:
-    ; the following macro identity maps all the memory except 0xC0000000 that
-    ; maps to 0x00000000
+    ; the following macro identity maps all the memory, except 0xC0000000 that
+    ; maps to 0x00000000 and 0xC0400000 that maps to 0x00400000
     %assign mem 0
     %rep    1024
         %if mem == KERNEL_VIRTUAL_BASE
+            ; we set PS = 4MB, Page write-through, writable, present
             dd 00000000000000000000000010001011b
         %elif mem == MODULE_VIRTUAL_BASE
-            dd (FOUR_MB | 00000000000000000000000010001011b)
+            ; we set PS = 4MB, Page write-through, PL3 allowed, writable,
+            ; present
+            dd (FOUR_MB | 00000000000000000000000010001111b)
         %else
             dd (mem | 00000000000000000000000010001011b)
         %endif
@@ -106,11 +109,11 @@ restore_pdt:
     %assign mem 0
     %rep    1024
         %if i != KERNEL_PDT_IDX && i != MODULE_PDT_IDX
-            mov DWORD [boot_page_directory + i*4], 0
-            invlpg [mem]
+            mov DWORD [boot_page_directory + i*4], 0    ; clear the pde
+            invlpg [mem]                                ; invalidate tlb entry
         %endif
         %assign i i+1
-        %assign mem mem+0x00400000
+        %assign mem mem+FOUR_MB
     %endrep
 
 enter_kmain:
