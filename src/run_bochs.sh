@@ -5,6 +5,7 @@ ISO=aenix.iso
 BOCHS_LOG=bochslog.txt
 BOCHS_CONFIG=bochsrc.txt
 BOCHS_BIOS_PATH=../tools/bochs
+COM1_LOG=com1.out
 
 set -e # fail as soon as one command fails
 
@@ -18,6 +19,9 @@ if [ -e $BOCHS_CONFIG ]; then
     rm $BOCHS_CONFIG
 fi
 
+# remove the old log
+rm -f $COM1_LOG
+
 # create the config file for bochs
 CONFIG="megs:           32
 romimage:       file=$BOCHS_BIOS_PATH/BIOS-bochs-latest
@@ -28,7 +32,7 @@ log:            $BOCHS_LOG
 mouse:          enabled=1
 clock:          sync=realtime, time0=local
 cpu:            count=1, ips=1000000
-com1:           enabled=1, mode=file, dev=com1.out"
+com1:           enabled=1, mode=file, dev=$COM1_LOG"
 
 echo "$CONFIG" > $BOCHS_CONFIG
 
