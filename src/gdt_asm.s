@@ -12,7 +12,7 @@ section .text
 gdt_load_and_set:
     mov     eax, [esp+4]        ; fetch gdt_ptr from parameter stack
     lgdt    [eax]               ; load gdt table
- 
+
     ; load cs segment by doing a far jump
     jmp     SEGSEL_KERNEL_CS:.reload_segments
 
