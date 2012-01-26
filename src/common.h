@@ -8,4 +8,6 @@
 #define VIRTUAL_TO_PHYSICAL(addr) ((addr)-KERNEL_BASE_ADDR)
 #define PHYSICAL_TO_VIRTUAL(addr) ((addr)+KERNEL_BASE_ADDR)
 
+#define ALIGN(addr, alignment) (addr) + (alignment - ((addr) % alignment))
+
 #endif /* COMMON_H */
