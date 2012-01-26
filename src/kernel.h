@@ -3,6 +3,8 @@
 
 #include "stdint.h"
 
+#define KERNEL_HEAP_SIZE 0x10000 /* 16 kB */
+
 struct kernel_meminfo {
     uint32_t kernel_physical_start;
     uint32_t kernel_physical_end;

@@ -1,6 +1,6 @@
 OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o idt.o idt_asm.o \
 		  interrupt.o interrupt_asm.o keyboard.o pit.o stdio.o string.o \
-		  paging.o paging_asm.o
+		  paging.o paging_asm.o kmalloc.o
 MODULES = test_module.mod
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
@@ -21,11 +21,11 @@ iso: kernel.elf $(MODULES)
 kernel.elf: $(OBJECTS)
 	ld $(LDFLAGS) $(OBJECTS) -o kernel.elf
 
-.o: 
+.o:
 	$(CC) $(CFLAGS) $< -o $@
 
-.s.o: 
-	$(AS) $(ASFLAGS) $< 
+.s.o:
+	$(AS) $(ASFLAGS) $<
 
 %.mod: %.s
 	$(AS) $(MODULE_AS_FLAGS) $< -o $@

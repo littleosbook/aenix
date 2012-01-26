@@ -9,11 +9,14 @@
 #include "multiboot.h"
 #include "paging.h"
 #include "kernel.h"
+#include "kmalloc.h"
 
 void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
     UNUSED_ARGUMENT(mem);
     disable_interrupts();
+    kmalloc_init(mem->kernel_virtual_end - (mem->kernel_virtual_end%4) + 4,
+                 KERNEL_HEAP_SIZE);
     gdt_init();
     pic_init();
     idt_init();
@@ -112,7 +115,6 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
     }
 
     kinit(&mem, boot_page_directory);
-
     printf("Welcome to aenix!\n");
     display_memory_map(mbinfo);
     display_kernel_mem_info(&mem);
