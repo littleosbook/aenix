@@ -24,7 +24,7 @@ void printf(char *s, ...)
                 fb_put_b((uint8_t) uival);
                 break;
             case 'u':
-                uival = va_arg(ap, uint32_t);          
+                uival = va_arg(ap, uint32_t);
                 fb_put_ui(uival);
                 break;
             case 'X':
@@ -32,7 +32,7 @@ void printf(char *s, ...)
                 fb_put_ui_hex_pad(uival, 8);
                 break;
             case 's':
-                sval = va_arg(ap, char*); 
+                sval = va_arg(ap, char*);
                 fb_put_s(sval);
                 break;
             case '%':

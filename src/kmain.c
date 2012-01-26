@@ -11,6 +11,7 @@
 #include "kernel.h"
 #include "kmalloc.h"
 #include "serial.h"
+#include "log.h"
 
 void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
@@ -42,7 +43,7 @@ multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-void display_memory_map(multiboot_info_t *mbinfo)
+void log_memory_map(multiboot_info_t *mbinfo)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be
@@ -51,9 +52,9 @@ void display_memory_map(multiboot_info_t *mbinfo)
      * accessed, which contains a complete memory map.
      */
     if (mbinfo->flags & 0x00000001) {
-        printf("size of lower memory: %u kB\n", mbinfo->mem_lower);
-        printf("size of upper memory: %u kB\n", mbinfo->mem_upper);
-        printf("\n");
+        log_printf("size of lower memory: %u kB\n", mbinfo->mem_lower);
+        log_printf("size of upper memory: %u kB\n", mbinfo->mem_upper);
+        log_printf("\n");
     }
 
     if (mbinfo->flags & 0x00000020) {
@@ -61,44 +62,44 @@ void display_memory_map(multiboot_info_t *mbinfo)
             (multiboot_memory_map_t *) mbinfo->mmap_addr;
         while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
             if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                printf("available memory: ");
+                log_printf("available memory: ");
             } else {
-                printf("reserved memory:  ");
+                log_printf("reserved memory:  ");
             }
             /* FIXME: printf should implement %llu */
-            printf("address: %X length: %u\n",
+            log_printf("address: %X length: %u\n",
                     (uint32_t) entry->addr, (uint32_t) entry->len);
             entry = (multiboot_memory_map_t *)
                 (((uint32_t) entry) + entry->size + sizeof(entry->size));
         }
     }
-    printf("\n");
+    log_printf("\n");
 }
 
-void display_kernel_mem_info(kernel_meminfo_t *mem) {
-    printf("kernel physical start: %X\n", mem->kernel_physical_start);
-    printf("kernel physical end: %X\n", mem->kernel_physical_end);
-    printf("kernel virtual start: %X\n", mem->kernel_virtual_start);
-    printf("kernel virtual end: %X\n", mem->kernel_virtual_end);
-    printf("\n");
+void log_kernel_mem_info(kernel_meminfo_t *mem) {
+    log_printf("kernel physical start: %X\n", mem->kernel_physical_start);
+    log_printf("kernel physical end: %X\n", mem->kernel_physical_end);
+    log_printf("kernel virtual start: %X\n", mem->kernel_virtual_start);
+    log_printf("kernel virtual end: %X\n", mem->kernel_virtual_end);
+    log_printf("\n");
 }
 
-void display_module_info(multiboot_info_t *mbinfo)
+void log_module_info(multiboot_info_t *mbinfo)
 {
     uint32_t i;
     char *name;
     if (mbinfo->flags & 0x00000008) {
-        printf("Number of modules: %u\n", mbinfo->mods_count);
+        log_printf("Number of modules: %u\n", mbinfo->mods_count);
         multiboot_module_t *module = (multiboot_module_t *) mbinfo->mods_addr;
         for (i = 0; i < mbinfo->mods_count; ++i, ++module) {
             if (module->cmdline == 0) {
-                printf("module: no cmdline found\n");
+                log_printf("module: no cmdline found\n");
             } else {
                 name = (char *) PHYSICAL_TO_VIRTUAL(module->cmdline);
-                printf("module %s\n", name);
+                log_printf("module %s\n", name);
             }
-            printf("\tstart: %X\n", module->mod_start);
-            printf("\tend: %X\n", module->mod_end);
+            log_printf("\tstart: %X\n", module->mod_start);
+            log_printf("\tend: %X\n", module->mod_end);
         }
 
     }
@@ -120,11 +121,20 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
     }
 
     kinit(&mem, boot_page_directory);
-    printf("Welcome to aenix!\n");
-    display_memory_map(mbinfo);
-    display_kernel_mem_info(&mem);
-    display_module_info(mbinfo);
-    serial_write(COM1, 'E');
+	printf(
+"=======================================================\n"
+"       d8888 8888888888 888b    888 8888888 Y88b   d88P\n"
+"      d88888 888        8888b   888   888    Y88b d88P \n"
+"     d88P888 888        88888b  888   888     Y88o88P  \n"
+"    d88P 888 8888888    888Y88b 888   888      Y888P   \n"
+"   d88P  888 888        888 Y88b888   888      d888b   \n"
+"  d88P   888 888        888  Y88888   888     d88888b  \n"
+" d8888888888 888        888   Y8888   888    d88P Y88b \n"
+"d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
+"=======================================================\n");
+    log_memory_map(mbinfo);
+    log_kernel_mem_info(&mem);
+    log_module_info(mbinfo);
 
     for (i = 0; i < 4; ++i, ++module)
         printf("m: %X -> %X\n", module, *module);

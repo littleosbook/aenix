@@ -1,5 +1,6 @@
 #include "kmalloc.h"
 #include "stdio.h"
+#include "log.h"
 
 /* malloc() and free() as implemented by K&R */
 
@@ -34,9 +35,6 @@ void kmalloc_init(uint32_t addr, size_t nbytes)
     p = (header_t *) addr;
     p->s.size = nunits;
     kfree((void *)(p+1));
-
-    printf("kmalloc_init, p: %X, s: %u\n", (uint32_t) p, p->s.size);
-    printf("base: %X, s: %u\n", (uint32_t)&base, base.s.size);
 }
 
 void *kmalloc(size_t nbytes) {
@@ -47,7 +45,7 @@ void *kmalloc(size_t nbytes) {
         return 0;
 
     nunits = (nbytes+sizeof(header_t)-1)/sizeof(header_t) + 1;
-    printf("malloc: nbytes: %u, nunits %u\n", nbytes, nunits);
+    log_printf("kmalloc: nbytes: %u, nunits %u\n", nbytes, nunits);
     prevp = freep;
 
     for (p = prevp->s.next; ; prevp = p, p = p->s.next) {

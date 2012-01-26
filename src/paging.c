@@ -3,6 +3,7 @@
 #include "stdint.h"
 #include "stdio.h"
 #include "common.h"
+#include "log.h"
 
 #define NUM_ENTRIES 1024
 #define PDT_SIZE NUM_ENTRIES * sizeof(pde_t)
@@ -123,12 +124,12 @@ void paging_init(uint32_t boot_page_directory)
 
 	/*create_pdt_entry(pdt, 1, 0x10000000, PS_4MB);*/
 
-    printf("boot page directory: %X\n", (uint32_t)pdt);
-    printf("present pages:\n");
+    log_printf("paging_init: boot page directory: %X\n", (uint32_t)pdt);
+    log_printf("paging_init: present pages:\n");
 
     for (i = 0; i < NUM_ENTRIES; ++i) {
         if (IS_ENTRY_PRESENT(pdt+i)) {
-            printf("%u: %X\n", i, pdt[i]);
+            log_printf("paging_init:\t%u: %X\n", i, pdt[i]);
         }
     }
 
