@@ -5,6 +5,7 @@
 #include "common.h"
 #include "pit.h"
 #include "stdio.h"
+#include "log.h"
 
 struct idt_info {
 	uint32_t idt_index;
@@ -58,14 +59,13 @@ void interrupt_handler(cpu_state_t state, idt_info_t info, instr_state_t instr)
     if (info.idt_index >= PIC1_START &&
         info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
         pic_acknowledge();
-        return;
     }
 
     if (info.idt_index == SYS_CALL_INTERRUPT_INDEX) {
-        printf("sys call interrupt\n");
-        //return;
+        log_printf("sys call interrupt\n");
     }
 
-    printf("interrupt: %u, eip: %X, cs: %X, eflags: %X\n", info.idt_index, instr.eip, instr.cs, instr.eflags);
+    log_printf("interrupt: %u, eip: %X, cs: %X, eflags: %X\n",
+               info.idt_index, instr.eip, instr.cs, instr.eflags);
 
 }
