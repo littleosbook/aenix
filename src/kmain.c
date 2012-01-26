@@ -15,13 +15,13 @@ void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
     UNUSED_ARGUMENT(mem);
     disable_interrupts();
-    kmalloc_init(mem->kernel_virtual_end - (mem->kernel_virtual_end%4) + 4,
+    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end),
                  KERNEL_HEAP_SIZE);
     gdt_init();
     pic_init();
     idt_init();
     pit_init();
-	paging_init(boot_page_directory);
+    paging_init(boot_page_directory);
     enable_interrupts();
 }
 
