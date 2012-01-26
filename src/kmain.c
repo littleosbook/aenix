@@ -43,7 +43,7 @@ multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
 void display_memory_map(multiboot_info_t *mbinfo)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
-     * If flags[0] is set, then the fields mem_lower and mem_upper can be 
+     * If flags[0] is set, then the fields mem_lower and mem_upper can be
      * accessed.
      * If flags[6] is set, then the fields mmap_length and mmap_addr can be
      * accessed, which contains a complete memory map.
@@ -55,7 +55,7 @@ void display_memory_map(multiboot_info_t *mbinfo)
     }
 
     if (mbinfo->flags & 0x00000020) {
-        multiboot_memory_map_t *entry = 
+        multiboot_memory_map_t *entry =
             (multiboot_memory_map_t *) mbinfo->mmap_addr;
         while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
             if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
@@ -64,9 +64,9 @@ void display_memory_map(multiboot_info_t *mbinfo)
                 printf("reserved memory:  ");
             }
             /* FIXME: printf should implement %llu */
-            printf("address: %X length: %u\n", 
+            printf("address: %X length: %u\n",
                     (uint32_t) entry->addr, (uint32_t) entry->len);
-            entry = (multiboot_memory_map_t *) 
+            entry = (multiboot_memory_map_t *)
                 (((uint32_t) entry) + entry->size + sizeof(entry->size));
         }
     }
