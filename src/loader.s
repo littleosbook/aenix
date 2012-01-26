@@ -23,9 +23,13 @@ MAGIC       equ 0x1BADB002              ; magic number for bootloader to
                                         ; find the header
 CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
 
+; because mistyping is easy
+FOUR_KB         equ 0x00001000
+FOUR_MB         equ 0x00400000
+
 ; some paging constants
-LARGE_PAGE_SIZE equ 0x00400000
-SMALL_PAGE_SIZE equ 0x00001000
+LARGE_PAGE_SIZE equ FOUR_MB
+SMALL_PAGE_SIZE equ FOUR_KB
 
 ; paging for the kernel
 KERNEL_VIRTUAL_BASE equ 0xC0000000                  ; we start at 3GB
@@ -33,7 +37,7 @@ KERNEL_PAGE_SIZE    equ LARGE_PAGE_SIZE             ; the page is 4 MB
 KERNEL_PDT_IDX      equ KERNEL_VIRTUAL_BASE >> 22   ; index = highest 10 bits
 
 ; paging for the modules
-MODULE_VIRTUAL_BASE equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE
+MODULE_VIRTUAL_BASE equ (KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE)
 MODULE_PAGE_SIZE    equ LARGE_PAGE_SIZE
 MODULE_PDT_IDX      equ MODULE_VIRTUAL_BASE >> 22
 
@@ -53,11 +57,11 @@ boot_page_directory:
         %if mem == KERNEL_VIRTUAL_BASE
             dd 00000000000000000000000010001011b
         %elif mem == MODULE_VIRTUAL_BASE
-            dd (0x004000000 | 00000000000000000000000010001011b)
+            dd (FOUR_MB | 00000000000000000000000010001011b)
         %else
             dd (mem | 00000000000000000000000010001011b)
         %endif
-        %assign mem mem+0x00400000
+        %assign mem mem+FOUR_MB
     %endrep
 
 section .text
