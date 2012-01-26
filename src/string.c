@@ -16,8 +16,8 @@ void *memset(void *s, int c, size_t n)
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
-    uint8_t *from = (uint8_t *) dest;
-    uint8_t *to = (uint8_t *) src;
+    uint8_t *to = (uint8_t *) dest;
+    uint8_t *from = (uint8_t *) src;
     size_t i;
 
     for(i = 0; i < n; ++i) {
