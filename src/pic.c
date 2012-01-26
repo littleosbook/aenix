@@ -43,7 +43,7 @@ void pic_init(void)
     outb(PIC1_PORT_B, PIC1_ICW4);
     outb(PIC2_PORT_B, PIC2_ICW4);
 
-    pic_mask(0xFC, 0xFF);
+    pic_mask(0xEC, 0xFF);
 }
 
 void pic_acknowledge()

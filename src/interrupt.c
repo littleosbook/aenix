@@ -51,6 +51,10 @@ void interrupt_handler(cpu_state_t state, idt_info_t info, instr_state_t instr)
         pit_handle_interrupt();
     }
 
+    if (info.idt_index == COM1_INTERRUPT_INDEX) {
+        printf("data on com1\n");
+    }
+
     if (info.idt_index >= PIC1_START &&
         info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
         pic_acknowledge();

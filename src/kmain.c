@@ -10,6 +10,7 @@
 #include "paging.h"
 #include "kernel.h"
 #include "kmalloc.h"
+#include "serial.h"
 
 void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
@@ -18,8 +19,9 @@ void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
     kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end),
                  KERNEL_HEAP_SIZE);
     gdt_init();
-    pic_init();
     idt_init();
+    pic_init();
+    serial_init(COM1);
     pit_init();
     paging_init(boot_page_directory);
     enable_interrupts();
@@ -122,6 +124,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
     display_memory_map(mbinfo);
     display_kernel_mem_info(&mem);
     display_module_info(mbinfo);
+    serial_write(COM1, 'E');
 
     for (i = 0; i < 4; ++i, ++module)
         printf("m: %X -> %X\n", module, *module);

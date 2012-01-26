@@ -27,7 +27,8 @@ boot:           cdrom
 log:            $BOCHS_LOG
 mouse:          enabled=1
 clock:          sync=realtime, time0=local
-cpu:            count=1, ips=1000000"
+cpu:            count=1, ips=1000000
+com1:           enabled=1, mode=file, dev=com1.out"
 
 echo "$CONFIG" > $BOCHS_CONFIG
 
