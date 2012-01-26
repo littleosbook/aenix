@@ -4,7 +4,7 @@
 #include "common.h"
 #include "multiboot.h"
 
-#define ARE_MODULES_ENABLED(flags) flags & 0x00000008
+#define ARE_MODULES_ENABLED(flags) (flags & 0x00000008)
 #define MODULES_BASE_VIRTUAL_ADDRESS  0xC0400000
 #define MODULES_BASE_PHYSICAL_ADDRESS 0x00400000
 
