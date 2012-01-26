@@ -36,13 +36,13 @@ typedef struct pte pte_t;
  *
  * @param pdt   The page descriptor table
  * @param n     The index in the PDT
- * @param addr  The address to the first entry in the page table, or a 
+ * @param addr  The address to the first entry in the page table, or a
  *              4MB page frame
  * @param ps    Page size, either PS_4KB or PS_4MB
  */
 static void create_pdt_entry(pde_t *pdt, uint32_t n, uint32_t addr, uint8_t ps)
 {
-    /* Since page tables are aligned at 4kB boundaries, we only need to store 
+    /* Since page tables are aligned at 4kB boundaries, we only need to store
      * the 20 highest bits */
     /* The lower 4 bits */
     pdt[n].low_addr  = ((addr >> 12) & 0xF) << 4;
@@ -55,17 +55,17 @@ static void create_pdt_entry(pde_t *pdt, uint32_t n, uint32_t addr, uint8_t ps)
      *     R/W |     1 |    1 | Read/Write:
      *                              0 = Read-only
      *                              1 = Write and Read
-     *     U/S |     0 |    1 | User/Supervisor: 
-     *                              0 = PL3 can't access 
+     *     U/S |     0 |    1 | User/Supervisor:
+     *                              0 = PL3 can't access
      *                              1 = PL3 can access
-     *     PWT |     1 |    1 | Page-level write-through: 
+     *     PWT |     1 |    1 | Page-level write-through:
      *                              0 = writes are cached
      *                              1 = writes are not cached
      *     PCD |     0 |    1 | Page-level cache disable
      *       A |     0 |    1 | Is set if the entry has been accessed
      * Ignored |     0 |    1 | Ignored
      *      PS |    ps |    1 | Page size:
-     *                              0 = address point to pt entry, 
+     *                              0 = address point to pt entry,
      *                              1 = address points to 4 MB page
      * Ignored |     0 |    4 | Ignored
      *
@@ -83,7 +83,7 @@ static void create_pdt_entry(pde_t *pdt, uint32_t n, uint32_t addr, uint8_t ps)
  */
 static void create_pt_entry(pte_t *pt, uint32_t n, uint32_t addr)
 {
-    /* Since page tables are aligned at 4kB boundaries, we only need to store 
+    /* Since page tables are aligned at 4kB boundaries, we only need to store
      * the 20 highest bits */
     /* The lower 4 bits */
     pt[n].middle  = ((addr >> 12) & 0xF) << 4;
@@ -96,10 +96,10 @@ static void create_pt_entry(pte_t *pt, uint32_t n, uint32_t addr)
      *     R/W |     1 |    1 | Read/Write:
      *                              0 = Read-only
      *                              1 = Write and Read
-     *     U/S |     0 |    1 | User/Supervisor: 
-     *                              0 = PL3 can't access 
+     *     U/S |     0 |    1 | User/Supervisor:
+     *                              0 = PL3 can't access
      *                              1 = PL3 can access
-     *     PWT |     1 |    1 | Page-level write-through: 
+     *     PWT |     1 |    1 | Page-level write-through:
      *                              0 = writes are cached
      *                              1 = writes are not cached
      *     PCD |     0 |    1 | Page-level cache disable
@@ -118,13 +118,10 @@ extern void pdt_set(uint32_t pdt_addr); /* defined in paging_asm.s */
 
 void paging_init(uint32_t boot_page_directory)
 {
-    uint32_t i, cr3;
-    pde_t *pdt = (pde_t *) boot_page_directory;
+    uint32_t i;
+	pde_t *pdt = (pde_t *) boot_page_directory;
 
-    create_pdt_entry(pdt, 1, 0x10000000, PS_4MB);
-
-    cr3 = VIRTUAL_TO_PHYSICAL(boot_page_directory) | (0x01 << 3);
-    pdt_set(cr3);
+	/*create_pdt_entry(pdt, 1, 0x10000000, PS_4MB);*/
 
     printf("boot page directory: %X\n", (uint32_t)pdt);
     printf("present pages:\n");

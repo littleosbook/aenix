@@ -8,6 +8,7 @@ global loader                           ; the entry point for the linker
 global boot_page_directory
 
 extern kmain                            ; kmain is defined in kmain.c
+extern move_multiboot_modules           ; defined in module.c
 extern kernel_virtual_end               ; these are defined in the link script
 extern kernel_virtual_start
 extern kernel_physical_end
@@ -22,10 +23,19 @@ MAGIC       equ 0x1BADB002              ; magic number for bootloader to
                                         ; find the header
 CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum required
 
+; some paging constants
+LARGE_PAGE_SIZE equ 0x00400000
+SMALL_PAGE_SIZE equ 0x00001000
+
 ; paging for the kernel
 KERNEL_VIRTUAL_BASE equ 0xC0000000                  ; we start at 3GB
-KERNEL_PAGE_SIZE    equ 0x00400000                  ; the page is 4 MB
+KERNEL_PAGE_SIZE    equ LARGE_PAGE_SIZE             ; the page is 4 MB
 KERNEL_PDT_IDX      equ KERNEL_VIRTUAL_BASE >> 22   ; index = highest 10 bits
+
+; paging for the modules
+MODULE_VIRTUAL_BASE equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE
+MODULE_PAGE_SIZE    equ LARGE_PAGE_SIZE
+MODULE_PDT_IDX      equ MODULE_VIRTUAL_BASE >> 22
 
 ; stack management
 ; the stack grows from the end of the page towards lower address
@@ -42,6 +52,8 @@ boot_page_directory:
     %rep    1024
         %if mem == KERNEL_VIRTUAL_BASE
             dd 00000000000000000000000010001011b
+        %elif mem == MODULE_VIRTUAL_BASE
+            dd (0x004000000 | 00000000000000000000000010001011b)
         %else
             dd (mem | 00000000000000000000000010001011b)
         %endif
@@ -77,11 +89,11 @@ set_up_paging:
 ; the upper half, 0xC0100000
 higher_half:
 
-move_multiboot_modules:
+call_move_multiboot_modules:
     mov     esp, mini_stack + MINI_STACK_SIZE   ; set up a temp min stack
     push    eax                                 ; save eax on the stack
     push    ebx                                 ; ebx = multiboot data
-    ; call move_modules
+    call    move_multiboot_modules
     pop     ebx                                 ; restore ebx
     pop     eax                                 ; restora eax
 
@@ -89,7 +101,7 @@ restore_pdt:
     %assign i 0
     %assign mem 0
     %rep    1024
-        %if i != KERNEL_PDT_IDX
+        %if i != KERNEL_PDT_IDX && i != MODULE_PDT_IDX
             mov DWORD [boot_page_directory + i*4], 0
             invlpg [mem]
         %endif
@@ -112,7 +124,7 @@ hang:
     jmp hang                            ; loop forever
 
 MINI_STACK_SIZE equ 0x400
-section .bss:
+section .bss
 align 4
 mini_stack:
     resb MINI_STACK_SIZE
