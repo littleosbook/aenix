@@ -44,7 +44,9 @@ void gdt_init()
     /* kernel mode data segment */
     gdt_create_entry(2, PL0, DATA_RW_TYPE);
     /* user mode code segment */
+    gdt_create_entry(3, PL3, CODE_RX_TYPE);
     /* user mode data segment */
+    gdt_create_entry(4, PL3, DATA_RW_TYPE);
 
     gdt_load_and_set((uint32_t)&gdt_ptr);
 }
