@@ -1,5 +1,6 @@
 #include "stdint.h"
 #include "gdt.h"
+#include "fb.h"
 
 #define SEGMENT_BASE    0
 #define SEGMENT_LIMIT   0xFFFFF
@@ -7,7 +8,7 @@
 #define CODE_RX_TYPE    0xA
 #define DATA_RW_TYPE    0x2
 
-#define GDT_NUM_ENTRIES 3
+#define GDT_NUM_ENTRIES 5
 
 struct gdt_entry {
     uint16_t limit_low;     /* The lower 16 bits of the limit */
@@ -60,7 +61,7 @@ static void gdt_create_entry(uint32_t n, uint8_t pl, uint8_t type)
     gdt_entries[n].base_high    = (SEGMENT_BASE >> 24) & 0xFF;
 
     gdt_entries[n].limit_low    = (SEGMENT_LIMIT & 0xFFFF);
- 
+
     /*
      * name | value | size | desc
      * ---------------------------

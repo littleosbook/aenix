@@ -118,6 +118,7 @@ restore_pdt:
 
 enter_kmain:
     mov esp, KERNEL_STACK_VIRTURAL_ADDRESS  ; set up the stack
+    push MODULE_VIRTUAL_BASE
     push boot_page_directory
     push kernel_virtual_end             ; these are used by kmain, see
     push kernel_virtual_start           ; kernel_limits_t in kmain.c

@@ -12,10 +12,11 @@
 #include "kmalloc.h"
 #include "serial.h"
 #include "log.h"
+#include "inode.h"
+#include "string.h"
 
-void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
+static void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
 {
-    UNUSED_ARGUMENT(mem);
     disable_interrupts();
     kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end),
                  KERNEL_HEAP_SIZE);
@@ -28,12 +29,12 @@ void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
     enable_interrupts();
 }
 
-void display_tick()
+static void display_tick()
 {
     printf(".");
 }
 
-multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
+static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
 {
     multiboot_info_t *mbinfo = (multiboot_info_t *) PHYSICAL_TO_VIRTUAL(mbaddr);
 
@@ -43,7 +44,7 @@ multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-void log_memory_map(multiboot_info_t *mbinfo)
+static void log_memory_map(const multiboot_info_t *mbinfo)
 {
     /* From the GRUB multiboot manual section 3.3 boot information format
      * If flags[0] is set, then the fields mem_lower and mem_upper can be
@@ -76,7 +77,7 @@ void log_memory_map(multiboot_info_t *mbinfo)
     log_printf("\n");
 }
 
-void log_kernel_mem_info(kernel_meminfo_t *mem) {
+static void log_kernel_mem_info(const kernel_meminfo_t *mem) {
     log_printf("kernel physical start: %X\n", mem->kernel_physical_start);
     log_printf("kernel physical end: %X\n", mem->kernel_physical_end);
     log_printf("kernel virtual start: %X\n", mem->kernel_virtual_start);
@@ -84,7 +85,7 @@ void log_kernel_mem_info(kernel_meminfo_t *mem) {
     log_printf("\n");
 }
 
-void log_module_info(multiboot_info_t *mbinfo)
+static void log_module_info(const multiboot_info_t *mbinfo)
 {
     uint32_t i;
     char *name;
@@ -105,11 +106,53 @@ void log_module_info(multiboot_info_t *mbinfo)
     }
 }
 
-int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
-          uint32_t boot_page_directory)
+static uint32_t get_location_of_node_from_dir(inode_t *dir, char *name)
 {
+    uint32_t num_files, i;
+
+    if (dir->type != FILETYPE_DIR) {
+        return 0;
+    }
+
+    num_files = dir->size / sizeof(direntry_t);
+    direntry_t *entry = (direntry_t *) (dir+1);
+    for (i = 0; i < num_files; ++i, ++entry) {
+        if (strcmp(name, entry->name) == 0) {
+            return entry->location;
+        }
+    }
+
+    return 0;
+}
+
+static uint32_t get_address_of_init(uint32_t root_addr)
+{
+    inode_t *root = (inode_t *) root_addr;
+    uint32_t loc;
+
+    if (root->type != FILETYPE_DIR) {
+        return 0;
+    }
+
+    if ((loc = get_location_of_node_from_dir(root, "bin")) == 0) {
+        return 0;
+    }
+    root = (inode_t *) (root_addr + loc);
+    if ((loc = get_location_of_node_from_dir(root, "init")) == 0) {
+        return 0;
+    }
+
+    return root_addr + loc;
+}
+
+void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
+
+int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
+          uint32_t boot_page_directory, uint32_t modules_base_addr)
+{
+    uint32_t init;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
-    void (*module_entry_point)(void) = (void (*)(void))0xC0400000;
+
     fb_clear();
 
     if (magic_number != MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -119,7 +162,10 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
     }
 
     kinit(&mem, boot_page_directory);
-	printf(
+    log_memory_map(mbinfo);
+    log_kernel_mem_info(&mem);
+    log_module_info(mbinfo);
+    printf(
 "=======================================================\n"
 "       d8888 8888888888 888b    888 8888888 Y88b   d88P\n"
 "      d88888 888        8888b   888   888    Y88b d88P \n"
@@ -130,12 +176,15 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 " d8888888888 888        888   Y8888   888    d88P Y88b \n"
 "d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
 "=======================================================\n");
-    log_memory_map(mbinfo);
-    log_kernel_mem_info(&mem);
-    log_module_info(mbinfo);
+    init = get_address_of_init(modules_base_addr);
+    if (init == 0) {
+        printf("ERROR: can't find init\n");
+        return 0xDEADDEAD;
+    }
 
-    module_entry_point();
-    /*pit_set_callback(1, &display_tick); */
+    log_printf("address of init: %X\n", init);
+
+    enter_user_mode(init, 0xC0401000);
 
     return 0xDEADBEEF;
 }
