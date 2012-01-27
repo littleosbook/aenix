@@ -42,7 +42,7 @@ uint32_t visit_dir(char *path)
     DIR *dir;
     struct dirent *ent;
     long dirpos;
-    uint32_t num_files;
+    uint32_t num_files = 0;
     char *child_path;
     uint32_t child_addr;
     struct stat st;
@@ -64,6 +64,10 @@ uint32_t visit_dir(char *path)
     }
 
     while ((ent = readdir(dir)) != NULL) {
+        if (strcmp(ent->d_name, ".") == 0 ||
+            strcmp(ent->d_name, "..") == 0) {
+            continue;
+        }
         num_files++;
     }
     entries = (direntry_t *) malloc(sizeof(direntry_t) * num_files);
