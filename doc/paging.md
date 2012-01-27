@@ -50,7 +50,7 @@ will be loaded into the memory position `0x00000000`. Therefore, when resolving
 indirect references, `0x00000000` will be base address for calculating the
 exact position. But if the kernel is mapped onto the virtual address space
 (`0x00000000`, `"size of kernel"`), the user mode process cannot be loaded at
-virtual address `0x00000000 - it must be placed somewhere else. Therefore, the
+virtual address `0x00000000` - it must be placed somewhere else. Therefore, the
 assumption from the linker that the user mode process is loaded into memory at
 position `0x00000000` is wrong. This can be corrected by using a linker script
 which tells the linker to assume a different starting address, but that is
