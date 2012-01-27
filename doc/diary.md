@@ -202,3 +202,30 @@ Achievements
   safe to put the stack there. The code written today creates an identity
   mapping of all memory (except for the kernels upper-half place), and uses a
   small temporary stack in bss. No module moving as of yet.
+
+2012-01-26
+==========
+
+Achievements
+------------
+
+- finished the code that moves the modules loaded by GRUB to a well-known
+  position
+- ported the malloc and free implementations from K&R to aenix. Also set up a
+  dedicated heap for the kernel in the first 4 MB.
+- created a "real" stack for the kernel, the stack now grows from the end of
+  the kernel page towards "lower" addresses. The heap grows from the end of the
+  kernel towards the stack.
+- created a new entry in the stack page descritor table for the modules.
+- discussed how to enable user mode processes and how to layout the memory for
+  the processes.
+- started to read up on how to change the to code with PL3 instead of PL0
+- wrote a driver for the COM ports (only COM1 enabled for now)
+- wrote a log module. Since bochs can redirect the output from the COM ports to
+  file, we can now log arbitrary text to files (very helpful!)
+
+Issues
+------
+
+None, as we learn more and more about how everything works together, the issues
+are more architechtural and less "low-level", which is a nice change!
