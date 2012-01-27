@@ -26,3 +26,36 @@ void *memcpy(void *dest, const void *src, size_t n)
 
     return dest;
 }
+
+int strcmp(const char *s1, const char *s2)
+{
+    size_t len1 = strlen(s1), len2 = strlen(s2);
+    if (len1 < len2) {
+        return -1;
+    }
+
+    if (len1 > len2) {
+        return 1;
+    }
+
+    for (; *s1; ++s1, ++s2) {
+        if (*s1 == *s2) {
+            continue;
+        } else if (*s1 < *s2) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+size_t strlen(const char *s)
+{
+    size_t len = 0;
+    for (; *s; ++s) {
+        ++len;
+    }
+    return len;
+}
