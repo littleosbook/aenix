@@ -50,7 +50,8 @@ uint32_t visit_dir(char *path)
     uint32_t i;
     inode_t dir_inode;
 
-    child_path = malloc(sizeof(char)*(strlen(path) + DIRENT_FNAME_SIZE + SLASH_LEN));
+    child_path =
+        malloc(sizeof(char)*(strlen(path) + DIRENT_FNAME_SIZE + SLASH_LEN));
     if (child_path == NULL) {
         perror("ERROR: out of memory!");
         exit(1);
@@ -78,7 +79,8 @@ uint32_t visit_dir(char *path)
         exit(1);
     }
 
-    if (fseek(fs, sizeof(inode_t) + sizeof(direntry_t) * num_files, SEEK_CUR) == -1) {
+    if (fseek(fs, sizeof(inode_t) + sizeof(direntry_t) * num_files, SEEK_CUR)
+        == -1) {
         perror("ERROR: Couldn't fseek");
         exit(1);
     }
