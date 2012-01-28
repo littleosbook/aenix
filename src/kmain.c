@@ -12,10 +12,12 @@
 #include "kmalloc.h"
 #include "serial.h"
 #include "log.h"
-#include "inode.h"
+#include "fs.h"
 #include "string.h"
 
-static void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
+static void kinit(kernel_meminfo_t *mem,
+                  uint32_t boot_page_directory,
+                  uint32_t fs_root_addr)
 {
     disable_interrupts();
     kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end),
@@ -26,6 +28,7 @@ static void kinit(kernel_meminfo_t *mem, uint32_t boot_page_directory)
     serial_init(COM1);
     pit_init();
     paging_init(boot_page_directory);
+    fs_init(fs_root_addr);
     enable_interrupts();
 }
 
@@ -125,32 +128,12 @@ static uint32_t get_location_of_node_from_dir(inode_t *dir, char *name)
     return 0;
 }
 
-static uint32_t get_address_of_init(uint32_t root_addr)
-{
-    inode_t *root = (inode_t *) root_addr;
-    uint32_t loc;
-
-    if (root->type != FILETYPE_DIR) {
-        return 0;
-    }
-
-    if ((loc = get_location_of_node_from_dir(root, "bin")) == 0) {
-        return 0;
-    }
-    root = (inode_t *) (root_addr + loc);
-    if ((loc = get_location_of_node_from_dir(root, "init")) == 0) {
-        return 0;
-    }
-
-    return root_addr + loc;
-}
-
 void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
           uint32_t boot_page_directory, uint32_t modules_base_addr)
 {
-    uint32_t init;
+    inode_t *init;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
 
     fb_clear();
@@ -161,7 +144,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, boot_page_directory);
+    kinit(&mem, boot_page_directory, modules_base_addr);
     log_memory_map(mbinfo);
     log_kernel_mem_info(&mem);
     log_module_info(mbinfo);
@@ -176,15 +159,17 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 " d8888888888 888        888   Y8888   888    d88P Y88b \n"
 "d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
 "=======================================================\n");
-    init = get_address_of_init(modules_base_addr);
-    if (init == 0) {
+
+    init = fs_find_inode("/bin/init");
+
+    if (init == NULL) {
         printf("ERROR: can't find init\n");
         return 0xDEADDEAD;
     }
 
-    log_printf("address of init: %X\n", init);
+    log_printf("address of init: %X\n", fs_get_addr(init));
 
-    enter_user_mode(init, 0xC0401000);
+    enter_user_mode(fs_get_addr(init), 0xC0401000);
 
     return 0xDEADBEEF;
 }

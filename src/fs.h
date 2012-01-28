@@ -1,8 +1,11 @@
 #ifndef FS_H
 #define FS_H
 
-uint32_t open(char *path, uint32_t oflags);
-uint32_t close(uint32_t fd);
-uint32_t read(char *buf, size_t nbytes);
+#include "inode.h"
+#include "stdint.h"
+
+void fs_init(uint32_t root_addr);
+inode_t *fs_find_inode(char *path);
+uint32_t fs_get_addr(inode_t *node);
 
 #endif /* FS_H */
