@@ -1,8 +1,10 @@
-2012-01-16
-==========
+% Developer diary
+% Erik Helin, Adam Renberg
+% 2012-01-27
 
-Achievements
-------------
+# 2012-01-16
+
+## Achievements
 
 - wrote a short guide for how to install bochs on Ubuntu with GDB support
 - installed nasm
@@ -13,201 +15,172 @@ Achievements
     - bochs as simulator
     - bash as scripting language
 - managed to boot the kernel in bochs using the following two guides:
-    - http://www.jamesmolloy.co.uk/tutorial_html/1.-Environment%20setup.html
-    - wiki.osdev.org/Bare_bones
+    - <http://www.jamesmolloy.co.uk/tutorial_html/1.-Environment%20setup.html>
+    - <http://wiki.osdev.org/Bare_bones>
 - started working on a framebuffer device driver, wrote the two functions
-  fb_write and fb_clear
+  `fb_write` and `fb_clear`
 - started investigating on how to improve the booting of the kernel
 
-Issues
-------
+## Issues
 
-- the current boot sequence must automize how grub executes the kernel
-- the media used for the OS should probably be an ISO image instead of a 
+- the current boot sequence must automatize how grub executes the kernel
+- the media used for the OS should probably be an ISO image instead of a
   floppy image if we ever want to boot the OS on a real computer
 
 
-2012-01-17
-=========
+# 2012-01-17
 
-Achievements
-------------
+## Achievements
 
 - read up on x86 assembly, nasm, cdecl, and figured out how to call assembler
   code from c
 - wrote short functions to read and write to io ports
 - wrote more on the framebuffer device driver, perhaps completed it
     - can move the cursor
-    - can print chars at cursor position (putb) and print a string (puts)
+    - can print chars at cursor position (`putb`) and print a string (puts)
     - newlines are handled, and scrolling
-- wrote a new floppy-creator script (src/create_image.sh) that makes it easier
+- wrote a new floppy-creator script (`src/create_image.sh`) that makes it easier
   to start the os - just type make run (no need to tell grub start block or
   size any more
 - started to read up on segmentation and gdt/idt stuff
 
-Issues
-------
+## Issues
 
-- the current floppy-build script requires sudo (to mount and use loopback
+- the current floppy-build script requires `sudo` (to mount and use loopback
   devices), and it might cause nautilus (on ubuntu) to open the mounted
   directory, and complain when it is unmounted (can be turned off though)
 
-2012-01-18
-==========
+# 2012-01-18
 
-Achievements
-------------
+## Achievements
 
 - the gdt loads correctly. yay!
 - wrote code to remap pic interrupts into the idt
 - started to write code to initialize the idt
 
-Issues
-------
+## Issues
 
 - the documentation on the x86 architecture is sparse at best - pic i/o port
   address, especially. We take the values from a tutorial
 
-2012-01-19
-==========
+# 2012-01-19
 
-Achievements
-------------
+## Achievements
 
-- interrupts is finally working correctly. This took a while to implement, 
+- interrupts is finally working correctly. This took a while to implement,
   mostly due to having to deal with the PIC and the keyboard.
 - added code for printing integers
 - improved the build scripts slightly
-- joined the =osdev irc channel on freenode where we got help with some 
-  keyboard hardware details. we also got help on the os-dev forum
+- joined the `#osdev` irc channel on `irc.freenode.org` where we got help with
+  some keyboard hardware details. we also got help on the os-dev forum
 
-Issues
-------
+## Issues
 
-- We are still having problems with the lack of documentation for various 
+- We are still having problems with the lack of documentation for various
   hardware, these are the issues that takes the longest time to solve, since we 
   often have to ask for help on irc or os-dev
 
-2012-01-20
-==========
+# 2012-01-20
 
-Achievements
-------------
+## Achievements
 
-- the keyboard driver is more or less finished (all normal keys are covered, 
-  but support for numpad, F1 - F12, Insert, Home etc are missing). We will add 
+- the keyboard driver is more or less finished (all normal keys are covered,
+  but support for numpad, F1 - F12, Insert, Home etc are missing). We will add
   support for them later on if needed.
-- the PIT (Programmable Interrupt Timer) driver seems to be finished 
-  (hard to test), at least the timer 
-  fires at different intervals depending on the frequency you set via the 
+- the PIT (Programmable Interrupt Timer) driver seems to be finished
+  (hard to test), at least the timer
+  fires at different intervals depending on the frequency you set via the
   driver.
-- started reading up on paging. Also implemented full support for GRUB 
-  multiboot info. We can now find reserved and available memory areas, which 
-  is crucial to set uo the page table.
+- started reading up on paging. Also implemented full support for GRUB
+  multiboot info. We can now find reserved and available memory areas, which
+  is crucial to set up the page table.
 
-Issues
-------
+## Issues
 
 - Testing things such as timers will be hard. They seems to work correctly, but 
   it is hard to know if they fire at the exact correct interval.
-- We will have to implement a function that print integers in hexadecimal 
+- We will have to implement a function that print integers in hexadecimal
   notation to ease debugging.
 
-Notes
------
+## Notes
 
-- Since the basic infrastucture is now working (console, keyboard, timer), 
-  the road ahead is not as clear any longer. Now we will probably have to read 
+- Since the basic infrastructure is now working (console, keyboard, timer),
+  the road ahead is not as clear any longer. Now we will probably have to read
   a bit more theory and also start to discuss how we want to design the kernel,
   since at the moment we do not need any more low-level plumbing.
 
-2012-01-21
-==========
+# 2012-01-21
 
-Achievements
-------------
+## Achievements
 
 - wrote a function that prints integers in hexadecimal notation
 
-2012-01-22
-==========
+# 2012-01-22
 
-Achievements
-------------
+## Achievements
 
-- wrote a simple printf() based on the one in K&R
+- wrote a simple `printf()` based on the one in K&R
 - added configuration file for doxygen
 - wrote some doxygen documentation
 
-Issues
-------
+## Issues
 
 - We need to document some more :D
 
-2012-01-23
-==========
+# 2012-01-23
 
-Achievements
-------------
+## Achievements
 
 - wrote and enabled identity (1:1) paging for the first 4MB of memory (this
   is where the kernel resides)
 - rewrote the paging so that the kernel is an "upper-half" ("higher-half")
-  kernel, which means that memory from 0xC0000000..0XFFFFFFFF is mapped to
+  kernel, which means that memory from `0xC0000000 - 0XFFFFFFFF` is mapped to
   the kernel (the kernel is still at the physical memory at 1MB)
 
-Issues
-------
+## Issues
 
 - We need to write more documentation on the paging and upper-half kernel
   stuff.
 
-2012-01-24
-==========
+# 2012-01-24
 
-Achievements
-------------
+## Achievements
 
 - wrote a script to generate a bootable ISO file with GRUB 2
 - rewrote the script to generate a bootable ISO file with GRUB 1 and possibly
   arbitrary binary modules that the kernel load into memory
-- we now only depend on genisoimage to create the bootable media
-- managed to jump to a loaded module and perform an INT 0x86 instruction to 
+- we now only depend on `genisoimage` to create the bootable media
+- managed to jump to a loaded module and perform an INT 0x86 instruction to
   trigger a sys call interrupt
 - make can now automatically build all modules and copy them to the iso
 
-Issues
-------
+## Issues
 
-- We were not able to jump back to the kernel code after jumping loaded binary 
+- We were not able to jump back to the kernel code after jumping loaded binary
   code. This will require more investigation.
 - The document about paging and kernel is still not written, Erik will write it 
   tomorrow morning.
 
-2012-01-25
-==========
+# 2012-01-25
 
-Achievements
-------------
+## Achievements
 
 - wrote text about paging, the kernel, and putting the kernel in the upper half
   of memory
 - configured pandoc/markdown2pdf to generate html and pdf from the markdown
   files
-- changed the interrupt number for syscalls to 0xAE
+- changed the interrupt number for syscalls to `0xAE`
 - we can call modules loaded by GRUB with call, and they can return to the
   kernel with ret
 - determined to change the kernel stack to the end of the kernels 4MB page.
   Started to write code to relocate the modules loaded by GRUB to make it
   safe to put the stack there. The code written today creates an identity
   mapping of all memory (except for the kernels upper-half place), and uses a
-  small temporary stack in bss. No module moving as of yet.
+  small temporary stack in `.bss`. No module moving as of yet.
 
-2012-01-26
-==========
+# 2012-01-26
 
-Achievements
-------------
+## Achievements
 
 - finished the code that moves the modules loaded by GRUB to a well-known
   position
@@ -224,8 +197,30 @@ Achievements
 - wrote a log module. Since bochs can redirect the output from the COM ports to
   file, we can now log arbitrary text to files (very helpful!)
 
-Issues
-------
+## Issues
 
 None, as we learn more and more about how everything works together, the issues
-are more architechtural and less "low-level", which is a nice change!
+are more architectural and less "low-level", which is a nice change!
+
+# 2012-01-27
+
+## Achievements
+
+- wrote the utility `mkfs` for creating a filesystem on a disk. Basically,
+  `mkfs` traverses a folder, then writes every file and directory to a
+  combined large file along with some headers. The GRUB loads the file as a
+  module into memory. Then, the kernel can read the "filesystem" with the help
+  of the headers. This is essentially a very small initrd filesystem.
+- wrote the very small program `init.s` that just loops forever and placed in
+  the `/bin/` folder in the filesystem.
+- wrote code the locate the `init` program in the memory.
+- managed to jump to the `init` and at the same change the privilege level to
+  3. This means that the code in `init` is executing in user mode!
+
+## Issues
+
+- Got a taste today of what it's like to debug kernel code. When changing
+  privilege level, the CPU throw fault 13 (General Protection fault). The bug
+  was caused by the size of the GDT being specified as 3 when it should be 5
+  (we simply forgot to change the size when adding to new entries). This shows
+  how important it is to review _all_ kernel code to avoid these mistakes.

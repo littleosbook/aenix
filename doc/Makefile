@@ -1,7 +1,7 @@
 CSS  = pandoc.css
 HTML_TEMPLATE = template.html
 TEX_HEADER = header.tex
-DOCS = paging.md installing_bochs.md
+DOCS = paging.md installing_bochs.md diary.md
 HTML = $(DOCS:.md=.html)
 PDF  = $(DOCS:.md=.pdf)
 
