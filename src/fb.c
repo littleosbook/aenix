@@ -84,7 +84,7 @@ void fb_put_b(uint8_t b)
     }
 
     if (b == '\n') {
-        move_cursor_down(); 
+        move_cursor_down();
         move_cursor_start();
     } else if (b == FB_BACKSPACE_ASCII) {
         move_cursor_back();
@@ -132,45 +132,17 @@ void fb_put_ui(uint32_t i)
     }
 }
 
-void fb_put_ui_hex(uint32_t i)
+void fb_put_ui_hex(unsigned int n)
 {
-    fb_put_ui_hex_pad(i, 0);
-}
-
-void fb_put_ui_hex_pad(uint32_t i, uint8_t min_digits)
-{
-    char *digits = "0123456789ABCDEF";
-    uint32_t n, digit;
-
-    /* find the largest nibble to output */
-    if (i >= 0x10000000) {
-        n = 28;
-    } else {
-        n = 0;
-        while ((((uint32_t)0x01) << (n+4)) <= i) {
-            n += 4;
-        }
-    }
+    char *chars = "0123456789ABCDEF";
+    unsigned char b = 0;
+    int i;
 
     fb_put_s("0x");
 
-    /* pad with zeroes */
-    if (min_digits > 0) {
-        min_digits -= 1;
-    }
-    min_digits <<= 2;
-    while (min_digits > n) {
-        fb_put_b('0');
-        min_digits -= 4;
-    }
-    /* print the number */
-    while (1) {
-        digit = (i >> n) & 0x0000000F;
-        fb_put_b(digits[digit]);
-        if (n == 0) {
-            break;
-        }
-        n -= 4;
+    for (i = 7; i >= 0; --i) {
+        b = (n >> i*4) & 0x0F;
+        fb_put_b(chars[b]);
     }
 }
 

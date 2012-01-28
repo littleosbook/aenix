@@ -29,7 +29,7 @@ void printf(char *s, ...)
                 break;
             case 'X':
                 uival = va_arg(ap, uint32_t);
-                fb_put_ui_hex_pad(uival, 8);
+                fb_put_ui_hex(uival);
                 break;
             case 's':
                 sval = va_arg(ap, char*);
