@@ -3,6 +3,8 @@
 
 #include "stdint.h"
 
+#define KERNEL_VIRTUAL_ADDRESS 0xC040000
+
 struct kernel_meminfo {
     uint32_t kernel_physical_start;
     uint32_t kernel_physical_end;

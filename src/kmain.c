@@ -13,10 +13,10 @@
 #include "serial.h"
 #include "log.h"
 #include "fs.h"
-#include "string.h"
+#include "process.h"
 
 static void kinit(kernel_meminfo_t *mem,
-                  uint32_t boot_page_directory,
+                  uint32_t kernel_pdt_addr,
                   uint32_t fs_root_addr)
 {
     disable_interrupts();
@@ -26,7 +26,7 @@ static void kinit(kernel_meminfo_t *mem,
     pic_init();
     serial_init(COM1);
     pit_init();
-    paging_init(boot_page_directory);
+    paging_init(kernel_pdt_addr);
     fs_init(fs_root_addr);
     enable_interrupts();
 }
@@ -108,31 +108,12 @@ static void log_module_info(const multiboot_info_t *mbinfo)
     }
 }
 
-static uint32_t get_location_of_node_from_dir(inode_t *dir, char *name)
-{
-    uint32_t num_files, i;
-
-    if (dir->type != FILETYPE_DIR) {
-        return 0;
-    }
-
-    num_files = dir->size / sizeof(direntry_t);
-    direntry_t *entry = (direntry_t *) (dir+1);
-    for (i = 0; i < num_files; ++i, ++entry) {
-        if (strcmp(name, entry->name) == 0) {
-            return entry->location;
-        }
-    }
-
-    return 0;
-}
-
 void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
-          uint32_t boot_page_directory, uint32_t modules_base_addr)
+          uint32_t kernel_pdt_addr, uint32_t modules_base_addr)
 {
-    inode_t *init;
+    ps_t *init;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
 
     fb_clear();
@@ -143,7 +124,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, boot_page_directory, modules_base_addr);
+    kinit(&mem, kernel_pdt_addr, modules_base_addr);
     log_memory_map(mbinfo);
     log_kernel_mem_info(&mem);
     log_module_info(mbinfo);
@@ -159,16 +140,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 "d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
 "=======================================================\n");
 
-    init = fs_find_inode("/bin/init");
-
-    if (init == NULL) {
-        printf("ERROR: can't find init\n");
-        return 0xDEADDEAD;
-    }
-
-    log_printf("address of init: %X\n", fs_get_addr(init));
-
-    enter_user_mode(fs_get_addr(init), 0xC0401000);
+    init = create_process("/bin/init");
 
     return 0xDEADBEEF;
 }

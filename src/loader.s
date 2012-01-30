@@ -5,7 +5,6 @@
 ; based on http://wiki.osdev.org/Bare_bones#NASM
 
 global loader                           ; the entry point for the linker
-global boot_page_directory
 
 extern kmain                            ; kmain is defined in kmain.c
 extern move_multiboot_modules           ; defined in module.c
@@ -49,7 +48,7 @@ KERNEL_STACK_VIRTURAL_ADDRESS equ KERNEL_VIRTUAL_BASE + KERNEL_PAGE_SIZE - 4
 ; the page directory used to boot the kernel into the higher half
 section .data
 align 4096                               ; align on 4kB blocks
-boot_page_directory:
+kernel_pdt:
     ; the following macro identity maps all the memory, except 0xC0000000 that
     ; maps to 0x00000000 and 0xC0400000 that maps to 0x00400000
     %assign mem 0
@@ -76,7 +75,7 @@ align 4
 ; the entry point, called by GRUB
 loader:
 set_up_paging:
-    mov ecx, (boot_page_directory-KERNEL_VIRTUAL_BASE)
+    mov ecx, (kernel_pdt - KERNEL_VIRTUAL_BASE)
     and ecx, 0xFFFFF000     ; we only care about the upper 20 bits
     or  ecx, 0x08           ; PWT, enable page write through?
     mov cr3, ecx            ; load pdt
@@ -109,8 +108,8 @@ restore_pdt:
     %assign mem 0
     %rep    1024
         %if i != KERNEL_PDT_IDX && i != MODULE_PDT_IDX
-            mov DWORD [boot_page_directory + i*4], 0    ; clear the pde
-            invlpg [mem]                                ; invalidate tlb entry
+            mov DWORD [kernel_pdt + i*4], 0     ; clear the pde
+            invlpg [mem]                        ; invalidate tlb entry
         %endif
         %assign i i+1
         %assign mem mem+FOUR_MB
@@ -119,7 +118,7 @@ restore_pdt:
 enter_kmain:
     mov esp, KERNEL_STACK_VIRTURAL_ADDRESS  ; set up the stack
     push MODULE_VIRTUAL_BASE
-    push boot_page_directory
+    push kernel_pdt
     push kernel_virtual_end             ; these are used by kmain, see
     push kernel_virtual_start           ; kernel_limits_t in kmain.c
     push kernel_physical_end
