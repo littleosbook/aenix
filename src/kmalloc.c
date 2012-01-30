@@ -2,6 +2,8 @@
 #include "stdio.h"
 #include "log.h"
 
+#define MIN_BLOCK_SIZE  1024 /* in units */
+
 /* malloc() and free() as implemented by K&R */
 
 typedef double align;
@@ -20,21 +22,19 @@ static header_t base;
 /* start of free list */
 static header_t *freep = 0;
 
-void kmalloc_init(uint32_t addr, size_t nbytes)
-{
-    header_t *p;
-    size_t nunits;
+/* address of next heap block */
+static uint32_t next_heap_addr;
 
+static void *acquire_more_heap(size_t nunits);
+
+void kmalloc_init(uint32_t addr)
+{
     if (freep == 0) {
         /* no free list yet */
         base.s.next = freep = &base;
         base.s.size = 0;
     }
-
-    nunits = (nbytes+sizeof(header_t)-1)/sizeof(header_t) + 1;
-    p = (header_t *) addr;
-    p->s.size = nunits;
-    kfree((void *)(p+1));
+    next_heap_addr = addr;
 }
 
 void *kmalloc(size_t nbytes) {
@@ -45,7 +45,6 @@ void *kmalloc(size_t nbytes) {
         return 0;
 
     nunits = (nbytes+sizeof(header_t)-1)/sizeof(header_t) + 1;
-    log_printf("kmalloc: nbytes: %u, nunits %u\n", nbytes, nunits);
     prevp = freep;
 
     for (p = prevp->s.next; ; prevp = p, p = p->s.next) {
@@ -62,13 +61,37 @@ void *kmalloc(size_t nbytes) {
                 p->s.size = nunits;
             }
             freep = prevp;
-            printf("malloc: %X (header_t: %X)\n", (uint32_t)(p+1), (uint32_t)p);
+            log_printf("kmalloc: %X (header_t: %X)\n", (uint32_t)(p+1), (uint32_t)p);
             return (void *)(p+1);
         }
         if (p == freep) {
-            printf("ERROR: kmalloc cannot allocate memory %u", nbytes);
+            /* wrapped around free list */
+            if ((p = acquire_more_heap(nunits)) == 0) {
+                log_printf("ERROR: kmalloc cannot acquire more memory memory %u",
+                        nbytes);
+                return 0;
+            }
         }
     }
+}
+
+static void *acquire_more_heap(size_t nunits) {
+    header_t *p;
+
+    if (nunits < MIN_BLOCK_SIZE) {
+        nunits = MIN_BLOCK_SIZE;
+    }
+
+    log_printf("acquire_more_heap: %X %u units\n", next_heap_addr, nunits);
+
+    p = (header_t *) next_heap_addr;
+    p->s.size = nunits;
+
+    next_heap_addr += nunits * sizeof(header_t);
+
+    kfree((void *)(p+1));
+
+    return freep;
 }
 
 void kfree(void * ap) {
@@ -76,6 +99,8 @@ void kfree(void * ap) {
 
     if (ap == 0)
         return;
+
+    log_printf("kfree: %X\n", (uint32_t)ap);
 
     /* point to block header */
     bp = (header_t *)ap - 1;

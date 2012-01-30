@@ -20,8 +20,7 @@ static void kinit(kernel_meminfo_t *mem,
                   uint32_t fs_root_addr)
 {
     disable_interrupts();
-    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end),
-                 KERNEL_HEAP_SIZE);
+    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
     gdt_init();
     idt_init();
     pic_init();

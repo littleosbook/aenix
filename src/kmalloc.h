@@ -4,7 +4,7 @@
 #include "stddef.h"
 #include "stdint.h"
 
-void kmalloc_init(uint32_t addr, size_t nbytes);
+void kmalloc_init(uint32_t addr);
 void *kmalloc(size_t);
 void kfree(void *);
 
