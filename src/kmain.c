@@ -14,21 +14,91 @@
 #include "log.h"
 #include "fs.h"
 #include "process.h"
+#include "page_frame_allocator.h"
+
+#define MAX_NUM_MEMORY_MAP  100
+#define ONE_MB      0x100000
+#define FOUR_MB     0x400000
+#define EIGHT_MB    0x800000
+#define KERNEL_AREA_PHYSICAL_END    FOUR_MB
+#define FS_PHYSICAL_END             EIGHT_MB
+#define STACK_MIN_LEN               4096
+
+static memory_map_t memory_map[MAX_NUM_MEMORY_MAP];
+static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
+                                kernel_meminfo_t *mem);
 
 static void kinit(kernel_meminfo_t *mem,
+                  const multiboot_info_t *mbinfo,
                   uint32_t kernel_pdt_addr,
                   uint32_t fs_root_addr)
 {
     disable_interrupts();
-    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
+
     gdt_init();
     idt_init();
     pic_init();
     serial_init(COM1);
     pit_init();
+
+    pfa_init(memory_map, fill_memory_map(mbinfo, mem));
+    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
     paging_init(kernel_pdt_addr);
+
     fs_init(fs_root_addr);
+
     enable_interrupts();
+}
+
+static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
+                                kernel_meminfo_t *mem)
+{
+    uint32_t addr, len, i = 0;
+    if ((mbinfo->flags & 0x00000020) == 0) {
+        return 0;
+    }
+    multiboot_memory_map_t *entry =
+        (multiboot_memory_map_t *) mbinfo->mmap_addr;
+    while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
+        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            addr = (uint32_t) entry->addr;
+            len = (uint32_t) entry->len;
+            if (addr <= mem->kernel_physical_start
+                    && (addr + len) >= mem->kernel_physical_start) {
+                if (addr < mem->kernel_physical_start) {
+                    /* The unreserved memory below 1MB is free to use */
+                    memory_map[i].addr = addr;
+                    memory_map[i].len = mem->kernel_physical_start - addr;
+                    memory_map[i].flags |= MEMORY_MAP_MAPPED_FLAG;
+                    ++i;
+                }
+
+                /* Remove the kernel from free memory */
+                memory_map[i].addr = mem->kernel_physical_end;
+                memory_map[i].len = KERNEL_AREA_PHYSICAL_END
+                                    - mem->kernel_physical_end - STACK_MIN_LEN;
+                memory_map[i].flags |= MEMORY_MAP_MAPPED_FLAG;
+                ++i;
+
+                /* Remove the fs from free memory */
+                memory_map[i].addr = FS_PHYSICAL_END;
+                memory_map[i].len = len - FS_PHYSICAL_END;
+                ++i;
+            } else {
+                memory_map[i].addr = addr;
+                memory_map[i].len = len;
+                if (addr + len <= KERNEL_AREA_PHYSICAL_END) {
+                    memory_map[i].flags |= MEMORY_MAP_MAPPED_FLAG;
+                }
+                ++i;
+            }
+        }
+        entry = (multiboot_memory_map_t *)
+            (((uint32_t) entry) + entry->size + sizeof(entry->size));
+    }
+
+    /* remove kernel text/data and fs */
+    return i;
 }
 
 static void display_tick()
@@ -124,7 +194,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, kernel_pdt_addr, modules_base_addr);
+    kinit(&mem, mbinfo, kernel_pdt_addr, modules_base_addr);
     log_memory_map(mbinfo);
     log_kernel_mem_info(&mem);
     log_module_info(mbinfo);
