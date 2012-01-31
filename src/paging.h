@@ -10,8 +10,10 @@
 
 typedef struct pde pde_t;
 
-void paging_init(uint32_t kernel_page_directory);
+void paging_init(uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr);
+
 pde_t *pdt_create(void);
+uint32_t pdt_kernel_find_next_virtual_addr(uint32_t size);
 uint32_t pdt_map_kernel_memory(uint32_t physical_addr,
                                uint32_t virtual_addr,
                                uint32_t size,

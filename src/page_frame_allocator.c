@@ -2,6 +2,7 @@
 #include "log.h"
 #include "string.h"
 #include "common.h"
+#include "paging.h"
 
 #define FOUR_KB     0x1000
 #define ONE_MB      0x100000
@@ -78,7 +79,7 @@ static uint32_t align_down(uint32_t n, uint32_t a)
 
 static void construct_bitmap(memory_map_t *mmap, uint32_t n)
 {
-    uint32_t i, bitmap_size;
+    uint32_t i, bitmap_size, physical_addr, virtual_addr;
 
     /* calculate number of available page frames */
     for (i = 0; i < n; ++i) {
@@ -89,8 +90,7 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
 
     for (i = 0; i < n; ++i) {
         if (mmap[i].len >= bitmap_size) {
-            page_frames.start =
-                (uint32_t *) PHYSICAL_TO_VIRTUAL(mmap[i].addr);
+            physical_addr = mmap[i].addr;
 
             mmap[i].addr += bitmap_size;
             mmap[i].len -= bitmap_size;
@@ -104,11 +104,16 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
         return;
     }
 
-    log_printf("pfa: bitmap: [start: %X, len: %u]\n",
-               page_frames.start, page_frames.len);
+    log_printf("asdf\n");
+    virtual_addr = pdt_kernel_find_next_virtual_addr(bitmap_size);
+    log_printf("pfa: bitmap: [start: %X, size: %u]\n",
+               virtual_addr, bitmap_size);
 
-    /* mark all memory in mmap as free */
-    //memset(page_frames.start, 0xFF, page_frames.len/8);
+    pdt_map_kernel_memory(physical_addr, virtual_addr, bitmap_size,
+                          PAGING_PL0, PAGING_READ_WRITE);
+
+    page_frames.start = (uint32_t *) virtual_addr;
+    memset(page_frames.start, 0xFF, bitmap_size);
 }
 
 void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)

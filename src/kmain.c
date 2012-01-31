@@ -19,7 +19,8 @@
 
 static void kinit(kernel_meminfo_t *mem,
                   const multiboot_info_t *mbinfo,
-                  uint32_t kernel_pdt_addr)
+                  uint32_t kernel_pdt_vaddr,
+                  uint32_t kernel_pt_vaddr)
 {
     disable_interrupts();
 
@@ -29,9 +30,9 @@ static void kinit(kernel_meminfo_t *mem,
     serial_init(COM1);
     pit_init();
 
+    paging_init(kernel_pdt_vaddr, kernel_pt_vaddr);
     pfa_init(mbinfo, mem);
-    kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
-    paging_init(kernel_pdt_addr);
+    //kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
 
     //fs_init(fs_root_addr);
 
@@ -119,7 +120,7 @@ static void log_module_info(const multiboot_info_t *mbinfo)
 void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
-          uint32_t kernel_pdt_addr)
+          uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr)
 {
     //ps_t *init;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
@@ -132,7 +133,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, mbinfo, kernel_pdt_addr);
+    kinit(&mem, mbinfo, kernel_pdt_vaddr, kernel_pt_vaddr);
     log_memory_map(mbinfo);
     log_kernel_mem_info(&mem);
     log_module_info(mbinfo);

@@ -110,6 +110,7 @@ higher_half:
     mov esp, kernel_stack+KERNEL_STACK_SIZE  ; set up the stack
 
 enter_kmain:
+    push kernel_pt
     push kernel_pdt
     push kernel_virtual_end             ; these are used by kmain, see
     push kernel_virtual_start           ; kernel_limits_t in kmain.c
