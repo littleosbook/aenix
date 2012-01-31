@@ -19,8 +19,7 @@
 
 static void kinit(kernel_meminfo_t *mem,
                   const multiboot_info_t *mbinfo,
-                  uint32_t kernel_pdt_addr,
-                  uint32_t fs_root_addr)
+                  uint32_t kernel_pdt_addr)
 {
     disable_interrupts();
 
@@ -34,7 +33,7 @@ static void kinit(kernel_meminfo_t *mem,
     kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
     paging_init(kernel_pdt_addr);
 
-    fs_init(fs_root_addr);
+    //fs_init(fs_root_addr);
 
     enable_interrupts();
 }
@@ -120,9 +119,9 @@ static void log_module_info(const multiboot_info_t *mbinfo)
 void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
-          uint32_t kernel_pdt_addr, uint32_t modules_base_addr)
+          uint32_t kernel_pdt_addr)
 {
-    ps_t *init;
+    //ps_t *init;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
 
     fb_clear();
@@ -133,7 +132,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, mbinfo, kernel_pdt_addr, modules_base_addr);
+    kinit(&mem, mbinfo, kernel_pdt_addr);
     log_memory_map(mbinfo);
     log_kernel_mem_info(&mem);
     log_module_info(mbinfo);
@@ -149,8 +148,8 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 "d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
 "=======================================================\n");
 
-    init = create_process("/bin/init");
-    (void) init; /* just to disable warning for now */
+    //init = create_process("/bin/init");
+    //(void) init; /* just to disable warning for now */
 
     return 0xDEADBEEF;
 }

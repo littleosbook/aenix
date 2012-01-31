@@ -13,12 +13,10 @@
 #define STACK_MIN_LEN               FOUR_KB
 
 #define MAX_NUM_MEMORY_MAP  100
-#define MEMORY_MAP_MAPPED_FLAG  0x01
 
 struct memory_map {
     uint32_t addr;
     uint32_t len;
-    uint8_t flags;
 };
 typedef struct memory_map memory_map_t;
 
@@ -45,32 +43,15 @@ static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
             addr = (uint32_t) entry->addr;
             len = (uint32_t) entry->len;
             if (addr <= mem->kernel_physical_start
-                    && (addr + len) >= mem->kernel_physical_start) {
-                if (addr < mem->kernel_physical_start) {
-                    /* The unreserved memory below 1MB is free to use */
-                    mmap[i].addr = addr;
-                    mmap[i].len = mem->kernel_physical_start - addr;
-                    mmap[i].flags |= MEMORY_MAP_MAPPED_FLAG;
-                    ++i;
-                }
+                    && (addr + len) > mem->kernel_physical_end) {
 
-                /* Remove the kernel from free memory */
                 mmap[i].addr = mem->kernel_physical_end;
-                mmap[i].len = KERNEL_AREA_PHYSICAL_END
-                                    - mem->kernel_physical_end - STACK_MIN_LEN;
-                mmap[i].flags |= MEMORY_MAP_MAPPED_FLAG;
+                mmap[i].len = len - mem->kernel_physical_end;
                 ++i;
 
-                /* Remove the fs from free memory */
-                mmap[i].addr = FS_PHYSICAL_END;
-                mmap[i].len = len - FS_PHYSICAL_END;
-                ++i;
-            } else {
+            } else if (addr > ONE_MB) {
                 mmap[i].addr = addr;
                 mmap[i].len = len;
-                if (addr + len <= KERNEL_AREA_PHYSICAL_END) {
-                    mmap[i].flags |= MEMORY_MAP_MAPPED_FLAG;
-                }
                 ++i;
             }
         }
@@ -107,15 +88,13 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
     bitmap_size = page_frames.len / 8;
 
     for (i = 0; i < n; ++i) {
-        if (mmap[i].flags & MEMORY_MAP_MAPPED_FLAG) {
-            if (mmap[i].len >= bitmap_size) {
-                page_frames.start =
-                    (uint32_t *) PHYSICAL_TO_VIRTUAL(mmap[i].addr);
+        if (mmap[i].len >= bitmap_size) {
+            page_frames.start =
+                (uint32_t *) PHYSICAL_TO_VIRTUAL(mmap[i].addr);
 
-                mmap[i].addr += bitmap_size;
-                mmap[i].len -= bitmap_size;
-                break;
-            }
+            mmap[i].addr += bitmap_size;
+            mmap[i].len -= bitmap_size;
+            break;
         }
     }
 
@@ -129,7 +108,7 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
                page_frames.start, page_frames.len);
 
     /* mark all memory in mmap as free */
-    memset(page_frames.start, 0xFF, page_frames.len/8);
+    //memset(page_frames.start, 0xFF, page_frames.len/8);
 }
 
 void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
@@ -139,8 +118,8 @@ void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
     n = fill_memory_map(mbinfo, mem);
 
     for (i = 0; i < n; ++i) {
-        log_printf("pfa_init: free mem: [addr: %X, len: %u] conf: %u\n",
-                mmap[i].addr, mmap[i].len, mmap[i].flags);
+        log_printf("pfa_init: free mem: [addr: %X, len: %u]\n",
+                mmap[i].addr, mmap[i].len);
 
         /* align addresses on 4kB blocks */
         addr = align_up(mmap[i].addr, FOUR_KB);
@@ -149,8 +128,8 @@ void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
         mmap[i].addr = addr;
         mmap[i].len = len;
 
-        log_printf("pfa_init: free mem aligned: [addr: %X, len: %u] conf: %u\n",
-                mmap[i].addr, mmap[i].len, mmap[i].flags);
+        log_printf("pfa_init: free mem aligned: [addr: %X, len: %u]\n",
+                mmap[i].addr, mmap[i].len);
     }
 
     construct_bitmap(mmap, n);
