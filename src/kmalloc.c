@@ -37,7 +37,8 @@ void kmalloc_init(uint32_t addr)
     next_heap_addr = addr;
 }
 
-void *kmalloc(size_t nbytes) {
+void *kmalloc_align(size_t nbytes, size_t alignment)
+{
     header_t *p, *prevp;
     size_t nunits;
 
@@ -75,7 +76,13 @@ void *kmalloc(size_t nbytes) {
     }
 }
 
-static void *acquire_more_heap(size_t nunits) {
+void *kmalloc(size_t nbytes)
+{
+    kmalloc_align(nbytes, 1);
+}
+
+static void *acquire_more_heap(size_t nunits)
+{
     header_t *p;
 
     if (nunits < MIN_BLOCK_SIZE) {
@@ -94,7 +101,8 @@ static void *acquire_more_heap(size_t nunits) {
     return freep;
 }
 
-void kfree(void * ap) {
+void kfree(void * ap)
+{
     header_t *bp, *p;
 
     if (ap == 0)
