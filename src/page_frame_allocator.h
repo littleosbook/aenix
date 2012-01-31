@@ -2,16 +2,9 @@
 #define PAGE_FRAME_ALLOCATOR_H
 
 #include "stdint.h"
+#include "kernel.h"
+#include "multiboot.h"
 
-#define MEMORY_MAP_MAPPED_FLAG  0x01
-
-struct memory_map {
-    uint32_t addr;
-    uint32_t len;
-    uint8_t flags;
-};
-typedef struct memory_map memory_map_t;
-
-void pfa_init(memory_map_t *mmap, uint32_t n);
+void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem);
 
 #endif /* PAGE_FRAME_ALLOCATOR_H */
