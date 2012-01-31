@@ -224,3 +224,31 @@ are more architectural and less "low-level", which is a nice change!
   was caused by the size of the GDT being specified as 3 when it should be 5
   (we simply forgot to change the size when adding to new entries). This shows
   how important it is to review _all_ kernel code to avoid these mistakes.
+
+# 2012-01-28
+
+
+# 2012-01-30
+
+## Achievements
+
+- Worked on setting up paging tables and such for user mode processes - mapping
+  and unmapping memory from virtual to physical.
+- Sketched an outline of how to implement the page frame allocator.
+
+## Issues
+
+- Cannot allocate 4kB aligned memory needed for both the process' sections and
+  for their page tables. Writing the page frame allocator tomorrow.
+
+# 2012-01-31
+
+## Achievements
+
+## Issues
+
+## Notes
+
+- The kernel's code and rodata should be mapped as read-only. This requires the
+  kernel to be mapped in as several 4kB pages, the sections to be properly
+  aligned (which they are), and the setting-up to be done in assembler.
