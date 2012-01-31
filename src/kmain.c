@@ -141,6 +141,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 "=======================================================\n");
 
     init = create_process("/bin/init");
+    (void) init; /* just to disable warning for now */
 
     return 0xDEADBEEF;
 }

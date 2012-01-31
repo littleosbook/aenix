@@ -37,7 +37,7 @@ void kmalloc_init(uint32_t addr)
     next_heap_addr = addr;
 }
 
-void *kmalloc_align(size_t nbytes, size_t alignment)
+void *kmalloc(size_t nbytes)
 {
     header_t *p, *prevp;
     size_t nunits;
@@ -74,11 +74,6 @@ void *kmalloc_align(size_t nbytes, size_t alignment)
             }
         }
     }
-}
-
-void *kmalloc(size_t nbytes)
-{
-    kmalloc_align(nbytes, 1);
 }
 
 static void *acquire_more_heap(size_t nunits)
