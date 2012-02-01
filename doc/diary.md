@@ -227,6 +227,9 @@ are more architectural and less "low-level", which is a nice change!
 
 # 2012-01-28
 
+## Achievements
+
+- [Erik did something]
 
 # 2012-01-30
 
@@ -241,14 +244,38 @@ are more architectural and less "low-level", which is a nice change!
 - Cannot allocate 4kB aligned memory needed for both the process' sections and
   for their page tables. Writing the page frame allocator tomorrow.
 
+
 # 2012-01-31
 
 ## Achievements
 
+- The kernel is now mapped in into virtual memory in 4kB page frames, which
+  leaves more room for other kernel data and/or user processes. This breaks
+  kmalloc() and the in-memory file system
+- Thought a lot on the page frame allocator. Since the page frames for the page
+  tables might not actually have a virtual memory address we can't access them
+  until we map them in. We implemented a way to temporarily map in a page frame.
+
 ## Issues
+
+- kmalloc() and the file system code needs to be updated.
 
 ## Notes
 
 - The kernel's code and rodata should be mapped as read-only. This requires the
   kernel to be mapped in as several 4kB pages, the sections to be properly
   aligned (which they are), and the setting-up to be done in assembler.
+
+
+# 2012-02-03
+
+## Achievements
+
+- Cleaned up some code. Wrote a script to turn c headers with constant
+  definitions into .inc files to be included in nasm code
+
+## Issues
+
+- We couldn't get the Makefile to correctly use .inc as dependencies for the
+  assembler files. We worked around it, but it would be nice for it to work
+  directly from the Makefile.
