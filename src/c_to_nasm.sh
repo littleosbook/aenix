@@ -6,12 +6,16 @@
 #   - #ifndef
 #   - #endif
 
+# INPUT: A list of the required NASM headers
+
 set -e
 
-C_HEADER=$1
-NASM_HEADER="${C_HEADER%%.h}.inc"
-
-sed 's/\/\*/;/' $C_HEADER | # remove comments on single lines
-sed 's/\*\///'             |
-sed 's/^#/%/'              > $NASM_HEADER
-#sed "s/$C_DEFINE/%/" $NASM_HEADER > $NASM_HEADER
+for NASM_HEADER in $@
+do
+    C_HEADER="${NASM_HEADER%%.inc}.h"
+    if [ $C_HEADER -nt $NASM_HEADER ]; then
+        sed 's/\/\*/;/' $C_HEADER | # change start of comments
+        sed 's/\*\///'            | # change end of comments
+        sed 's/^#/%/'             > $NASM_HEADER
+    fi
+done
