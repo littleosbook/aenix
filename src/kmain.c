@@ -4,6 +4,7 @@
 #include "pic.h"
 #include "idt.h"
 #include "interrupt.h"
+#include "constants.h"
 #include "common.h"
 #include "pit.h"
 #include "multiboot.h"

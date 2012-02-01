@@ -2,16 +2,9 @@
 #include "log.h"
 #include "string.h"
 #include "common.h"
+#include "constants.h"
+#include "mem.h"
 #include "paging.h"
-
-#define FOUR_KB     0x1000
-#define ONE_MB      0x100000
-#define FOUR_MB     0x400000
-#define EIGHT_MB    0x800000
-
-#define KERNEL_AREA_PHYSICAL_END    FOUR_MB
-#define FS_PHYSICAL_END             EIGHT_MB
-#define STACK_MIN_LEN               FOUR_KB
 
 #define MAX_NUM_MEMORY_MAP  100
 
@@ -29,6 +22,34 @@ typedef struct page_frame_bitmap page_frame_bitmap_t;
 
 static page_frame_bitmap_t page_frames;
 static memory_map_t mmap[MAX_NUM_MEMORY_MAP];
+
+static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
+                                kernel_meminfo_t *mem);
+static void construct_bitmap(memory_map_t *mmap, uint32_t n);
+
+void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
+{
+    uint32_t i, n, addr, len;
+
+    n = fill_memory_map(mbinfo, mem);
+
+    for (i = 0; i < n; ++i) {
+        log_printf("pfa_init: free mem: [addr: %X, len: %u]\n",
+                mmap[i].addr, mmap[i].len);
+
+        /* align addresses on 4kB blocks */
+        addr = align_up(mmap[i].addr, FOUR_KB);
+        len = align_down(mmap[i].len - (addr - mmap[i].addr), FOUR_KB);
+
+        mmap[i].addr = addr;
+        mmap[i].len = len;
+
+        log_printf("pfa_init: free mem aligned: [addr: %X, len: %u]\n",
+                mmap[i].addr, mmap[i].len);
+    }
+
+    construct_bitmap(mmap, n);
+}
 
 static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
                                 kernel_meminfo_t *mem)
@@ -63,20 +84,6 @@ static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
     return i;
 }
 
-static uint32_t align_up(uint32_t n, uint32_t a)
-{
-    uint32_t m = n % a;
-    if (m == 0) {
-        return n;
-    }
-    return n + (a - m);
-}
-
-static uint32_t align_down(uint32_t n, uint32_t a)
-{
-    return n - (n % a);
-}
-
 static void construct_bitmap(memory_map_t *mmap, uint32_t n)
 {
     uint32_t i, bitmap_size, physical_addr, virtual_addr;
@@ -104,38 +111,13 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
         return;
     }
 
-    log_printf("asdf\n");
     virtual_addr = pdt_kernel_find_next_virtual_addr(bitmap_size);
-    log_printf("pfa: bitmap: [start: %X, size: %u]\n",
-               virtual_addr, bitmap_size);
+    log_printf("pfa: bitmap: [start: %X, size: %u page frames, %u bytes]\n",
+               virtual_addr, page_frames.len, bitmap_size);
 
     pdt_map_kernel_memory(physical_addr, virtual_addr, bitmap_size,
                           PAGING_PL0, PAGING_READ_WRITE);
 
     page_frames.start = (uint32_t *) virtual_addr;
     memset(page_frames.start, 0xFF, bitmap_size);
-}
-
-void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
-{
-    uint32_t i, n, addr, len;
-
-    n = fill_memory_map(mbinfo, mem);
-
-    for (i = 0; i < n; ++i) {
-        log_printf("pfa_init: free mem: [addr: %X, len: %u]\n",
-                mmap[i].addr, mmap[i].len);
-
-        /* align addresses on 4kB blocks */
-        addr = align_up(mmap[i].addr, FOUR_KB);
-        len = align_down(mmap[i].len - (addr - mmap[i].addr), FOUR_KB);
-
-        mmap[i].addr = addr;
-        mmap[i].len = len;
-
-        log_printf("pfa_init: free mem aligned: [addr: %X, len: %u]\n",
-                mmap[i].addr, mmap[i].len);
-    }
-
-    construct_bitmap(mmap, n);
 }
