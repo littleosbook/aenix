@@ -9,3 +9,4 @@ mkfs
 fs_root
 fs
 init
+*.inc

@@ -8,6 +8,7 @@ CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 LDFLAGS = -T link.ld -melf_i386
 AS = nasm
 ASFLAGS = -f elf
+AS_HEADERS = test.inc
 MODULE_AS_FLAGS=-f bin
 MKFS=mkfs.c
 FS_ROOT=fs_root
@@ -24,11 +25,16 @@ iso: kernel.elf fs
 kernel.elf: $(OBJECTS)
 	ld $(LDFLAGS) $(OBJECTS) -o kernel.elf
 
+as_headers: $(AS_HEADERS)
+
 .o:
 	$(CC) $(CFLAGS) $< -o $@
 
-.s.o:
+%.o: %.s as_headers
 	$(AS) $(ASFLAGS) $<
+
+%.inc: %.h
+	./c_to_nasm.sh $<
 
 fs_root:
 	mkdir -p $(BIN_PATH)
@@ -47,4 +53,4 @@ doc:
 	cd .. ; doxygen doc/Doxyfile
 
 clean:
-	rm -rf *.o kernel.elf aenix.iso mkfs init fs
+	rm -rf *.o kernel.elf aenix.iso mkfs init fs *.inc
