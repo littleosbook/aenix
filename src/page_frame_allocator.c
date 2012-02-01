@@ -56,10 +56,25 @@ void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
 static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
                                 kernel_meminfo_t *mem)
 {
-    uint32_t addr, len, i = 0;
+    uint32_t addr, len, fs_addr = 1, fs_size = 0, i = 0;
     if ((mbinfo->flags & 0x00000020) == 0) {
         return 0;
     }
+
+    if (mbinfo->flags & 0x00000008) {
+        if (mbinfo->mods_count != 1) {
+            log_printf("ERROR: Loaded %u modules instead of just one\n",
+                        mbinfo->mods_count);
+            return 0;
+        }
+        multiboot_module_t *module = (multiboot_module_t *) mbinfo->mods_addr;
+        fs_addr = module->mod_start;
+        fs_size = module->mod_end - module->mod_start;
+    } else {
+        log_printf("ERROR: Could not find filesystem!\n");
+        return 0;
+    }
+
     multiboot_memory_map_t *entry =
         (multiboot_memory_map_t *) mbinfo->mmap_addr;
     while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
@@ -69,17 +84,27 @@ static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
             if (addr <= mem->kernel_physical_start
                     && (addr + len) > mem->kernel_physical_end) {
 
-                mmap[i].addr = mem->kernel_physical_end;
-                mmap[i].len = len - mem->kernel_physical_end;
-                ++i;
+                addr = mem->kernel_physical_end;
+                len = len - mem->kernel_physical_end;
 
-            } else if (addr > ONE_MB) {
+            }
+
+            if (addr > ONE_MB) {
+                if (addr < fs_addr && ((addr + len) > (fs_addr + fs_size))) {
+                    mmap[i].addr = addr;
+                    mmap[i].len = fs_addr - addr;
+                    ++i;
+
+                    addr = fs_addr + fs_size;
+                    len -= (fs_addr + fs_size) - addr;
+                }
+
+                log_printf("adding addr: %X, len: %u\n", addr, len);
                 mmap[i].addr = addr;
                 mmap[i].len = len;
                 ++i;
             }
         }
-        /* TODO: WATCH OUT FOR MODULES! */
         entry = (multiboot_memory_map_t *)
             (((uint32_t) entry) + entry->size + sizeof(entry->size));
     }
