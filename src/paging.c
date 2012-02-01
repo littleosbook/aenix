@@ -138,7 +138,8 @@ static uint32_t pt_kernel_find_next_vaddr(uint32_t pdt_idx,
     uint32_t i, num_to_find, num_found;
     num_to_find = align_up(size, 4096) / 4096;
     for (i = 0, num_found = 0; i < NUM_ENTRIES; ++i) {
-        if (IS_ENTRY_PRESENT(pt+i)) {
+        if (IS_ENTRY_PRESENT(pt+i) ||
+            (pt == kernel_pt && i == KERNEL_TMP_PT_IDX)) {
             num_found = 0;
         } else {
             ++num_found;
@@ -185,8 +186,11 @@ static uint32_t pt_map_memory(pte_t *pt,
 
     while (mapped_size < size && pt_idx < NUM_ENTRIES) {
         if (IS_ENTRY_PRESENT(pt + pt_idx)) {
-            return 0;
+            return mapped_size;
+        } else if(pt == kernel_pt && pt_idx == KERNEL_TMP_PT_IDX) {
+            return mapped_size;
         }
+
         create_pt_entry(pt, pt_idx, paddr, rw, pl);
 
         paddr += PT_ENTRY_SIZE;
@@ -264,6 +268,10 @@ static uint32_t pt_unmap_memory(pte_t *pt,
     uint32_t freed_size = 0;
 
     while (freed_size < size && pt_idx < NUM_ENTRIES) {
+        if (pt == kernel_pt && pt_idx == KERNEL_TMP_PT_IDX) {
+            /* can't touch this */
+            return freed_size;
+        }
         if (IS_ENTRY_PRESENT(pt + pt_idx)) {
             memset(pt + pt_idx, 0, sizeof(pte_t));
             invalidate_page_table_entry(vaddr);
