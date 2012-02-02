@@ -291,4 +291,11 @@ are more architectural and less "low-level", which is a nice change!
 - Wrote a lot of code to do error checking, which caused us to find several
   bugs. log\_err(), log\_info() and log\_debug() were created to simplify
   logging
-- Wrote more on the page frame allocator.
+- "Finished" the page frame allocator.
+- Debugged. A lot. Found several bugs, which we fixed.
+- Modified kmalloc() to use the page frame allocator to ask for page frame-sized
+  blocks.
+- process\_create() creates a new process, with code loaded from file and pdt
+  set up.
+- Can enter user mode for the init program, which is created through
+  process\_create().
