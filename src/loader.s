@@ -97,6 +97,7 @@ enable_paging:
 ; the upper half, 0xC0100000
 higher_half:
     mov [kernel_pdt], DWORD 0
+    invlpg [0]
     mov esp, kernel_stack+KERNEL_STACK_SIZE  ; set up the stack
 
 enter_kmain:
