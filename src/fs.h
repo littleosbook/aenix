@@ -4,7 +4,7 @@
 #include "inode.h"
 #include "stdint.h"
 
-void fs_init(uint32_t root_addr);
+uint32_t fs_init(uint32_t fs_paddr, uint32_t fs_size);
 inode_t *fs_find_inode(char *path);
 uint32_t fs_get_addr(inode_t *node);
 

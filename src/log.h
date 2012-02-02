@@ -3,6 +3,8 @@
 
 #include "stdarg.h"
 
-void log_printf(char *fmt, ...);
+void log_debug(char *fname, char *fmt, ...);
+void log_info(char *fname, char *fmt, ...);
+void log_error(char *fname, char *fmt, ...);
 
 #endif /* LOG_H */

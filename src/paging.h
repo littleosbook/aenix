@@ -10,7 +10,7 @@
 
 typedef struct pde pde_t;
 
-void paging_init(uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr);
+uint32_t paging_init(uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr);
 
 uint32_t pdt_kernel_find_next_vaddr(uint32_t size);
 

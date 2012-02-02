@@ -1,12 +1,42 @@
 #include "fs.h"
 #include "string.h"
 #include "log.h"
+#include "paging.h"
 
+static uint32_t fs_paddr;
+static uint32_t fs_size;
 static inode_t *root;
 
-void fs_init(uint32_t root_addr)
+uint32_t fs_init(uint32_t paddr, uint32_t size)
 {
-    root = (inode_t *) root_addr;
+    uint32_t fs_vaddr, mapped_mem_size;
+    fs_paddr = paddr;
+    fs_size = size;
+    fs_vaddr = pdt_kernel_find_next_vaddr(fs_size);
+    if (fs_vaddr == 0) {
+        log_error("fs_init",
+                  "Could not find virtual memory in kernel for FS."
+                  "fs_paddr: %X, fs_size: %u\n",
+                  fs_paddr, fs_size);
+        return 1;
+    }
+
+    mapped_mem_size = pdt_map_kernel_memory(fs_paddr, fs_vaddr, fs_size,
+                          PAGING_PL0, PAGING_READ_ONLY);
+    if (mapped_mem_size < fs_size) {
+        log_error("fs_init",
+                  "Could not map kernel memory for FS."
+                  "fs_paddr: %X, fs_vaddr: %X, fs_size: %u, mapped_size: %u\n",
+                  fs_paddr, fs_vaddr, fs_size, mapped_mem_size);
+        return 1;
+    }
+
+    root = (inode_t *) fs_vaddr;
+
+    log_info("fs_init", "fs_vaddr: %X, fs_paddr: %X, fs_size: %u\n",
+             fs_vaddr, fs_paddr, fs_size);
+
+    return 0;
 }
 
 static inode_t *find_inode_in_dir(inode_t *dir, char *path, size_t fname_len)
@@ -24,6 +54,7 @@ static inode_t *find_inode_in_dir(inode_t *dir, char *path, size_t fname_len)
             return (inode_t *) ((uint32_t) root + entry->location);
         }
     }
+
 
     return NULL;
 }

@@ -5,6 +5,7 @@
 #include "constants.h"
 #include "mem.h"
 #include "paging.h"
+#include "math.h"
 
 #define MAX_NUM_MEMORY_MAP  100
 
@@ -24,54 +25,13 @@ static page_frame_bitmap_t page_frames;
 static memory_map_t mmap[MAX_NUM_MEMORY_MAP];
 static uint32_t mmap_len;
 
-static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
-                                kernel_meminfo_t *mem);
-static void construct_bitmap(memory_map_t *mmap, uint32_t n);
-
-void pfa_init(const multiboot_info_t *mbinfo, kernel_meminfo_t *mem)
+static uint32_t fill_memory_map(multiboot_info_t const *mbinfo,
+                                kernel_meminfo_t const *mem,
+                                uint32_t fs_paddr, uint32_t fs_size)
 {
-    uint32_t i, n, addr, len;
-
-    n = fill_memory_map(mbinfo, mem);
-    mmap_len = n;
-
-    for (i = 0; i < n; ++i) {
-        log_printf("pfa_init: free mem: [addr: %X, len: %u]\n",
-                mmap[i].addr, mmap[i].len);
-
-        /* align addresses on 4kB blocks */
-        addr = align_up(mmap[i].addr, FOUR_KB);
-        len = align_down(mmap[i].len - (addr - mmap[i].addr), FOUR_KB);
-
-        mmap[i].addr = addr;
-        mmap[i].len = len;
-
-        log_printf("pfa_init: free mem aligned: [addr: %X, len: %u]\n",
-                mmap[i].addr, mmap[i].len);
-    }
-
-    construct_bitmap(mmap, n);
-}
-
-static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
-                                kernel_meminfo_t *mem)
-{
-    uint32_t addr, len, fs_addr = 1, fs_size = 0, i = 0;
+    uint32_t addr, len, i = 0;
     if ((mbinfo->flags & 0x00000020) == 0) {
-        return 0;
-    }
-
-    if (mbinfo->flags & 0x00000008) {
-        if (mbinfo->mods_count != 1) {
-            log_printf("ERROR: Loaded %u modules instead of just one\n",
-                        mbinfo->mods_count);
-            return 0;
-        }
-        multiboot_module_t *module = (multiboot_module_t *) mbinfo->mods_addr;
-        fs_addr = module->mod_start;
-        fs_size = module->mod_end - module->mod_start;
-    } else {
-        log_printf("ERROR: Could not find filesystem!\n");
+        log_error("fill_memory_map", "No memory map from GRUB\n");
         return 0;
     }
 
@@ -90,16 +50,15 @@ static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
             }
 
             if (addr > ONE_MB) {
-                if (addr < fs_addr && ((addr + len) > (fs_addr + fs_size))) {
+                if (addr < fs_paddr && ((addr + len) > (fs_paddr + fs_size))) {
                     mmap[i].addr = addr;
-                    mmap[i].len = fs_addr - addr;
+                    mmap[i].len = fs_paddr - addr;
                     ++i;
 
-                    addr = fs_addr + fs_size;
-                    len -= (fs_addr + fs_size) - addr;
+                    addr = fs_paddr + fs_size;
+                    len -= (fs_paddr + fs_size) - addr;
                 }
 
-                log_printf("adding addr: %X, len: %u\n", addr, len);
                 mmap[i].addr = addr;
                 mmap[i].len = len;
                 ++i;
@@ -112,47 +71,65 @@ static uint32_t fill_memory_map(const multiboot_info_t *mbinfo,
     return i;
 }
 
-static uint32_t ceil(uint32_t num, uint32_t den)
+static uint32_t construct_bitmap(memory_map_t *mmap, uint32_t n)
 {
-    return (num - 1) / den + 1;
-}
-
-static void construct_bitmap(memory_map_t *mmap, uint32_t n)
-{
-    uint32_t i, bitmap_size, physical_addr, virtual_addr;
+    uint32_t i, bitmap_pfs, bitmap_size, paddr, vaddr, mapped_mem;
     uint32_t *last;
+    uint32_t total_pfs = 0;
 
     /* calculate number of available page frames */
     for (i = 0; i < n; ++i) {
-        page_frames.len += mmap[i].len / FOUR_KB;
+        total_pfs += mmap[i].len / FOUR_KB;
     }
 
-    bitmap_size = ceil(page_frames.len, 8);
+    bitmap_pfs = div_ceil(div_ceil(total_pfs, 8), FOUR_KB);
 
     for (i = 0; i < n; ++i) {
-        if (mmap[i].len >= bitmap_size) {
-            physical_addr = mmap[i].addr;
+        if (mmap[i].len >= bitmap_pfs * FOUR_KB) {
+            paddr = mmap[i].addr;
 
-            mmap[i].addr += bitmap_size;
-            mmap[i].len -= bitmap_size;
+            mmap[i].addr += bitmap_pfs * FOUR_KB;
+            mmap[i].len -= bitmap_pfs * FOUR_KB;
             break;
         }
     }
 
+    page_frames.len = total_pfs - bitmap_pfs;
+    bitmap_size = div_ceil(page_frames.len, 8);
+
     if (i == n) {
-        log_printf("ERROR: pfa: couldn't find place for bitmap; size: %u\n",
+        log_error("construct_bitmap",
+                  "Couldn't find place for bitmap. bitmap_size: %u\n",
                    bitmap_size);
-        return;
+        return 1;
     }
 
-    virtual_addr = pdt_kernel_find_next_vaddr(bitmap_size);
-    log_printf("pfa: bitmap: [start: %X, size: %u page frames, %u bytes]\n",
-               virtual_addr, page_frames.len, bitmap_size);
+    vaddr = pdt_kernel_find_next_vaddr(bitmap_size);
+    if (vaddr == 0) {
+        log_error("construct_bitmap",
+                  "Could not find virtual address for bitmap in kernel. "
+                  "paddr: %X, bitmap_size: %u, bitmap_pfs: %u\n",
+                  paddr, bitmap_size);
+        return 1;
 
-    pdt_map_kernel_memory(physical_addr, virtual_addr, bitmap_size,
-                          PAGING_PL0, PAGING_READ_WRITE);
+    }
+    log_info("construct_bitmap",
+             "bitmap vaddr: %X, page_frames.len: %u, bitmap_size: %u, "
+             "bitmap_pfs: %u\n",
+              vaddr, page_frames.len, bitmap_size, bitmap_pfs);
 
-    page_frames.start = (uint32_t *) virtual_addr;
+    mapped_mem = pdt_map_kernel_memory(paddr, vaddr, bitmap_size,
+                                       PAGING_PL0, PAGING_READ_WRITE);
+    if (mapped_mem < bitmap_size) {
+        log_error("construct_bitmap",
+                  "Could not map kernel memory for bitmap. "
+                  "paddr: %X, vaddr: %X, bitmap_size: %u\n",
+                  paddr, vaddr, bitmap_size);
+        return 1;
+
+    }
+
+    page_frames.start = (uint32_t *) vaddr;
 
 
     memset(page_frames.start, 0xFF, bitmap_size);
@@ -161,6 +138,49 @@ static void construct_bitmap(memory_map_t *mmap, uint32_t n)
     for (i = 0; i < page_frames.len % 8; ++i) {
         *last |= 0x01 << (7 - i);
     }
+
+    return 0;
+}
+
+uint32_t pfa_init(multiboot_info_t const *mbinfo,
+              kernel_meminfo_t const *mem,
+              uint32_t fs_paddr, uint32_t fs_size)
+{
+    uint32_t i, n, addr, len;
+
+    n = fill_memory_map(mbinfo, mem, fs_paddr, fs_size);
+    if (n == 0) {
+        return 1;
+    }
+
+    log_info("pfa_init",
+              "\n\tkernel_physical_start: %X\n"
+              "\tkernel_physical_end: %X\n"
+              "\tkernel_virtual_start: %X\n"
+              "\tkernel_virtual_end: %X\n",
+              mem->kernel_physical_start, mem->kernel_physical_end,
+              mem->kernel_virtual_start, mem->kernel_virtual_end);
+
+    mmap_len = n;
+
+    for (i = 0; i < n; ++i) {
+        log_debug("pfa_init",
+                  "mmap[%u].addr: %X, mmap[%u].len: %u\n",
+                  i, mmap[i].addr, i, mmap[i].len);
+
+        /* align addresses on 4kB blocks */
+        addr = align_up(mmap[i].addr, FOUR_KB);
+        len = align_down(mmap[i].len - (addr - mmap[i].addr), FOUR_KB);
+
+        mmap[i].addr = addr;
+        mmap[i].len = len;
+
+        log_debug("pfa_init",
+                  "after alignment: mmap[%u].addr: %X, mmap[%u].len: %u\n",
+                  i, mmap[i].addr, i, mmap[i].len);
+    }
+
+    return construct_bitmap(mmap, n);
 }
 
 static void toggle_bit(uint32_t bit_idx)
@@ -210,7 +230,7 @@ static uint32_t idx_for_paddr(uint32_t paddr)
 uint32_t pfa_allocate(uint32_t num_page_frames)
 {
     uint32_t i, j, cell, bit_idx;
-    uint32_t n = ceil(page_frames.len, 32), frames_found = 0;
+    uint32_t n = div_ceil(page_frames.len, 32), frames_found = 0;
 
     for (i = 0; i < n; ++i) {
         cell = page_frames.start[i];
@@ -239,7 +259,7 @@ void pfa_free(uint32_t paddr)
 {
     uint32_t bit_idx = idx_for_paddr(paddr);
     if (bit_idx == page_frames.len) {
-        log_printf("ERROR: pfa_free: invalid paddr %X\n", paddr);
+        log_error("pfa_free", "invalid paddr %X\n", paddr);
     } else {
         toggle_bit(bit_idx);
     }

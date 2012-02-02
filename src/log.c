@@ -61,14 +61,12 @@ static void log_hex(uint32_t i)
     }
 }
 
-void log_printf(char *fmt, ...)
+static void log_vprintf(char *fmt, va_list ap)
 {
-    va_list ap;
     char *p;
     uint32_t uival;
     char *sval;
 
-    va_start(ap, fmt);
     for (p = fmt; *p != '\0'; ++p) {
         if (*p != '%') {
             serial_write(LOG_COM, *p);
@@ -100,5 +98,39 @@ void log_printf(char *fmt, ...)
         }
     }
 
+}
+
+static void log_printf(char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    log_vprintf(fmt, ap);
+    va_end(ap);
+}
+
+void log_debug(char *fname, char *fmt, ...)
+{
+    va_list ap;
+    log_printf("DEBUG: %s: ", fname);
+    va_start(ap, fmt);
+    log_vprintf(fmt, ap);
+    va_end(ap);
+}
+
+void log_info(char *fname, char *fmt, ...)
+{
+    va_list ap;
+    log_printf("INFO: %s: ", fname);
+    va_start(ap, fmt);
+    log_vprintf(fmt, ap);
+    va_end(ap);
+}
+
+void log_error(char *fname, char *fmt, ...)
+{
+    va_list ap;
+    log_printf("ERROR: %s: ", fname);
+    va_start(ap, fmt);
+    log_vprintf(fmt, ap);
     va_end(ap);
 }

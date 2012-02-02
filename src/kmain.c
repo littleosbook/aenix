@@ -17,13 +17,48 @@
 #include "process.h"
 #include "page_frame_allocator.h"
 
+#define KINIT_ERROR_LOAD_FS 1
+#define KINIT_ERROR_INIT_FS 2
+#define KINIT_ERROR_INIT_PAGING 3
+#define KINIT_ERROR_INIT_PFA 4
 
-static void kinit(kernel_meminfo_t *mem,
+/* Gets the physical address of the filesystem, which is the address of the
+ * only GRUB module loaded
+ *
+ * @param mbinfo A pointer to the multiboot info struct
+ * @param size OUT The size of the fs in bytes will be written to his ptr
+ *
+ * @return The physical address of the filesystem
+ */
+static uint32_t get_fs_paddr(const multiboot_info_t *mbinfo, uint32_t *size)
+{
+    *size = 0;
+    if (mbinfo->flags & 0x00000008) {
+        if (mbinfo->mods_count != 1) {
+            return 0;
+        }
+
+        multiboot_module_t *module = (multiboot_module_t *) mbinfo->mods_addr;
+        *size = module->mod_end - module->mod_start;
+        return module->mod_start;
+    }
+
+    return 0;
+}
+
+static uint32_t kinit(kernel_meminfo_t *mem,
                   const multiboot_info_t *mbinfo,
                   uint32_t kernel_pdt_vaddr,
                   uint32_t kernel_pt_vaddr)
 {
+    uint32_t fs_paddr, fs_size;
+    uint32_t res;
     disable_interrupts();
+
+    fs_paddr = get_fs_paddr(mbinfo, &fs_size);
+    if (fs_paddr == 0 && fs_size == 0) {
+        return KINIT_ERROR_LOAD_FS;
+    }
 
     gdt_init();
     idt_init();
@@ -31,13 +66,24 @@ static void kinit(kernel_meminfo_t *mem,
     serial_init(COM1);
     pit_init();
 
-    paging_init(kernel_pdt_vaddr, kernel_pt_vaddr);
-    pfa_init(mbinfo, mem);
+    res = paging_init(kernel_pdt_vaddr, kernel_pt_vaddr);
+    if (res != 0) {
+        return KINIT_ERROR_INIT_PAGING;
+    }
+
+    res = pfa_init(mbinfo, mem, fs_paddr, fs_size);
+    if (res != 0) {
+        return KINIT_ERROR_INIT_PFA;
+    }
     //kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
 
-    //fs_init(fs_root_addr);
+    res = fs_init(fs_paddr, fs_size);
+    if (res != 0) {
+        return KINIT_ERROR_INIT_FS;
+    }
 
     enable_interrupts();
+    return 0;
 }
 
 
@@ -56,74 +102,13 @@ static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-static void log_memory_map(const multiboot_info_t *mbinfo)
-{
-    /* From the GRUB multiboot manual section 3.3 boot information format
-     * If flags[0] is set, then the fields mem_lower and mem_upper can be
-     * accessed.
-     * If flags[6] is set, then the fields mmap_length and mmap_addr can be
-     * accessed, which contains a complete memory map.
-     */
-    if (mbinfo->flags & 0x00000001) {
-        log_printf("size of lower memory: %u kB\n", mbinfo->mem_lower);
-        log_printf("size of upper memory: %u kB\n", mbinfo->mem_upper);
-        log_printf("\n");
-    }
-
-    if (mbinfo->flags & 0x00000020) {
-        multiboot_memory_map_t *entry =
-            (multiboot_memory_map_t *) mbinfo->mmap_addr;
-        while ((uint32_t) entry < mbinfo->mmap_addr + mbinfo->mmap_length) {
-            if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-                log_printf("available memory: ");
-            } else {
-                log_printf("reserved memory:  ");
-            }
-            /* FIXME: printf should implement %llu */
-            log_printf("address: %X length: %u\n",
-                    (uint32_t) entry->addr, (uint32_t) entry->len);
-            entry = (multiboot_memory_map_t *)
-                (((uint32_t) entry) + entry->size + sizeof(entry->size));
-        }
-    }
-    log_printf("\n");
-}
-
-static void log_kernel_mem_info(const kernel_meminfo_t *mem) {
-    log_printf("kernel physical start: %X\n", mem->kernel_physical_start);
-    log_printf("kernel physical end: %X\n", mem->kernel_physical_end);
-    log_printf("kernel virtual start: %X\n", mem->kernel_virtual_start);
-    log_printf("kernel virtual end: %X\n", mem->kernel_virtual_end);
-    log_printf("\n");
-}
-
-static void log_module_info(const multiboot_info_t *mbinfo)
-{
-    uint32_t i;
-    char *name;
-    if (mbinfo->flags & 0x00000008) {
-        log_printf("Number of modules: %u\n", mbinfo->mods_count);
-        multiboot_module_t *module = (multiboot_module_t *) mbinfo->mods_addr;
-        for (i = 0; i < mbinfo->mods_count; ++i, ++module) {
-            if (module->cmdline == 0) {
-                log_printf("module: no cmdline found\n");
-            } else {
-                name = (char *) PHYSICAL_TO_VIRTUAL(module->cmdline);
-                log_printf("module %s\n", name);
-            }
-            log_printf("\tstart: %X\n", module->mod_start);
-            log_printf("\tend: %X\n", module->mod_end);
-        }
-
-    }
-}
-
 void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
           uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr)
 {
-    //ps_t *init;
+    ps_t *init;
+    uint32_t res;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
 
     fb_clear();
@@ -134,10 +119,28 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    kinit(&mem, mbinfo, kernel_pdt_vaddr, kernel_pt_vaddr);
-    log_memory_map(mbinfo);
-    log_kernel_mem_info(&mem);
-    log_module_info(mbinfo);
+    res = kinit(&mem, mbinfo, kernel_pdt_vaddr, kernel_pt_vaddr);
+    if (res != 0) {
+        switch (res) {
+            case KINIT_ERROR_LOAD_FS:
+                printf("ERROR: Could not load filesystem!\n");
+                break;
+            case KINIT_ERROR_INIT_FS:
+                printf("ERROR: Could not initialize filesystem!\n");
+                break;
+            case KINIT_ERROR_INIT_PAGING:
+                printf("ERROR: Could not initialize paging!\n");
+                break;
+            case KINIT_ERROR_INIT_PFA:
+                printf("ERROR: Could not initialize page frame allocator!\n");
+                break;
+            default:
+                printf("ERROR: Unknown error\n");
+                break;
+        }
+        return 0xDEADDEAD;
+    }
+
     printf(
 "=======================================================\n"
 "       d8888 8888888888 888b    888 8888888 Y88b   d88P\n"
@@ -150,8 +153,8 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
 "d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"
 "=======================================================\n");
 
-    //init = create_process("/bin/init");
-    //(void) init; /* just to disable warning for now */
+    init = create_process("/bin/init");
+    (void) init; /* just to disable warning for now */
 
     return 0xDEADBEEF;
 }

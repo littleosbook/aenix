@@ -62,14 +62,16 @@ void *kmalloc(size_t nbytes)
                 p->s.size = nunits;
             }
             freep = prevp;
-            log_printf("kmalloc: %X (header_t: %X)\n", (uint32_t)(p+1), (uint32_t)p);
+            log_debug("kmalloc",
+                      "address: %X (header_t: %X)\n",
+                      (uint32_t) (p + 1), (uint32_t) p);
             return (void *)(p+1);
         }
         if (p == freep) {
             /* wrapped around free list */
             if ((p = acquire_more_heap(nunits)) == 0) {
-                log_printf("ERROR: kmalloc cannot acquire more memory memory %u",
-                        nbytes);
+                log_error("kmalloc", "Cannot acquire more memory. memory: %u",
+                          nbytes);
                 return 0;
             }
         }
@@ -84,7 +86,7 @@ static void *acquire_more_heap(size_t nunits)
         nunits = MIN_BLOCK_SIZE;
     }
 
-    log_printf("acquire_more_heap: %X %u units\n", next_heap_addr, nunits);
+    log_debug("acquire_more_heap", "%X %u units\n", next_heap_addr, nunits);
 
     p = (header_t *) next_heap_addr;
     p->s.size = nunits;
@@ -103,7 +105,7 @@ void kfree(void * ap)
     if (ap == 0)
         return;
 
-    log_printf("kfree: %X\n", (uint32_t)ap);
+    log_debug("kfree", "address: %X\n", (uint32_t)ap);
 
     /* point to block header */
     bp = (header_t *)ap - 1;

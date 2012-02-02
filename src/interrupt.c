@@ -62,10 +62,11 @@ void interrupt_handler(cpu_state_t state, idt_info_t info, instr_state_t instr)
     }
 
     if (info.idt_index == SYS_CALL_INTERRUPT_INDEX) {
-        log_printf("sys call interrupt\n");
+        log_debug("interrupt_handler", "sys call interrupt\n");
     }
 
-    log_printf("interrupt: %u, eip: %X, cs: %X, eflags: %X\n",
-               info.idt_index, instr.eip, instr.cs, instr.eflags);
+    log_debug("interrupt_handler",
+              "interrupt: %u, eip: %X, cs: %X, eflags: %X\n",
+              info.idt_index, instr.eip, instr.cs, instr.eflags);
 
 }
