@@ -229,7 +229,9 @@ are more architectural and less "low-level", which is a nice change!
 
 ## Achievements
 
-- [Erik did something]
+- Wrote skeleton code for process creation, planned the structure of how to do
+  it.
+
 
 # 2012-01-30
 
@@ -267,15 +269,26 @@ are more architectural and less "low-level", which is a nice change!
   aligned (which they are), and the setting-up to be done in assembler.
 
 
-# 2012-02-03
+# 2012-02-01
 
 ## Achievements
 
 - Cleaned up some code. Wrote a script to turn c headers with constant
-  definitions into .inc files to be included in nasm code
+  definitions into .inc files to be included in nasm code.
+- Met with Torbjörn
+- Started to implement the page frame allocator
 
 ## Issues
 
 - We couldn't get the Makefile to correctly use .inc as dependencies for the
   assembler files. We worked around it, but it would be nice for it to work
   directly from the Makefile.
+
+# 2012-02-02
+
+## Achievements
+
+- Wrote a lot of code to do error checking, which caused us to find several
+  bugs. log\_err(), log\_info() and log\_debug() were created to simplify
+  logging
+- Wrote more on the page frame allocator.
