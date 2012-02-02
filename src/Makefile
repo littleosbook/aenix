@@ -18,7 +18,7 @@ BIN_PATH=$(FS_ROOT)/bin
 all: kernel.elf
 
 run: iso
-	./run_bochs.sh
+	./run_bochs.sh || echo "\n" ; cat com1.out
 
 iso: kernel.elf fs
 	./create_iso.sh fs
