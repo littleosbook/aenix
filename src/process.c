@@ -17,6 +17,7 @@
 struct ps {
     pde_t *pdt;
 
+    uint32_t pdt_paddr;
     uint32_t code_vaddr;
     uint32_t stack_vaddr;
     uint32_t heap_vaddr;
@@ -54,12 +55,12 @@ static uint32_t allocate_and_map(pde_t *pdt,
     return 0;
 }
 
-ps_t *create_process(char *path)
+ps_t *process_create(char *path)
 {
     pde_t *pdt;
     uint32_t error;
     uint32_t code_fs_vaddr, code_pfs, code_paddr, code_vaddr;
-    uint32_t heap_vaddr;
+    uint32_t heap_vaddr, pdt_paddr;
     uint32_t mapped_memory_size;
     ps_t *proc;
 
@@ -69,6 +70,7 @@ ps_t *create_process(char *path)
                    path);
         return NULL;
     }
+
     code_fs_vaddr = fs_get_addr(node);
     code_pfs = div_ceil(node->size, FOUR_KB);
 
@@ -104,31 +106,36 @@ ps_t *create_process(char *path)
         return NULL;
     }
 
-    log_debug("create_process", "mapped kernel memory\n");
-
     memcpy((void *) code_vaddr, (void *) code_fs_vaddr, node->size);
 
-    log_debug("create_process", "transferred code\n");
+    log_debug("process_create",
+              "code_vaddr[0]: %X, code_vaddr[1]: %X\n",
+              *((uint8_t *) code_vaddr), *(((uint8_t *) code_vaddr) + 1));
 
     pdt_unmap_kernel_memory(code_vaddr, node->size);
 
-    log_debug("create_process", "unmapped kernel pages\n");
-
-    pdt = pdt_create();
-    if (pdt == NULL) {
+    proc = (ps_t *) kmalloc(sizeof(ps_t));
+    if (proc == NULL) {
         log_error("create_process",
-                  "Could not create PDT for process %s\n",
-                  path);
+                  "kmalloc return NULL pointer for proc.\n");
         return NULL;
     }
 
-    log_debug("create_process", "created_pdt\n");
+    pdt = pdt_create(&pdt_paddr);
+    if (pdt == NULL || pdt_paddr == 0) {
+        log_error("create_process",
+                  "Could not create PDT for process %s. "
+                  "pdt: %X, pdt_paddr: %u\n",
+                  path, (uint32_t) pdt, pdt_paddr);
+        return NULL;
+    }
 
     code_vaddr = 0;
     mapped_memory_size =
         pdt_map_memory(pdt, code_paddr, code_vaddr,
                        node->size, PAGING_READ_WRITE, PAGING_PL3);
     if (mapped_memory_size < node->size) {
+        kfree(proc);
         log_error("create_process",
                   "Could not map memory in proc PDT. "
                   "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
@@ -143,6 +150,7 @@ ps_t *create_process(char *path)
                              PAGING_PL3);
 
     if (error) {
+        kfree(proc);
         log_error("create_process",
                   "Could not allocate and map memory for stack.\n");
         pdt_delete(pdt);
@@ -155,6 +163,7 @@ ps_t *create_process(char *path)
         allocate_and_map(pdt, heap_vaddr, PROC_INITIAL_HEAP_SIZE,
                          PAGING_READ_WRITE, PAGING_PL3);
     if (error) {
+        kfree(proc);
         log_error("create_process",
                   "Could not allocate and map memory for heap.\n");
         pdt_delete(pdt);
@@ -162,19 +171,20 @@ ps_t *create_process(char *path)
         return NULL;
     }
 
-    proc = (ps_t *) kmalloc(sizeof(ps_t));
-    if (proc == NULL) {
-        log_error("create_process",
-                  "kmalloc return NULL pointer for proc.\n");
-        return NULL;
-    }
-
     proc->pdt = pdt;
+    proc->pdt_paddr = pdt_paddr;
     proc->code_vaddr  = code_vaddr;
-    proc->stack_vaddr = PROC_INITIAL_STACK_VADDR;
+    proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->heap_vaddr = heap_vaddr;
 
-    log_debug("create_process", "all done!\n");
-
     return proc;
+}
+
+void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
+void pdt_set(uint32_t pdt_addr);
+void process_enter_user_mode(ps_t *init)
+{
+    pdt_set(init->pdt_paddr);
+    log_debug("process_enter_user_mode", "pdt set\n");
+    enter_user_mode(init->code_vaddr, init->stack_vaddr);
 }

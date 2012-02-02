@@ -29,7 +29,7 @@ uint32_t pdt_map_memory(pde_t *pdt,
 uint32_t pdt_unmap_kernel_memory(uint32_t vaddr, uint32_t size);
 uint32_t pdt_unmap_memory(pde_t *pdt, uint32_t vaddr, uint32_t size);
 
-pde_t *pdt_create(void);
+pde_t *pdt_create(uint32_t *out_paddr);
 void pdt_delete(pde_t *pdt);
 
 #endif /* PAGING_H */

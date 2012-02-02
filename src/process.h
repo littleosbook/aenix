@@ -3,7 +3,7 @@
 
 typedef struct ps ps_t;
 
-ps_t *create_process(char *path);
-void start_process(ps_t *ps);
+ps_t *process_create(char *path);
+void process_enter_user_mode(ps_t *init);
 
 #endif /* PROCESS_H */

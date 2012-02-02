@@ -129,11 +129,11 @@ static uint32_t get_pdt_paddr(pde_t *pdt)
 
 uint32_t paging_init(uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr)
 {
-	log_info("paging_init", "kernel_pdt_vaddr: %X, kernel_pt_vaddr: %X\n",
-			 kernel_pdt_vaddr, kernel_pt_vaddr);
+    log_info("paging_init", "kernel_pdt_vaddr: %X, kernel_pt_vaddr: %X\n",
+                     kernel_pdt_vaddr, kernel_pt_vaddr);
     kernel_pdt = (pde_t *) kernel_pdt_vaddr;
     kernel_pt = (pte_t *) kernel_pt_vaddr;
-	return 0;
+    return 0;
 }
 
 static uint32_t pt_kernel_find_next_vaddr(uint32_t pdt_idx,
@@ -147,9 +147,9 @@ static uint32_t pt_kernel_find_next_vaddr(uint32_t pdt_idx,
             (pdt_idx == KERNEL_PT_PDT_IDX && i == KERNEL_TMP_PT_IDX)) {
             num_found = 0;
         } else {
-			if (num_found == 0) {
-				org_i = i;
-			}
+            if (num_found == 0) {
+                    org_i = i;
+            }
             ++num_found;
             if (num_found == num_to_find) {
                 return PDT_IDX_TO_VIRTUAL(pdt_idx) |
@@ -173,11 +173,11 @@ uint32_t pdt_kernel_find_next_vaddr(uint32_t size)
             pt_paddr = get_pt_paddr(kernel_pdt, pdt_idx);
             pt_vaddr = kernel_map_temporary_memory(pt_paddr);
             vaddr =
-				pt_kernel_find_next_vaddr(pdt_idx, (pte_t *) pt_vaddr, size);
+                pt_kernel_find_next_vaddr(pdt_idx, (pte_t *) pt_vaddr, size);
 
-			kernel_set_temporary_entry(tmp_entry);
+	    kernel_set_temporary_entry(tmp_entry);
         } else {
-			/* no pdt entry */
+	    /* no pdt entry */
             vaddr = PDT_IDX_TO_VIRTUAL(pdt_idx);
         }
         if (vaddr != 0) {
@@ -189,7 +189,7 @@ uint32_t pdt_kernel_find_next_vaddr(uint32_t size)
 }
 
 static uint32_t pt_map_memory(pte_t *pt,
-							  uint32_t pdt_idx,
+			      uint32_t pdt_idx,
                               uint32_t paddr,
                               uint32_t vaddr,
                               uint32_t size,
@@ -201,6 +201,10 @@ static uint32_t pt_map_memory(pte_t *pt,
 
     while (mapped_size < size && pt_idx < NUM_ENTRIES) {
         if (IS_ENTRY_PRESENT(pt + pt_idx)) {
+            log_info("pt_map_memory",
+                     "Entry is present: pt: %X, pt_idx: %u, pdt_idx: %u "
+                     "pt[pt_idx]: %X\n",
+                     pt, pt_idx, pdt_idx, pt[pt_idx]);
             return mapped_size;
         } else if(pdt_idx == KERNEL_PT_PDT_IDX && pt_idx == KERNEL_TMP_PT_IDX) {
             return mapped_size;
@@ -225,7 +229,7 @@ uint32_t pdt_map_memory(pde_t *pdt,
 {
     uint32_t pdt_idx;
     pte_t *pt;
-    uint32_t pt_paddr, pt_vaddr;
+    uint32_t pt_paddr, pt_vaddr, tmp_entry;
     uint32_t mapped_size = 0;
     uint32_t total_mapped_size = 0;
     size = align_up(size, PT_ENTRY_SIZE);
@@ -233,13 +237,15 @@ uint32_t pdt_map_memory(pde_t *pdt,
     while (size != 0) {
         pdt_idx = VIRTUAL_TO_PDT_IDX(vaddr);
 
+        tmp_entry = kernel_get_temporary_entry();
+
         if (!IS_ENTRY_PRESENT(pdt + pdt_idx)) {
             pt_paddr = pfa_allocate(1);
             if (pt_paddr == 0) {
                 return 0;
             }
             pt_vaddr = kernel_map_temporary_memory(pt_paddr);
-            memset((void *) pt_vaddr, PT_SIZE, 0);
+            memset((void *) pt_vaddr, 0, PT_SIZE);
         } else {
             pt_paddr = get_pt_paddr(pdt, pdt_idx);
             pt_vaddr = kernel_map_temporary_memory(pt_paddr);
@@ -248,17 +254,21 @@ uint32_t pdt_map_memory(pde_t *pdt,
         pt = (pte_t *) pt_vaddr;
         mapped_size =
             pt_map_memory(pt, pdt_idx, paddr, vaddr, size, rw, pl);
+
         if (mapped_size == 0) {
-			log_error("pdt_map_memory",
-					  "Could not map memory in page table. "
-					  "pt: %X, paddr: %X, vaddr: %X, size: %u\n",
-					  (uint32_t) pt, paddr, vaddr, size);
+            log_error("pdt_map_memory",
+                      "Could not map memory in page table. "
+                      "pt: %X, paddr: %X, vaddr: %X, size: %u\n",
+                      (uint32_t) pt, paddr, vaddr, size);
+            kernel_set_temporary_entry(tmp_entry);
             return 0;
         }
 
         if (!IS_ENTRY_PRESENT(pdt + pdt_idx)) {
-            create_pdt_entry(pdt, pdt_idx, (uint32_t) pt, PS_4KB, rw, pl);
+            create_pdt_entry(pdt, pdt_idx, pt_paddr, PS_4KB, rw, pl);
         }
+
+        kernel_set_temporary_entry(tmp_entry);
 
         size -= mapped_size;
         total_mapped_size += mapped_size;
@@ -280,25 +290,20 @@ uint32_t pdt_map_kernel_memory(uint32_t paddr,
 }
 
 static uint32_t pt_unmap_memory(pte_t *pt,
-								uint32_t pdt_idx,
+			        uint32_t pdt_idx,
                                 uint32_t vaddr,
                                 uint32_t size)
 {
     uint32_t pt_idx = VIRTUAL_TO_PT_IDX(vaddr);
     uint32_t freed_size = 0;
 
-	log_debug("pt_unmap_memory", "pt_idx: %u\n", pt_idx);
-
     while (freed_size < size && pt_idx < NUM_ENTRIES) {
-		log_debug("pt_unmap_memory", "loopin'\n");
         if (pdt_idx == KERNEL_PT_PDT_IDX && pt_idx == KERNEL_TMP_PT_IDX) {
             /* can't touch this */
             return freed_size;
         }
         if (IS_ENTRY_PRESENT(pt + pt_idx)) {
-			log_debug("pt_unmap_memory", "before\n");
             memset(pt + pt_idx, 0, sizeof(pte_t));
-			log_debug("pt_unmap_memory", "after\n");
             invalidate_page_table_entry(vaddr);
         }
 
@@ -363,10 +368,12 @@ uint32_t pdt_unmap_kernel_memory(uint32_t virtual_addr, uint32_t size)
     return pdt_unmap_memory(kernel_pdt, virtual_addr, size);
 }
 
-pde_t *pdt_create(void)
+/* OUT paddr: The physical address for the PDT */
+pde_t *pdt_create(uint32_t *out_paddr)
 {
     pde_t *pdt;
     uint32_t i;
+    *out_paddr = 0;
     uint32_t pdt_paddr = pfa_allocate(1);
     uint32_t pdt_vaddr = pdt_kernel_find_next_vaddr(PDT_SIZE);
     uint32_t size = pdt_map_kernel_memory(pdt_paddr, pdt_vaddr, PDT_SIZE,
@@ -381,12 +388,18 @@ pde_t *pdt_create(void)
 
     pdt = (pde_t *) pdt_vaddr;
 
+    memset(pdt, 0, PDT_SIZE);
+
     for (i = 0; i < NUM_ENTRIES; ++i) {
-        if (IS_ENTRY_PRESENT(pdt + i)) {
+        if (IS_ENTRY_PRESENT(kernel_pdt + i)) {
+            log_debug("pdt_create",
+                      "copying index %u from kernel_pdt\n",
+                      i);
             pdt[i] = kernel_pdt[i];
         }
     }
 
+    *out_paddr = pdt_paddr;
     return pdt;
 }
 
@@ -504,5 +517,5 @@ static void create_pt_entry(pte_t *pt,
      * NOTE: G and Ignore are part of pt[n].middle, not pt[n].config!
      */
     pt[n].config =
-        (0x01 << 3) | ((0x01 & pl) << 1) | ((0x01 & rw) << 1) | 0x01;
+        (0x01 << 3) | ((0x01 & pl) << 2) | ((0x01 & rw) << 1) | 0x01;
 }
