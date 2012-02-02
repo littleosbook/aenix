@@ -237,9 +237,11 @@ uint32_t pfa_allocate(uint32_t num_page_frames)
         if (cell != 0) {
             for (j = 0; j < 32; ++j) {
                 if (((cell >> (31 - j)) & 0x1) == 1) {
+                    if (frames_found == 0) {
+                        bit_idx = i * 32 + j;
+                    }
                     ++frames_found;
                     if (frames_found == num_page_frames) {
-                        bit_idx = i * 32 + j - num_page_frames;
                         toggle_bits(bit_idx, num_page_frames);
                         return paddr_for_idx(bit_idx);
                     }

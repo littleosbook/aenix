@@ -10,11 +10,9 @@
 #include "math.h"
 
 #define PROC_INITIAL_STACK_SIZE 1 /* in page frames */
-#define PROC_INITIAL_STACK_SIZE_BYTES PROC_INITIAL_STACK_SIZE * FOUR_KB
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
 #define PROC_INITIAL_ESP (KERNEL_START_VADDR - 4)
 #define PROC_INITIAL_HEAP_SIZE 1 /* in page frames */
-#define PROC_INITIAL_HEAP_SIZE_BYTES PROC_INITIAL_HEAP_SIZE * FOUR_KB
 
 struct ps {
     pde_t *pdt;
@@ -26,14 +24,44 @@ struct ps {
 
 #include "process.h"
 
+static uint32_t allocate_and_map(pde_t *pdt,
+                                 uint32_t vaddr,
+                                 uint32_t pfs,
+                                 uint8_t rw,
+                                 uint8_t pl)
+{
+    uint32_t mapped_memory_size;
+    uint32_t paddr = pfa_allocate(pfs);
+    uint32_t byte_size = pfs * FOUR_KB;
+    if (paddr == 0) {
+        log_error("allocate_and_map",
+                  "Could not allocate page frames. "
+                  "paddr: %X, pfs: %u\n",
+                  paddr, pfs);
+        return 1;
+    }
+
+    mapped_memory_size = pdt_map_memory(pdt, paddr, vaddr, byte_size, rw, pl);
+
+    if (mapped_memory_size < byte_size) {
+        log_error("allocate_and_map",
+                  "Could not map memory in given pdt. "
+                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
+                  vaddr, paddr, byte_size, (uint32_t) pdt);
+        return 1;
+    }
+
+    return 0;
+}
+
 ps_t *create_process(char *path)
 {
     pde_t *pdt;
+    uint32_t error;
     uint32_t code_fs_vaddr, code_pfs, code_paddr, code_vaddr;
-    uint32_t stack_paddr;
-    uint32_t heap_paddr, heap_vaddr;
+    uint32_t heap_vaddr;
     uint32_t mapped_memory_size;
-    /*ps_t *proc;*/
+    ps_t *proc;
 
     inode_t *node = fs_find_inode(path);
     if (node == NULL) {
@@ -110,67 +138,43 @@ ps_t *create_process(char *path)
         return NULL;
     }
 
-    stack_paddr = pfa_allocate(PROC_INITIAL_STACK_SIZE);
-    if (stack_paddr == 0) {
-        log_error("create_process",
-                  "Could not allocate page frames for process stack. "
-                  "paddr: %X, pfs: %u\n",
-                  stack_paddr, PROC_INITIAL_STACK_SIZE);
-        return NULL;
-    }
+    error = allocate_and_map(pdt, PROC_INITIAL_STACK_VADDR,
+                             PROC_INITIAL_STACK_SIZE, PAGING_READ_WRITE,
+                             PAGING_PL3);
 
-    mapped_memory_size = pdt_map_memory(pdt, stack_paddr,
-                                        PROC_INITIAL_STACK_VADDR,
-                                        PROC_INITIAL_STACK_SIZE_BYTES,
-                                        PAGING_READ_WRITE, PAGING_PL3);
-
-    if (mapped_memory_size < PROC_INITIAL_STACK_SIZE_BYTES) {
+    if (error) {
         log_error("create_process",
-                  "Could not map memory in proc PDT for stack. "
-                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  PROC_INITIAL_STACK_VADDR, stack_paddr,
-                  PROC_INITIAL_STACK_SIZE_BYTES, (uint32_t) pdt);
+                  "Could not allocate and map memory for stack.\n");
         pdt_delete(pdt);
-        log_info("create_process", "Proc PDT deleted\n");
-        return NULL;
-    }
-
-    heap_paddr = pfa_allocate(PROC_INITIAL_HEAP_SIZE);
-    if (heap_paddr == 0) {
-        log_error("create_process",
-                  "Could not allocate page frames for process heap. "
-                  "paddr: %X, pfs: %u\n",
-                  heap_paddr, PROC_INITIAL_HEAP_SIZE);
+        log_info("create_process", "Process PDT deleted\n");
         return NULL;
     }
 
     heap_vaddr = code_vaddr + code_pfs * FOUR_KB;
-    mapped_memory_size = pdt_map_memory(pdt, heap_paddr, heap_vaddr,
-                                        PROC_INITIAL_HEAP_SIZE_BYTES,
-                                        PAGING_READ_WRITE, PAGING_PL3);
-
-    if (mapped_memory_size < PROC_INITIAL_HEAP_SIZE_BYTES) {
+    error =
+        allocate_and_map(pdt, heap_vaddr, PROC_INITIAL_HEAP_SIZE,
+                         PAGING_READ_WRITE, PAGING_PL3);
+    if (error) {
         log_error("create_process",
-                  "Could not map memory in proc PDT for heap. "
-                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  heap_vaddr, heap_paddr,
-                  PROC_INITIAL_HEAP_SIZE_BYTES, (uint32_t) pdt);
+                  "Could not allocate and map memory for heap.\n");
         pdt_delete(pdt);
-        log_info("create_process", "Proc PDT deleted\n");
+        log_info("create_process", "Process PDT deleted\n");
         return NULL;
     }
 
+    proc = (ps_t *) kmalloc(sizeof(ps_t));
+    if (proc == NULL) {
+        log_error("create_process",
+                  "kmalloc return NULL pointer for proc.\n");
+        return NULL;
+    }
 
-    return NULL;
+    proc->pdt = pdt;
+    proc->code_vaddr  = code_vaddr;
+    proc->stack_vaddr = PROC_INITIAL_STACK_VADDR;
+    proc->heap_vaddr = heap_vaddr;
 
-    /*proc = (ps_t *) kmalloc(sizeof(ps_t));*/
-    /*proc->pdt = pdt;*/
-    /*proc->code_addr  = code_virtual_addr;*/
-    /*proc->stack_addr = KERNEL_VIRTUAL_ADDRESS - 4;*/
+    log_debug("create_process", "all done!\n");
 
-    /*next_ps_start_addr = NEXT_ADDR(next_ps_start_addr + total_mapped_size);*/
-
-    /*log_printf("it's a wrap!\n");*/
-
-    /*return proc;*/
+    return proc;
 }

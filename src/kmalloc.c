@@ -1,6 +1,10 @@
 #include "kmalloc.h"
 #include "stdio.h"
 #include "log.h"
+#include "math.h"
+#include "paging.h"
+#include "page_frame_allocator.h"
+#include "constants.h"
 
 #define MIN_BLOCK_SIZE  1024 /* in units */
 
@@ -8,34 +12,18 @@
 
 typedef double align;
 
-union header {
-    struct {
-        union header *next;
-        size_t size; /* size in "number of header units" */
-    } s;
-    align x; /* force alignment of blocks, never use */
+struct header {
+    struct header *next;
+    size_t size; /* size in "number of header units" */
 };
-typedef union header header_t;
+typedef struct header header_t;
 
 /* empty list to get started */
 static header_t base;
 /* start of free list */
 static header_t *freep = 0;
 
-/* address of next heap block */
-static uint32_t next_heap_addr;
-
 static void *acquire_more_heap(size_t nunits);
-
-void kmalloc_init(uint32_t addr)
-{
-    if (freep == 0) {
-        /* no free list yet */
-        base.s.next = freep = &base;
-        base.s.size = 0;
-    }
-    next_heap_addr = addr;
-}
 
 void *kmalloc(size_t nbytes)
 {
@@ -43,23 +31,29 @@ void *kmalloc(size_t nbytes)
     size_t nunits;
 
     if (nbytes == 0)
-        return 0;
+        return NULL;
+
+    if (freep == 0) {
+        /* no free list yet */
+        base.next = freep = &base;
+        base.size = 0;
+    }
 
     nunits = (nbytes+sizeof(header_t)-1)/sizeof(header_t) + 1;
     prevp = freep;
 
-    for (p = prevp->s.next; ; prevp = p, p = p->s.next) {
-        if (p->s.size >= nunits) {
+    for (p = prevp->next; ; prevp = p, p = p->next) {
+        if (p->size >= nunits) {
             /* the block is big enough */
-            if (p->s.size == nunits) {
+            if (p->size == nunits) {
                 /* exactly */
-                prevp->s.next = p->s.next;
+                prevp->next = p->next;
             } else {
                 /* allocate at the tail end of the block and create a new
                  * header in front of allocated block */
-                p->s.size -= nunits;
-                p += p->s.size; /* make p point to new header */
-                p->s.size = nunits;
+                p->size -= nunits;
+                p += p->size; /* make p point to new header */
+                p->size = nunits;
             }
             freep = prevp;
             log_debug("kmalloc",
@@ -69,10 +63,10 @@ void *kmalloc(size_t nbytes)
         }
         if (p == freep) {
             /* wrapped around free list */
-            if ((p = acquire_more_heap(nunits)) == 0) {
+            if ((p = acquire_more_heap(nunits)) == NULL) {
                 log_error("kmalloc", "Cannot acquire more memory. memory: %u",
                           nbytes);
-                return 0;
+                return NULL;
             }
         }
     }
@@ -80,18 +74,46 @@ void *kmalloc(size_t nbytes)
 
 static void *acquire_more_heap(size_t nunits)
 {
+    uint32_t vaddr, paddr, bytes, page_frames, mapped_mem;
     header_t *p;
 
     if (nunits < MIN_BLOCK_SIZE) {
         nunits = MIN_BLOCK_SIZE;
     }
 
-    log_debug("acquire_more_heap", "%X %u units\n", next_heap_addr, nunits);
+    page_frames = div_ceil(nunits * sizeof(header_t), FOUR_KB);
+    bytes = page_frames * FOUR_KB;
 
-    p = (header_t *) next_heap_addr;
-    p->s.size = nunits;
+    paddr = pfa_allocate(page_frames);
+    if (paddr == 0) {
+        log_error("acquire_more_heap",
+                  "Could't allocated page frames for kmalloc. "
+                  "page_frames: %u, bytes: %u\n",
+                  page_frames, bytes);
+        return NULL;
+    }
 
-    next_heap_addr += nunits * sizeof(header_t);
+    vaddr = pdt_kernel_find_next_vaddr(bytes);
+    if (vaddr == 0) {
+        log_error("acquire_more_heap",
+                  "Could't find a virtual address. "
+                  "paddr: %X, page_frames: %u, bytes: %u\n",
+                  paddr, page_frames, bytes);
+        return NULL;
+    }
+
+    mapped_mem = pdt_map_kernel_memory(paddr, vaddr, bytes,
+                                       PAGING_READ_WRITE, PAGING_PL0);
+    if (mapped_mem < bytes) {
+        log_error("acquire_more_heap",
+                  "Could't map virtual memory. "
+                  "vaddr: %X, paddr: %X, page_frames: %u, bytes: %u\n",
+                  vaddr, paddr, page_frames, bytes);
+        return NULL;
+    }
+
+    p = (header_t *) vaddr;
+    p->size = bytes / sizeof(header_t);
 
     kfree((void *)(p+1));
 
@@ -105,31 +127,33 @@ void kfree(void * ap)
     if (ap == 0)
         return;
 
-    log_debug("kfree", "address: %X\n", (uint32_t)ap);
+    log_debug("kfree", "address: %X\n", (uint32_t) ap);
 
     /* point to block header */
     bp = (header_t *)ap - 1;
-    for (p = freep; !(bp > p && bp < p->s.next); p = p->s.next) {
-        if (p >= p->s.next && (bp > p || bp < p->s.next)) {
+    for (p = freep; !(bp > p && bp < p->next); p = p->next) {
+        if (p >= p->next && (bp > p || bp < p->next)) {
             /* freed block at start of end of arena */
             break;
         }
     }
 
-    if (bp + bp->s.size == p->s.next) {
+    if (bp + bp->size == p->next) {
         /* join to upper nbr */
-        bp->s.size += p->s.next->s.size;
-        bp->s.next = p->s.next->s.next;
+        bp->size += p->next->size;
+        bp->next = p->next->next;
     } else {
-        bp->s.next = p->s.next;
+        bp->next = p->next;
     }
 
-    if (p + p->s.size == bp) {
+    if (p + p->size == bp) {
         /* join to lower nbr */
-        p->s.size += bp->s.size;
-        p->s.next = bp->s.next;
+        p->size += bp->size;
+        p->next = bp->next;
     } else {
-        p->s.next = bp;
+        p->next = bp;
     }
+
+    /* TODO: If the block is larger than a page frame, give back to pfa! */
     freep = p;
 }

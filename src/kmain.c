@@ -75,7 +75,6 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     if (res != 0) {
         return KINIT_ERROR_INIT_PFA;
     }
-    //kmalloc_init(NEXT_ADDR(mem->kernel_virtual_end));
 
     res = fs_init(fs_paddr, fs_size);
     if (res != 0) {
