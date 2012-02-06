@@ -111,11 +111,11 @@ static void gdt_create_tss_entry(uint32_t n, uint32_t tss_vaddr)
     /*
      * name | value | size | desc
      * ---------------------------
-     * G    |     0 |    1 | granularity, size of segment unit, 0 = bytes
+     *    G |     0 |    1 | granularity, size of segment unit, 0 = bytes
      *    0 |     0 |    1 | Constant
      *    0 |     0 |    1 | Constant
-     * AVL  |     0 |    1 | "available for use by system software"
-     * LIM  |     0 |    4 | the four highest bits of segment limit
+     *  AVL |     0 |    1 | "available for use by system software"
+     *  LIM |     0 |    4 | the four highest bits of segment limit
      */
-    gdt_entries[n].granularity  |= (0x01 << 7) | (0x01 << 6) | 0x00;
+    gdt_entries[n].granularity = 0;
 }
