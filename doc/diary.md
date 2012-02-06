@@ -299,3 +299,17 @@ are more architectural and less "low-level", which is a nice change!
   set up.
 - Can enter user mode for the init program, which is created through
   process\_create().
+
+# 2012-02-06
+
+## Achievements
+
+- User mode works, after a long fight with weird and difficult-to-find bugs.
+  (The kernel stack pointer in the TSS was pointed at the wrong end, which only
+  mattered if the TSS struct was non-static, because then the TSS was located
+  next to the stack and overwritten on some interrupts...)
+- Syscalls works!
+- Restructured code base to simplfy adding "apps" such as init.
+- User mode programs can now be written in C. With a modest start on our clib
+  (there is an interrupt.h|s and a start.s that is linked first into the
+  binary with link.ld), init runs compiled from C.
