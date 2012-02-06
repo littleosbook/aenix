@@ -10,12 +10,13 @@
 #include "multiboot.h"
 #include "paging.h"
 #include "kernel.h"
-#include "kmalloc.h"
 #include "serial.h"
 #include "log.h"
 #include "fs.h"
 #include "process.h"
 #include "page_frame_allocator.h"
+#include "tss.h"
+#include "stddef.h"
 
 #define KINIT_ERROR_LOAD_FS 1
 #define KINIT_ERROR_INIT_FS 2
@@ -53,6 +54,7 @@ static uint32_t kinit(kernel_meminfo_t *mem,
 {
     uint32_t fs_paddr, fs_size;
     uint32_t res;
+    uint32_t tss_vaddr;
     disable_interrupts();
 
     fs_paddr = get_fs_paddr(mbinfo, &fs_size);
@@ -60,7 +62,8 @@ static uint32_t kinit(kernel_meminfo_t *mem,
         return KINIT_ERROR_LOAD_FS;
     }
 
-    gdt_init();
+    tss_vaddr = tss_init();
+    gdt_init(tss_vaddr);
     idt_init();
     pic_init();
     serial_init(COM1);
