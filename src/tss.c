@@ -1,6 +1,7 @@
 #include "tss.h"
+#include "log.h"
 
-tss_t tss;
+static tss_t tss;
 
 uint32_t tss_init()
 {

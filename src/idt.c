@@ -12,10 +12,15 @@
 #define IDT_KEYBOARD_INTERRUPT_INDEX 0x21
 
 #define CREATE_IDT_GATE(idx) \
-    create_idt_gate(idx, (uint32_t) &interrupt_handler_##idx, IDT_TRAP_GATE_TYPE);
+    create_idt_gate(idx, (uint32_t) &interrupt_handler_##idx,\
+                    IDT_TRAP_GATE_TYPE, PL0);
+#define CREATE_SYSCALL_GATE(idx) \
+    create_idt_gate(idx, (uint32_t) &interrupt_handler_##idx,\
+                    IDT_TRAP_GATE_TYPE, PL3);
 
 #define DECLARE_INTERRUPT_HANDLER(i) void interrupt_handler_##i(void)
 
+void debug_handler(void);
 /* Protected mode exceptions interrupts */
 DECLARE_INTERRUPT_HANDLER(0);
 DECLARE_INTERRUPT_HANDLER(1);
@@ -79,7 +84,8 @@ idt_gate_t idt[IDT_NUM_ENTRIES];
 /* external assembly function for loading the ldt */
 void idt_load_and_set(uint32_t idt_ptr);
 
-static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type);
+static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type,
+                            uint8_t pl);
 
 void idt_init(void)
 {
@@ -128,12 +134,14 @@ void idt_init(void)
     CREATE_IDT_GATE(47);
 
     /* System call interrupt */
-    CREATE_IDT_GATE(174); /* OxAE */
+    CREATE_SYSCALL_GATE(174); /* OxAE */
+    /*create_syscall_gate(174, (uint32_t) &debug_handler, IDT_TRAP_GATE_TYPE);*/
 
     idt_load_and_set((uint32_t) &idt_ptr);
 }
 
-static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type)
+static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type,
+                            uint8_t pl)
 {
     idt[n].handler_low = handler & 0x0000FFFF;
     idt[n].handler_high = (handler >> 16) & 0x0000FFFF;
@@ -144,7 +152,7 @@ static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type)
     /* name | value | size | desc
      * --------------------------
      * P    |     1 |    1 | segment present in memory
-     * DPL  |   PL0 |    2 | privilege level
+     * DPL  |    pl |    2 | privilege level
      * 0    |     0 |    1 | a zero bit
      * D    |     1 |    1 | size of gate, 1 = 32 bits, 0 = 16 bits
      * 1    |     1 |    1 | a one bit
@@ -153,9 +161,10 @@ static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type)
      */
     idt[n].config =
         (0x01 << 7)          |
-        ((PL0 & 0x03)  << 5) |
+        ((pl & 0x03)  << 5)  |
         (0x01 << 3)          |
         (0x01 << 2)          |
         (0x01 << 1)          |
         type;
 }
+
