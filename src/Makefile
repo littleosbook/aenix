@@ -1,54 +1,32 @@
-OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o idt.o idt_asm.o \
-		  interrupt.o interrupt_asm.o keyboard.o pit.o stdio.o string.o \
-		  paging.o paging_asm.o kmalloc.o module.o serial.o log.o \
-		  enter_user_mode.o fs.o process.o page_frame_allocator.o mem.o math.o \
-		  tss.o tss_asm.o
-CC = gcc
-CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
-		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror \
-		 -Wno-unused-function -c
-LDFLAGS = -T link.ld -melf_i386
-AS = nasm
-ASFLAGS = -f elf
-AS_HEADERS = constants.inc
-MODULE_AS_FLAGS=-f bin
-MKFS=mkfs.c
-FS_ROOT=fs_root
-BIN_PATH=$(FS_ROOT)/bin
+APPS = init
+FS_ROOT = fs_root
+BIN_PATH = $(FS_ROOT)/bin
 
-all: kernel.elf
+all: iso
+
+iso: build_kernel build_apps fs
+	./create_iso.sh fs
 
 run: iso
 	./run_bochs.sh || echo "\n" ; cat com1.out
 
-iso: kernel.elf fs
-	./create_iso.sh fs
-
-%.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
-
-%.o: %.s
-	./c_to_nasm.sh $(AS_HEADERS)
-	$(AS) $(ASFLAGS) $<
-
-kernel.elf: $(OBJECTS)
-	ld $(LDFLAGS) $(OBJECTS) -o kernel.elf
-
-fs_root:
+create_bin_folder:
 	mkdir -p $(BIN_PATH)
+	for app in $(APPS); do cp apps/$$app $(BIN_PATH); done
 
-mkfs: $(MKFS)
-	$(CC) -Wall -Wextra -Werror -O2 $< -o $@
-
-fs: mkfs fs_root init
-	cp init $(BIN_PATH)/
+fs: mkfs create_bin_folder
 	./mkfs $(FS_ROOT) $@
 
-init: init.s
-	$(AS) -f bin $< -o init
+mkfs: mkfs.c
+	gcc -Wall -Wextra -Werror -O2 mkfs.c -o mkfs
 
-doc:
-	cd .. ; doxygen doc/Doxyfile
+build_apps:
+	for app in $(APPS); do make -C apps $$app; done
+
+build_kernel:
+	make -C kernel
 
 clean:
-	rm -rf *.o kernel.elf aenix.iso mkfs init fs *.inc
+	make -C kernel clean
+	make -C apps clean
+	rm -rf mkfs aenix.iso fs

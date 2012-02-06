@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
-#include "inode.h"
+#include "kernel/inode.h"
 
 #define DIRENT_FNAME_SIZE 256
 #define SLASH_LEN 1

@@ -24,8 +24,8 @@ mkdir $ISO_FOLDER/modules
 cp $STAGE2_ELTORITO $ISO_FOLDER/boot/grub/
 
 # copy the kernel to the correct location
-KERNEL=kernel.elf
-cp $KERNEL $ISO_FOLDER/boot/$KERNEL
+KERNEL=kernel/kernel.elf
+cp $KERNEL $ISO_FOLDER/boot/kernel.elf
 
 # copy all the modules
 for m in $MODULES

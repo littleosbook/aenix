@@ -1,12 +1,7 @@
-kernel.elf
-*.o
 aenix.iso
 bochsrc.txt
 bochslog.txt
-*.mod
 com1.out
 mkfs
 fs_root
 fs
-init
-*.inc
