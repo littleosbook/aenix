@@ -182,7 +182,7 @@ ps_t *process_create(char *path)
     proc->code_vaddr  = code_vaddr;
     proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->heap_vaddr = heap_vaddr;
-    proc->kernel_stack_vaddr = (uint32_t) &kernel_stack;
+    proc->kernel_stack_vaddr = (uint32_t) &kernel_stack + KERNEL_STACK_SIZE - 4;
 
     return proc;
 }
