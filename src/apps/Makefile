@@ -5,7 +5,7 @@ CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 AS = nasm
 ASFLAGS = -f elf
 LD = ld
-LDFLAGS = -T link.ld
+LDFLAGS = -T link.ld -melf_i386
 STDLIB = start.o interrupt.o
 
 init: init.o $(STDLIB)
