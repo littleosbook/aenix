@@ -5,6 +5,7 @@
 %include "constants.inc"
 
 global loader                           ; the entry point for the linker
+global kernel_stack
 
 extern kmain                            ; kmain is defined in kmain.c
 extern kernel_virtual_end               ; these are defined in the link script

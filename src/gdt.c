@@ -9,6 +9,8 @@
 
 #define GDT_NUM_ENTRIES 6
 
+#define TSS_SEGSEL      (5*8)
+
 struct gdt_entry {
     uint16_t limit_low;     /* The lower 16 bits of the limit */
     uint16_t base_low;      /* The lower 16 bits of the base */
@@ -52,6 +54,8 @@ void gdt_init(uint32_t tss_vaddr)
     gdt_create_tss_entry(5, tss_vaddr);
 
     gdt_load_and_set((uint32_t)&gdt_ptr);
+
+    tss_load_and_set(TSS_SEGSEL);
 }
 
 

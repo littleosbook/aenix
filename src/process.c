@@ -8,6 +8,8 @@
 #include "log.h"
 #include "mem.h"
 #include "math.h"
+#include "tss.h"
+#include "gdt.h"
 
 #define PROC_INITIAL_STACK_SIZE 1 /* in page frames */
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
@@ -21,9 +23,13 @@ struct ps {
     uint32_t code_vaddr;
     uint32_t stack_vaddr;
     uint32_t heap_vaddr;
+
+    uint32_t kernel_stack_vaddr;
 };
 
 #include "process.h"
+
+extern void kernel_stack(void); /* temporary, just to test tss */
 
 static uint32_t allocate_and_map(pde_t *pdt,
                                  uint32_t vaddr,
@@ -176,6 +182,7 @@ ps_t *process_create(char *path)
     proc->code_vaddr  = code_vaddr;
     proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->heap_vaddr = heap_vaddr;
+    proc->kernel_stack_vaddr = (uint32_t) &kernel_stack;
 
     return proc;
 }
@@ -184,6 +191,7 @@ void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 void pdt_set(uint32_t pdt_addr);
 void process_enter_user_mode(ps_t *init)
 {
+    tss_set_kernel_stack(SEGSEL_KERNEL_DS, init->kernel_stack_vaddr);
     pdt_set(init->pdt_paddr);
     log_debug("process_enter_user_mode", "pdt set\n");
     enter_user_mode(init->code_vaddr, init->stack_vaddr);
