@@ -9,6 +9,8 @@ LDFLAGS = -T link.ld -melf_i386
 LIBC = -L../libc -lc
 STDINCLUDE = -I../libc
 
+all: init
+
 init: init.o
 	$(LD) $(LDFLAGS) init.o $(LIBC) -o init
 

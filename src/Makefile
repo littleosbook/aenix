@@ -4,30 +4,43 @@ BIN_PATH = $(FS_ROOT)/bin
 
 all: iso
 
-iso: build_kernel build_libc build_apps fs
+iso: build_kernel build_libc fs
+	@echo '-> Creating ISO'
 	./create_iso.sh fs
+	@echo ''
 
 run: iso
+	@echo '-> Starting BOCHS'
 	./run_bochs.sh || echo "\n" ; cat com1.out
 
-create_bin_folder:
+create_bin_folder: build_apps
+	@echo '-> Copying applications to fs folder'
 	mkdir -p $(BIN_PATH)
 	for app in $(APPS); do cp apps/$$app $(BIN_PATH); done
+	@echo ''
 
 fs: mkfs create_bin_folder
+	@echo '-> Creating filesystem'
 	./mkfs $(FS_ROOT) $@
+	@echo ''
 
 mkfs: mkfs.c
 	gcc -Wall -Wextra -Werror -O2 mkfs.c -o mkfs
 
 build_apps:
-	for app in $(APPS); do make -C apps $$app; done
+	@echo '-> Building applications'
+	@make --no-print-directory -C apps
+	@echo ''
 
 build_kernel:
-	make -C kernel
+	@echo '-> Building kernel'
+	@make --no-print-directory -C kernel
+	@echo ''
 
 build_libc:
-	make -C libc
+	@echo '-> Building libc'
+	@make --no-print-directory -C libc
+	@echo ''
 
 clean:
 	make -C kernel clean
