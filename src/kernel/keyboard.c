@@ -73,21 +73,29 @@ static uint8_t is_lshift_down       = 0;
 static uint8_t is_rshift_down       = 0;
 static uint8_t is_caps_lock_pressed = 0;
 
-static void print_keyboard_input(cpu_state_t state, idt_info_t info,
-                                 exec_state_t exec)
+static void keyboard_print_input(void)
 {
-    UNUSED_ARGUMENT(state);
-    UNUSED_ARGUMENT(info);
-    UNUSED_ARGUMENT(exec);
     uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
     if (ch != 0) {
         printf("%c", ch);
     }
 }
 
+static void keyboard_handle_interrupt(cpu_state_t state,
+                                      idt_info_t info,
+                                      exec_state_t exec)
+{
+    UNUSED_ARGUMENT(state);
+    UNUSED_ARGUMENT(info);
+    UNUSED_ARGUMENT(exec);
+
+    keyboard_print_input();
+    pic_acknowledge();
+}
+
 uint32_t kbd_init(void)
 {
-    register_interrupt_handler(KBD_INT_IDX, print_keyboard_input);
+    register_interrupt_handler(KBD_INT_IDX, keyboard_handle_interrupt);
     return 0;
 }
 

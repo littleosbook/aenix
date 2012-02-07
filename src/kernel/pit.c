@@ -22,6 +22,7 @@ static void pit_handle_interrupt(cpu_state_t state, idt_info_t info,
     if (callback != 0) {
         callback();
     }
+    pic_acknowledge();
 }
 
 void pit_init(void)

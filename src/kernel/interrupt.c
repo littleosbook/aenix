@@ -37,19 +37,4 @@ void interrupt_handler(cpu_state_t state, idt_info_t info, exec_state_t exec)
                   "unhandled interrupt: %u, eip: %X, cs: %X, eflags: %X\n",
                   info.idt_index, exec.eip, exec.cs, exec.eflags);
     }
-
-    log_debug("interrupt_handler",
-              "interrupt: %u, eip: %X, cs: %X, eflags: %X\n",
-              info.idt_index, exec.eip, exec.cs, exec.eflags);
-
-    if (info.idt_index >= PIC1_START &&
-        info.idt_index < (PIC1_START + PIC_NUM_IRQS)) {
-        pic_acknowledge();
-    }
-
-    if (info.idt_index == SYSCALL_INT_IDX) {
-        log_debug("interrupt_handler", "sys call interrupt\n");
-    }
-
-
 }

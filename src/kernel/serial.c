@@ -26,6 +26,7 @@ static void serial_handle_interrupt_com1(cpu_state_t state, idt_info_t info,
     UNUSED_ARGUMENT(info);
     UNUSED_ARGUMENT(exec);
     log_info("serial_handle_interrupt_com1", "data on com1\n");
+    pic_acknowledge();
 }
 
 static void serial_handle_interrupt_com2(cpu_state_t state, idt_info_t info,
@@ -35,6 +36,7 @@ static void serial_handle_interrupt_com2(cpu_state_t state, idt_info_t info,
     UNUSED_ARGUMENT(info);
     UNUSED_ARGUMENT(exec);
     log_info("serial_handle_interrupt_com2", "data on com2\n");
+    pic_acknowledge();
 }
 
 void serial_init(uint16_t com)
