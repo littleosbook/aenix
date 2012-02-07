@@ -11,4 +11,6 @@
 
 #define KERNEL_STACK_SIZE FOUR_KB
 
+#define SYSCALL_INT_IDX 0xAE
+
 #endif

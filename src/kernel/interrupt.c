@@ -6,8 +6,7 @@
 #include "pit.h"
 #include "stdio.h"
 #include "log.h"
-
-#define SYSCALL_INT_IDX 0xAE
+#include "constants.h"
 
 static interrupt_handler_t interrupt_handlers[IDT_NUM_ENTRIES];
 

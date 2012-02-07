@@ -1,7 +1,9 @@
 extern interrupt_handler
+extern syscall_handle_interrupt
 
 global enable_interrupts
 global disable_interrupts
+global handle_syscall
 
 %macro no_error_code_handler 1
 global interrupt_handler_%1
@@ -90,4 +92,22 @@ no_error_code_handler 46
 no_error_code_handler 47
 
 ; system call interrupt
-no_error_code_handler 174 ; 0xAE
+handle_syscall:
+	push	eax
+	push	ecx
+	push	edx
+	push	ebx
+	push	esp
+	push	ebp
+	push	esi
+	push	edi
+	call	syscall_handle_interrupt
+	pop	edi
+	pop	esi
+	pop	ebp
+	pop	esp
+	pop	ebx
+	pop	edx
+	pop	ecx
+        add     esp, 4  ; don't pop eax since eax contains return value
+        iret

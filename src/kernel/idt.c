@@ -2,6 +2,7 @@
 #include "stdint.h"
 #include "gdt.h"
 #include "interrupt.h"
+#include "constants.h"
 
 #define IDT_INTERRUPT_GATE_TYPE 0
 #define IDT_TRAP_GATE_TYPE		1
@@ -12,9 +13,6 @@
 #define CREATE_IDT_GATE(idx) \
     create_idt_gate(idx, (uint32_t) &interrupt_handler_##idx,\
                     IDT_TRAP_GATE_TYPE, PL0);
-#define CREATE_SYSCALL_GATE(idx) \
-    create_idt_gate(idx, (uint32_t) &interrupt_handler_##idx,\
-                    IDT_TRAP_GATE_TYPE, PL3);
 
 #define DECLARE_INTERRUPT_HANDLER(i) void interrupt_handler_##i(void)
 
@@ -59,9 +57,6 @@ DECLARE_INTERRUPT_HANDLER(45);
 DECLARE_INTERRUPT_HANDLER(46);
 DECLARE_INTERRUPT_HANDLER(47);
 
-/* System call interrupt */
-DECLARE_INTERRUPT_HANDLER(174); /* 0xAE */
-
 struct idt_gate {
 	uint16_t handler_low;
 	uint16_t segsel;
@@ -81,6 +76,9 @@ idt_gate_t idt[IDT_NUM_ENTRIES];
 
 /* external assembly function for loading the ldt */
 void idt_load_and_set(uint32_t idt_ptr);
+
+/* external assembly function for handling syscalls */
+void handle_syscall(void);
 
 static void create_idt_gate(uint8_t n, uint32_t handler, uint8_t type,
                             uint8_t pl);
@@ -132,8 +130,8 @@ void idt_init(void)
     CREATE_IDT_GATE(47);
 
     /* System call interrupt */
-    CREATE_SYSCALL_GATE(174); /* OxAE */
-    /*create_syscall_gate(174, (uint32_t) &debug_handler, IDT_TRAP_GATE_TYPE);*/
+    create_idt_gate(SYSCALL_INT_IDX, (uint32_t) handle_syscall,
+                    IDT_TRAP_GATE_TYPE, PL3);
 
     idt_load_and_set((uint32_t) &idt_ptr);
 }
