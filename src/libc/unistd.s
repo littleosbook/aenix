@@ -9,5 +9,7 @@ align 4
 ;   syscall declaration is used in unistd.h, the stack will be correct
 ;   due to the cdecl calling convention
 syscall:
-    int 0xAE
+	add esp, 4	; do not send the return address to the kernel
+    int 0xAE	; trap into the kernel
+	sub esp, 4	; restore the return address (given that kernel didn't fuck up)
     ret
