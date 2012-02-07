@@ -87,7 +87,7 @@ static void print_keyboard_input(cpu_state_t state, idt_info_t info,
 
 uint32_t kbd_init(void)
 {
-    register_interrupt_handler(33, print_keyboard_input);
+    register_interrupt_handler(KBD_INT_IDX, print_keyboard_input);
     return 0;
 }
 
