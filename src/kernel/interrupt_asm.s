@@ -18,6 +18,8 @@ interrupt_handler_%1:
 	jmp		common_interrupt_handler
 %endmacro
 
+section .text:
+
 common_interrupt_handler:
 	push	eax
 	push	ecx
@@ -38,8 +40,6 @@ common_interrupt_handler:
 	pop	eax
 	add	esp, 8
 	iret
-
-section .text:
 
 enable_interrupts:
     sti
