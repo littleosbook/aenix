@@ -4,19 +4,15 @@ CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 		 -Wno-unused-function -c
 AS = nasm
 ASFLAGS = -f elf
-LD = ld
-LDFLAGS = -T link.ld -melf_i386
-START = start.o
-LIBC=../libc
 
-init: init.o $(START)
-	$(LD) $(LDFLAGS) init.o $(START) -L$(LIBC) -lc -o init
+OBJECTS = unistd.o
+
+libc.a: $(OBJECTS)
+	ar rcs libc.a $(OBJECTS)
+
 
 %.o: %.c
 	$(CC) $(CFLAGS) -I$(LIBC) $< -o $@
 
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
-
-clean:
-	rm -rf init *.o

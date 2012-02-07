@@ -1,9 +1,10 @@
-#include "interrupt.h"
+#include "unistd.h"
+#include "sys/syscall.h"
 
 int main(void)
 {
-    interrupt();
-    interrupt();
+    syscall(SYS_write);
+    syscall(SYS_write);
 
     while(1) {
 
