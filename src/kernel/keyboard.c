@@ -2,6 +2,10 @@
 #include "io.h"
 #include "fb.h"
 #include "stdint.h"
+#include "interrupt.h"
+#include "common.h"
+#include "stdio.h"
+#include "pic.h"
 
 #define KBD_DATA_PORT   0x60
 
@@ -68,6 +72,24 @@
 static uint8_t is_lshift_down       = 0;
 static uint8_t is_rshift_down       = 0;
 static uint8_t is_caps_lock_pressed = 0;
+
+static void print_keyboard_input(cpu_state_t state, idt_info_t info,
+                                 exec_state_t exec)
+{
+    UNUSED_ARGUMENT(state);
+    UNUSED_ARGUMENT(info);
+    UNUSED_ARGUMENT(exec);
+    uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
+    if (ch != 0) {
+        printf("%c", ch);
+    }
+}
+
+uint32_t kbd_init(void)
+{
+    register_interrupt_handler(33, print_keyboard_input);
+    return 0;
+}
 
 static void toggle_left_shift(void)
 {
@@ -351,7 +373,7 @@ uint8_t kbd_scan_code_to_ascii(uint8_t scan_code)
 
     if (is_caps_lock_pressed) {
         ch = handle_caps_lock(ch);
-    } 
+    }
 
     if (is_lshift_down || is_rshift_down) {
         ch = handle_shift(ch);

@@ -3,8 +3,6 @@
 #include "gdt.h"
 #include "interrupt.h"
 
-#define IDT_NUM_ENTRIES 256
-
 #define IDT_INTERRUPT_GATE_TYPE 0
 #define IDT_TRAP_GATE_TYPE		1
 

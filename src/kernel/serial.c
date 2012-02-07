@@ -1,5 +1,9 @@
 #include "serial.h"
 #include "io.h"
+#include "interrupt.h"
+#include "common.h"
+#include "stdio.h"
+#include "pic.h"
 
 /* ports */
 #define DATA_PORT(port) port
@@ -14,6 +18,24 @@
 /* constants */
 #define ENABLE_DLAB 0x80
 #define BAUD_RATE_DIVISOR 0x03 /* will give a baud rate of 115200 / 3 = 38400 */
+
+static void serial_handle_interrupt_com1(cpu_state_t state, idt_info_t info,
+                          exec_state_t exec)
+{
+    UNUSED_ARGUMENT(state);
+    UNUSED_ARGUMENT(info);
+    UNUSED_ARGUMENT(exec);
+    printf("data on com1\n");
+}
+
+static void serial_handle_interrupt_com2(cpu_state_t state, idt_info_t info,
+                          exec_state_t exec)
+{
+    UNUSED_ARGUMENT(state);
+    UNUSED_ARGUMENT(info);
+    UNUSED_ARGUMENT(exec);
+    printf("data on com2\n");
+}
 
 void serial_init(uint16_t com)
 {
@@ -62,6 +84,9 @@ void serial_init(uint16_t com)
      */
     config = (1 << 3) | (1 << 1) | 0x01;
     outb(MODEM_CONTROL_PORT(com), config);
+
+    register_interrupt_handler(COM1_INT_IDX, serial_handle_interrupt_com1);
+    register_interrupt_handler(COM2_INT_IDX, serial_handle_interrupt_com2);
 }
 
 static int is_transmit_fifo_empty(uint16_t com)

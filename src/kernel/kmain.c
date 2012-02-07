@@ -17,6 +17,7 @@
 #include "page_frame_allocator.h"
 #include "tss.h"
 #include "stddef.h"
+#include "keyboard.h"
 
 #define KINIT_ERROR_LOAD_FS 1
 #define KINIT_ERROR_INIT_FS 2
@@ -66,6 +67,7 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     gdt_init(tss_vaddr);
     idt_init();
     pic_init();
+    kbd_init();
     serial_init(COM1);
     pit_init();
 

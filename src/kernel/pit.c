@@ -1,5 +1,8 @@
 #include "pit.h"
 #include "io.h"
+#include "interrupt.h"
+#include "common.h"
+#include "pic.h"
 
 #define PIT_CHANNEL_0_DATA  0x40
 #define PIT_CHANNEL_1_DATA  0x41
@@ -8,8 +11,18 @@
 
 #define PIT_FREQUENCY       1193182 /* Hz */
 
-
 static void (*callback)(void) = 0;
+
+static void pit_handle_interrupt(cpu_state_t state, idt_info_t info,
+                          exec_state_t exec)
+{
+    UNUSED_ARGUMENT(state);
+    UNUSED_ARGUMENT(info);
+    UNUSED_ARGUMENT(exec);
+    if (callback != 0) {
+        callback();
+    }
+}
 
 void pit_init(void)
 {
@@ -22,6 +35,8 @@ void pit_init(void)
      */
     uint8_t data = 0x00 | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1);
     outb(PIT_COMMAND, data);
+
+    register_interrupt_handler(PIT_INT_IDX, pit_handle_interrupt);
 }
 
 void pit_set_callback(uint16_t interval, void (*cb)(void))
@@ -32,11 +47,4 @@ void pit_set_callback(uint16_t interval, void (*cb)(void))
 
     outb(PIT_CHANNEL_0_DATA, (uint8_t) divider); /* the low byte */
     outb(PIT_CHANNEL_0_DATA, (uint8_t) (divider >> 8)); /* the high byte */
-}
-
-void pit_handle_interrupt(void)
-{
-    if (callback != 0) {
-        callback();
-    }
 }
