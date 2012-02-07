@@ -5,14 +5,16 @@ CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
 AS = nasm
 ASFLAGS = -f elf
 
-OBJECTS = unistd.o
+OBJECTS = unistd.o start.o
 
 libc.a: $(OBJECTS)
 	ar rcs libc.a $(OBJECTS)
-
 
 %.o: %.c
 	$(CC) $(CFLAGS) -I$(LIBC) $< -o $@
 
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@
+
+clean:
+	rm -rf *.a *.o

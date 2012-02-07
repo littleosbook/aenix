@@ -6,14 +6,14 @@ AS = nasm
 ASFLAGS = -f elf
 LD = ld
 LDFLAGS = -T link.ld -melf_i386
-START = start.o
-LIBC=../libc
+LIBC = -L../libc -lc
+STDINCLUDE = -I../libc
 
-init: init.o $(START)
-	$(LD) $(LDFLAGS) init.o $(START) -L$(LIBC) -lc -o init
+init: init.o
+	$(LD) $(LDFLAGS) init.o $(LIBC) -o init
 
 %.o: %.c
-	$(CC) $(CFLAGS) -I$(LIBC) $< -o $@
+	$(CC) $(CFLAGS) $(STDINCLUDE) $< -o $@
 
 %.o: %.s
 	$(AS) $(ASFLAGS) $< -o $@

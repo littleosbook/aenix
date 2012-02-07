@@ -4,7 +4,7 @@ BIN_PATH = $(FS_ROOT)/bin
 
 all: iso
 
-iso: build_kernel build_apps fs
+iso: build_kernel build_libc build_apps fs
 	./create_iso.sh fs
 
 run: iso
@@ -26,7 +26,11 @@ build_apps:
 build_kernel:
 	make -C kernel
 
+build_libc:
+	make -C libc
+
 clean:
 	make -C kernel clean
 	make -C apps clean
+	make -C libc clean
 	rm -rf mkfs aenix.iso fs
