@@ -1,8 +1,11 @@
 #include "common.h"
 #include "interrupt.h"
 #include "log.h"
+#include "stddef.h"
 
 #define NUM_SYSCALLS 5
+#define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
+#define PEEK_STACK(stack, type) (*((type *) (stack)))
 
 struct stack_state {
     uint32_t user_esp;
@@ -23,9 +26,17 @@ uint32_t sys_not_supported(uint32_t syscall, void *stack)
 uint32_t sys_write(uint32_t syscall, void *stack)
 {
     UNUSED_ARGUMENT(syscall);
-    UNUSED_ARGUMENT(stack);
+    uint32_t fd = PEEK_STACK(stack, uint32_t);
+    stack = NEXT_STACK_ITEM(stack);
 
-    log_debug("sys_write", "taking care of the syscall write\n");
+    char const *str = PEEK_STACK(stack, char const *);
+    stack = NEXT_STACK_ITEM(stack);
+
+    size_t len = PEEK_STACK(stack, size_t);
+
+    log_debug("sys_write",
+              "fd: %u, str: %s, len: %u\n",
+              fd, str, len);
     return 0;
 }
 
