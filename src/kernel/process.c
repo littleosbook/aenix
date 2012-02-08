@@ -1,4 +1,4 @@
-#include "paging.h"
+#include "process.h"
 #include "fs.h"
 #include "kmalloc.h"
 #include "page_frame_allocator.h"
@@ -15,21 +15,6 @@
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
 #define PROC_INITIAL_ESP (KERNEL_START_VADDR - 4)
 #define PROC_INITIAL_HEAP_SIZE 1 /* in page frames */
-
-struct ps {
-    pde_t *pdt;
-
-    uint32_t pdt_paddr;
-    uint32_t code_vaddr;
-    uint32_t stack_vaddr;
-    uint32_t heap_vaddr;
-
-    uint32_t kernel_stack_vaddr;
-};
-
-#include "process.h"
-
-extern void kernel_stack(void); /* temporary, just to test tss */
 
 static uint32_t allocate_and_map(pde_t *pdt,
                                  uint32_t vaddr,
@@ -64,10 +49,11 @@ static uint32_t allocate_and_map(pde_t *pdt,
 ps_t *process_create(char *path)
 {
     pde_t *pdt;
-    uint32_t error;
+    uint32_t error, bytes, page_frames;
     uint32_t code_fs_vaddr, code_pfs, code_paddr, code_vaddr;
     uint32_t heap_vaddr, pdt_paddr;
     uint32_t mapped_memory_size;
+    uint32_t kernel_stack_paddr, kernel_stack_vaddr;
     ps_t *proc;
 
     inode_t *node = fs_find_inode(path);
@@ -120,6 +106,9 @@ ps_t *process_create(char *path)
 
     pdt_unmap_kernel_memory(code_vaddr, node->size);
 
+    /* create proc early so that it is mapped both into the kernel PDT and
+     * the proc PDT
+     */
     proc = (ps_t *) kmalloc(sizeof(ps_t));
     if (proc == NULL) {
         log_error("create_process",
@@ -177,22 +166,44 @@ ps_t *process_create(char *path)
         return NULL;
     }
 
+    page_frames = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
+    kernel_stack_paddr = pfa_allocate(page_frames);
+    if (kernel_stack_paddr == 0) {
+        kfree(proc);
+        log_error("create_process",
+                  "Could not allocate page for kernel stack. "
+                  "pfs: %u\n", page_frames);
+        return NULL;
+    }
+
+    bytes = page_frames * FOUR_KB;
+    kernel_stack_vaddr = pdt_kernel_find_next_vaddr(bytes);
+    if (kernel_stack_vaddr == 0) {
+        kfree(proc);
+        log_error("create_process",
+                  "Could not find virtual address for kernel stack."
+                  "bytes: %u\n", bytes);
+        return NULL;
+    }
+
+    mapped_memory_size =
+        pdt_map_kernel_memory(kernel_stack_paddr, kernel_stack_vaddr, bytes,
+                              PAGING_READ_WRITE, PAGING_PL0);
+    if (mapped_memory_size != bytes) {
+        kfree(proc);
+        log_error("create_process",
+                  "Could not map memory for kernel stack."
+                  "kernel_stack_paddr: %X, kernel_stack_vaddr: %X, bytes: %u\n",
+                  kernel_stack_paddr, kernel_stack_vaddr, bytes);
+        return NULL;
+    }
+
     proc->pdt = pdt;
     proc->pdt_paddr = pdt_paddr;
     proc->code_vaddr  = code_vaddr;
     proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->heap_vaddr = heap_vaddr;
-    proc->kernel_stack_vaddr = (uint32_t) &kernel_stack + KERNEL_STACK_SIZE - 4;
+    proc->kernel_stack_vaddr = kernel_stack_vaddr;
 
     return proc;
-}
-
-void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
-void pdt_set(uint32_t pdt_addr);
-void process_enter_user_mode(ps_t *init)
-{
-    tss_set_kernel_stack(SEGSEL_KERNEL_DS, init->kernel_stack_vaddr);
-    pdt_set(init->pdt_paddr);
-    log_debug("process_enter_user_mode", "pdt set\n");
-    enter_user_mode(init->code_vaddr, init->stack_vaddr);
 }

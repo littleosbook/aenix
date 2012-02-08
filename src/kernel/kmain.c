@@ -18,6 +18,8 @@
 #include "tss.h"
 #include "stddef.h"
 #include "keyboard.h"
+#include "scheduler.h"
+#include "process.h"
 
 #define KINIT_ERROR_LOAD_FS 1
 #define KINIT_ERROR_INIT_FS 2
@@ -90,12 +92,6 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     return 0;
 }
 
-
-static void display_tick()
-{
-    printf(".");
-}
-
 static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
 {
     multiboot_info_t *mbinfo = (multiboot_info_t *) PHYSICAL_TO_VIRTUAL(mbaddr);
@@ -106,10 +102,23 @@ static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
+/* defined in enter_user_mode.s */
+void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
+
+static void start_init()
+{
+    ps_t *init = process_create("/bin/init");
+    if (init == NULL) {
+        printf("ERROR: Could not create init!\n");
+    } else {
+        scheduler_switch_to_process(init);
+        enter_user_mode(init->code_vaddr, init->stack_vaddr);
+    }
+}
+
 int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
           uint32_t kernel_pdt_vaddr, uint32_t kernel_pt_vaddr)
 {
-    ps_t *init;
     uint32_t res;
     multiboot_info_t *mbinfo = remap_multiboot_info(mbaddr);
 
@@ -143,27 +152,7 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
-    init = process_create("/bin/init");
-
-    if (init == NULL) {
-        printf("ERROR: Could not create init!\n");
-        return 0xDEADDEAD;
-    }
-
-    process_enter_user_mode(init);
-
-    /*printf(*/
-/*"=======================================================\n"*/
-/*"       d8888 8888888888 888b    888 8888888 Y88b   d88P\n"*/
-/*"      d88888 888        8888b   888   888    Y88b d88P \n"*/
-/*"     d88P888 888        88888b  888   888     Y88o88P  \n"*/
-/*"    d88P 888 8888888    888Y88b 888   888      Y888P   \n"*/
-/*"   d88P  888 888        888 Y88b888   888      d888b   \n"*/
-/*"  d88P   888 888        888  Y88888   888     d88888b  \n"*/
-/*" d8888888888 888        888   Y8888   888    d88P Y88b \n"*/
-/*"d88P     888 8888888888 888    Y888 8888888 d88P   Y88b\n"*/
-/*"=======================================================\n");*/
-
+    start_init();
 
     return 0xDEADBEEF;
 }
