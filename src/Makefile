@@ -43,7 +43,13 @@ build_libc:
 	@echo ''
 
 clean:
-	make -C kernel clean
-	make -C apps clean
-	make -C libc clean
+	@echo '-> Cleaning kernel'
+	@make --no-print-directory -C kernel clean
+	@echo ''
+	@echo '-> Cleaning apps'
+	@make --no-print-directory -C apps clean
+	@echo ''
+	@echo '-> Cleaning libc'
+	@make --no-print-directory -C libc clean
+	@echo ''
 	rm -rf mkfs aenix.iso fs
