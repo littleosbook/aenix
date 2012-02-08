@@ -46,7 +46,7 @@ static uint32_t allocate_and_map(pde_t *pdt,
     return 0;
 }
 
-ps_t *process_create(char *path)
+ps_t *process_create(char *path, uint32_t id)
 {
     pde_t *pdt;
     uint32_t error, bytes, page_frames;
@@ -204,6 +204,8 @@ ps_t *process_create(char *path)
     proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->heap_vaddr = heap_vaddr;
     proc->kernel_stack_vaddr = kernel_stack_vaddr;
+    memset(proc->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
+    proc->id = id;
 
     return proc;
 }

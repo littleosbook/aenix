@@ -6,6 +6,11 @@
 
 static ps_t *current;
 
+ps_t *scheduler_get_current_process()
+{
+    return current;
+}
+
 void scheduler_switch_to_process(ps_t *ps)
 {
     current = ps;

@@ -39,7 +39,8 @@ uint32_t fs_init(uint32_t paddr, uint32_t size)
     return 0;
 }
 
-static inode_t *find_inode_in_dir(inode_t *dir, char *path, size_t fname_len)
+static inode_t *find_inode_in_dir(inode_t *dir, char const *path,
+                                  size_t fname_len)
 {
     uint32_t num_files, i;
 
@@ -59,7 +60,7 @@ static inode_t *find_inode_in_dir(inode_t *dir, char *path, size_t fname_len)
     return NULL;
 }
 
-inode_t *fs_find_inode(char *path)
+inode_t *fs_find_inode(char const *path)
 {
     size_t path_len = strlen(path);
     size_t slash_index = 0;

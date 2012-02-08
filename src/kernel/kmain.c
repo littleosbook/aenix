@@ -107,7 +107,7 @@ void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
 
 static void start_init()
 {
-    ps_t *init = process_create("/bin/init");
+    ps_t *init = process_create("/bin/init", 1);
     if (init == NULL) {
         printf("ERROR: Could not create init!\n");
     } else {
