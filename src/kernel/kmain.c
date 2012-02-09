@@ -21,11 +21,15 @@
 #include "keyboard.h"
 #include "scheduler.h"
 #include "process.h"
+#include "kmalloc.h"
+#include "vfs.h"
 
 #define KINIT_ERROR_LOAD_FS 1
 #define KINIT_ERROR_INIT_FS 2
 #define KINIT_ERROR_INIT_PAGING 3
 #define KINIT_ERROR_INIT_PFA 4
+#define KINIT_ERROR_MALLOC_ROOT_VFS 5
+#define KINIT_ERROR_INIT_VFS 6
 
 /* Gets the physical address of the filesystem, which is the address of the
  * only GRUB module loaded
@@ -84,9 +88,19 @@ static uint32_t kinit(kernel_meminfo_t *mem,
         return KINIT_ERROR_INIT_PFA;
     }
 
-    res = aefs_init(fs_paddr, fs_size);
+    vfs_t *aefs_vfs = kmalloc(sizeof(vfs_t));
+    if (aefs_vfs == NULL) {
+        return KINIT_ERROR_MALLOC_ROOT_VFS;
+    }
+
+    res = aefs_init(fs_paddr, fs_size, aefs_vfs);
     if (res != 0) {
         return KINIT_ERROR_INIT_FS;
+    }
+
+    res = vfs_init(aefs_vfs);
+    if (res != 0) {
+        return KINIT_ERROR_INIT_VFS;
     }
 
     enable_interrupts();
@@ -146,10 +160,17 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
             case KINIT_ERROR_INIT_PFA:
                 printf("ERROR: Could not initialize page frame allocator!\n");
                 break;
+            case KINIT_ERROR_MALLOC_ROOT_VFS:
+                printf("ERROR: Could not allocate VFS node for root FS!\n");
+                break;
+            case KINIT_ERROR_INIT_VFS:
+                printf("ERROR: Could not initialize virtual filesystem!\n");
+                break;
             default:
                 printf("ERROR: Unknown error\n");
                 break;
         }
+
         return 0xDEADDEAD;
     }
 

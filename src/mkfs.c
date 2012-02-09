@@ -24,7 +24,7 @@ uint32_t div_ceil(uint32_t num, uint32_t den)
 }
 
 struct block {
-    char data[BLOCK_SIZE];
+    char data[AEFS_BLOCK_SIZE];
 } __attribute__((packed));
 typedef struct block block_t;
 
@@ -32,30 +32,30 @@ static block_t *file;
 static uint16_t num_inodes;
 static uint16_t next_inode_id = 1;
 static uint16_t next_block_id = 0;
-static inode_t *start_inode;
+static aefs_inode_t *start_inode;
 static block_t *start_block;
 
 static void write_superblock(uint16_t num_inodes, uint16_t start_block_offset);
 static uint16_t visit_dir(char *path, int is_root);
 static uint16_t visit_file(char *path);
 
-void fill_inode_blocks(inode_t *inode, uint16_t blocks_required,
+void fill_inode_blocks(aefs_inode_t *inode, uint16_t blocks_required,
                        uint16_t start_block_id)
 {
     uint32_t i;
-    inode_t *list = inode;
+    aefs_inode_t *list = inode;
     for (i = 0; i < blocks_required; ++i) {
-        if (i % INODE_NUM_BLOCKS == 0 && i != 0) {
+        if (i % AEFS_INODE_NUM_BLOCKS == 0 && i != 0) {
             list->inode_tail = next_inode_id;
             list = start_inode + next_inode_id;
-            memset(list, 0, sizeof(inode_t));
+            memset(list, 0, sizeof(aefs_inode_t));
             next_inode_id++;
         }
-        list->blocks[i % INODE_NUM_BLOCKS] = start_block_id + i;
+        list->blocks[i % AEFS_INODE_NUM_BLOCKS] = start_block_id + i;
     }
 }
 
-void fill_inode_size(inode_t *inode, uint32_t size)
+void fill_inode_size(aefs_inode_t *inode, uint32_t size)
 {
     inode->size_low = size & 0xFFFF;
     inode->size_high = (size >> 16) & 0xFF;
@@ -93,13 +93,13 @@ int main(int argc, char **argv)
     }
     file = (block_t *) mem;
 
-    uint16_t blocks = size / BLOCK_SIZE;
+    uint16_t blocks = size / AEFS_BLOCK_SIZE;
 
-    uint16_t inode_blocks = div_ceil(blocks*sizeof(inode_t), BLOCK_SIZE);
+    uint16_t inode_blocks = div_ceil(blocks*sizeof(aefs_inode_t), AEFS_BLOCK_SIZE);
     num_inodes = blocks - inode_blocks - 1;
     uint16_t start_block_offset = 1 + inode_blocks;
     start_block = file + start_block_offset;
-    start_inode = ((inode_t *)(file + 1));
+    start_inode = ((aefs_inode_t *)(file + 1));
 
     write_superblock(num_inodes, start_block_offset);
     visit_dir(argv[1], 1);
@@ -117,8 +117,8 @@ int main(int argc, char **argv)
 
 static void write_superblock(uint16_t num_inodes, uint16_t start_block_offset)
 {
-    superblock_t *sb = (superblock_t*) file;
-    memset(sb, 0, BLOCK_SIZE);
+    aefs_superblock_t *sb = (aefs_superblock_t*) file;
+    memset(sb, 0, AEFS_BLOCK_SIZE);
     sb->num_inodes = num_inodes;
     sb->start_block = start_block_offset;
 }
@@ -133,10 +133,10 @@ static uint16_t visit_dir(char *path, int is_root)
     uint16_t child_inode_id;
     struct stat st;
     uint16_t dir_inode_id;
-    inode_t *dir_inode;
+    aefs_inode_t *dir_inode;
 
     child_path =
-        malloc(sizeof(char)*(strlen(path) + FILENAME_MAX_LEN + SLASH_LEN));
+        malloc(sizeof(char)*(strlen(path) + AEFS_FILENAME_MAX_LEN + SLASH_LEN));
     if (child_path == NULL) {
         die("ERROR: out of memory!");
     }
@@ -165,14 +165,14 @@ static uint16_t visit_dir(char *path, int is_root)
         die("ERROR: Too many inodes required");
     }
 
-    uint32_t blocks_required = div_ceil(num_files*sizeof(direntry_t),
-                                        BLOCK_SIZE);
+    uint32_t blocks_required = div_ceil(num_files*sizeof(aefs_direntry_t),
+                                        AEFS_BLOCK_SIZE);
     uint16_t dir_start_block_id = next_block_id;
     next_block_id += blocks_required;
     block_t *dir_start_block = start_block + dir_start_block_id;
 
-    memset(dir_start_block, 0, BLOCK_SIZE * blocks_required);
-    direntry_t *entries = (direntry_t *) dir_start_block;
+    memset(dir_start_block, 0, AEFS_BLOCK_SIZE * blocks_required);
+    aefs_direntry_t *entries = (aefs_direntry_t *) dir_start_block;
 
     rewinddir(dir);
 
@@ -197,12 +197,12 @@ static uint16_t visit_dir(char *path, int is_root)
             exit(1);
         }
         entries[i].inode_id = child_inode_id;
-        strncpy(entries[i].name, ent->d_name, FILENAME_MAX_LEN);
+        strncpy(entries[i].name, ent->d_name, AEFS_FILENAME_MAX_LEN);
         ++i;
     }
 
-    dir_inode->type = FILETYPE_DIR;
-    uint32_t dir_size = sizeof(direntry_t) * num_files;
+    dir_inode->type = AEFS_FILETYPE_DIR;
+    uint32_t dir_size = sizeof(aefs_direntry_t) * num_files;
     fill_inode_size(dir_inode, dir_size);
 
     fill_inode_blocks(dir_inode, blocks_required, dir_start_block_id);
@@ -227,13 +227,13 @@ uint16_t visit_file(char *path)
 
     uint16_t file_inode_id = next_inode_id;
     next_inode_id++;
-    inode_t *file_inode = start_inode + file_inode_id;
-    uint16_t blocks_required = div_ceil(st.st_size, BLOCK_SIZE);
+    aefs_inode_t *file_inode = start_inode + file_inode_id;
+    uint16_t blocks_required = div_ceil(st.st_size, AEFS_BLOCK_SIZE);
     uint16_t file_start_block_id = next_block_id;
     block_t *file_start_block = start_block + file_start_block_id;
     next_block_id += blocks_required;
 
-    file_inode->type = FILETYPE_REG;
+    file_inode->type = AEFS_FILETYPE_REG;
     fill_inode_size(file_inode, st.st_size);
 
     if ((file = fopen(path, "r")) == NULL) {
@@ -241,7 +241,7 @@ uint16_t visit_file(char *path)
     }
 
     while ((bytes_read =
-                fread(file_start_block++, sizeof(char), BLOCK_SIZE, file))) {
+                fread(file_start_block++, sizeof(char), AEFS_BLOCK_SIZE, file))) {
     }
 
     fill_inode_blocks(file_inode, blocks_required, file_start_block_id);

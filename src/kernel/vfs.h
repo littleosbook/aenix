@@ -15,8 +15,9 @@ struct vfs {
 typedef struct vfs vfs_t;
 
 struct vfsops {
-    int (*vfs_root)(vfs_t *vfs, vnode_t **root);
+    int (*vfs_root)(vfs_t *vfs, vnode_t *root);
 };
+typedef struct vfsops vfsops_t;
 
 int vfs_lookup(char const *name, vnode_t *res);
 int vfs_open(vnode_t *node);

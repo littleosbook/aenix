@@ -104,7 +104,15 @@ ps_t *process_create(char *path, uint32_t id)
         return NULL;
     }
 
-    vfs_read(&node, (void *) code_vaddr, attr.file_size);
+    if(vfs_read(&node, (void *) code_vaddr, attr.file_size) !=
+       (int) attr.file_size) {
+        pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
+        log_error("process_create",
+                  "Could not copy the process code. "
+                  "code_vaddr: %X, attr.file_size: %u\n",
+                  code_vaddr, attr.file_size);
+        return NULL;
+    }
 
     log_debug("process_create",
               "code_vaddr[0]: %X, code_vaddr[1]: %X\n",

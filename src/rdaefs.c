@@ -21,7 +21,7 @@ uint32_t div_ceil(uint32_t num, uint32_t den)
 }
 
 struct block {
-    char data[BLOCK_SIZE];
+    char data[AEFS_BLOCK_SIZE];
 } __attribute__((packed));
 typedef struct block block_t;
 
@@ -31,7 +31,7 @@ static block_t *block_start;
 
 void read_superblock()
 {
-    superblock_t *sb = (superblock_t *) file;
+    aefs_superblock_t *sb = (aefs_superblock_t *) file;
     printf("-> Superblock\n");
     printf("\tnum_inodes: %hu\n", sb->num_inodes);
     printf("\tstart_block: %hu\n", sb->start_block);
@@ -40,15 +40,15 @@ void read_superblock()
     block_start = file + sb->start_block;
 }
 
-inode_t *get_inode(uint16_t inode_id)
+aefs_inode_t *get_inode(uint16_t inode_id)
 {
-    return ((inode_t *)(file + 1)) + inode_id;
+    return ((aefs_inode_t *)(file + 1)) + inode_id;
 }
 
-void print_inode_tail(inode_t *inode)
+void print_inode_tail(aefs_inode_t *inode)
 {
     uint32_t i = 0;
-    for (; i < INODE_NUM_BLOCKS; ++i) {
+    for (; i < AEFS_INODE_NUM_BLOCKS; ++i) {
         printf("\tblock %u: %hu\n", i, inode->blocks[i]);
     }
     printf("\ttail: %hu\n", inode->inode_tail);
@@ -57,12 +57,12 @@ void print_inode_tail(inode_t *inode)
     }
 }
 
-void print_inode(inode_t *inode) {
+void print_inode(aefs_inode_t *inode) {
     printf("\ttype: %hhu\n", inode->type);
     printf("\tsize_high: %hhu\n", inode->size_high);
     printf("\tsize_low: %hu\n", inode->size_low);
     uint32_t i = 0;
-    for (; i < INODE_NUM_BLOCKS; ++i) {
+    for (; i < AEFS_INODE_NUM_BLOCKS; ++i) {
         printf("\tblock %u: %hu\n", i, inode->blocks[i]);
     }
     printf("\ttail: %hu\n", inode->inode_tail);
@@ -71,14 +71,14 @@ void print_inode(inode_t *inode) {
     }
 }
 
-void visit_reg(inode_t *inode, char const *path);
-void visit_dir(inode_t *inode, char const *path);
+void visit_reg(aefs_inode_t *inode, char const *path);
+void visit_dir(aefs_inode_t *inode, char const *path);
 
-void visit_inode(inode_t *inode, char const *path)
+void visit_inode(aefs_inode_t *inode, char const *path)
 {
-    if (INODE_IS_REG(inode)) {
+    if (AEFS_INODE_IS_REG(inode)) {
         visit_reg(inode, path);
-    } else if (INODE_IS_DIR(inode)) {
+    } else if (AEFS_INODE_IS_DIR(inode)) {
         visit_dir(inode, path);
     } else {
         die("ERROR: Unknown file type");
@@ -87,43 +87,43 @@ void visit_inode(inode_t *inode, char const *path)
 
 void print_root()
 {
-    inode_t *root_inode = get_inode(1);
+    aefs_inode_t *root_inode = get_inode(1);
     visit_inode(root_inode, "/");
 }
 
 
-void visit_reg(inode_t *inode, char const *path)
+void visit_reg(aefs_inode_t *inode, char const *path)
 {
     printf("-> REG: %s\n", path);
     print_inode(inode);
 }
 
-void visit_dir(inode_t *inode, char const *path)
+void visit_dir(aefs_inode_t *inode, char const *path)
 {
-    int num_entries = INODE_SIZE(inode)/sizeof(direntry_t);
+    int num_entries = AEFS_INODE_SIZE(inode)/sizeof(aefs_direntry_t);
     int i;
-    direntry_t *entry;
+    aefs_direntry_t *entry;
     block_t *block;
     int block_num = 0;
-    inode_t *inode_to_read_from = inode;
+    aefs_inode_t *inode_to_read_from = inode;
     printf("-> DIR: %s (%hu entries)\n", path, num_entries);
     print_inode(inode);
 
-    char *child_path = malloc(strlen(path) + FILENAME_MAX_LEN + 1);
+    char *child_path = malloc(strlen(path) + AEFS_FILENAME_MAX_LEN + 1);
     if (child_path == NULL) {
         die("ERROR: Out of memory");
     }
 
     for (i = 0; i < num_entries; ++i) {
-        if (i % (DIRENTRES_PER_BLOCK) == 0) {
+        if (i % (AEFS_DIRENTRIES_PER_BLOCK) == 0) {
             block = block_start + inode_to_read_from->blocks[block_num];
             block_num++;
-            if (block_num == INODE_NUM_BLOCKS) {
+            if (block_num == AEFS_INODE_NUM_BLOCKS) {
                 block_num = 0;
                 inode_to_read_from = get_inode(inode_to_read_from->inode_tail);
             }
         }
-        entry = ((direntry_t *) (block)) + (i % DIRENTRES_PER_BLOCK);
+        entry = ((aefs_direntry_t *) (block)) + (i % AEFS_DIRENTRIES_PER_BLOCK);
         printf("\t\t-> ENTRY: %s -> %hu\n", entry->name, entry->inode_id);
 
         sprintf(child_path, "%s/%s", path, entry->name);
