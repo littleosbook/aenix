@@ -64,7 +64,7 @@ void fill_inode_size(inode_t *inode, uint32_t size)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
+    if (argc != 4) {
         fprintf(stderr, "Bad root dir specified\n");
         fprintf(stderr, "Usage: %s root_dir fs_size (in MB) output_file\n",
                 argv[0]);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     }
 
     int fd;
-    if ((fd = open(argv[3], O_RDWR | O_CREAT | O_TRUNC)) == -1) {
+    if ((fd = open(argv[3], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) == -1) {
         die("ERROR: Couldn't open output file");
     }
 
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     uint16_t inode_blocks = div_ceil(blocks*sizeof(inode_t), BLOCK_SIZE);
     num_inodes = blocks - inode_blocks - 1;
     start_block = file + 1 + inode_blocks;
-    start_inode = (inode_t*)(file + 1) + 1; /* inode 0 is reserved */
+    start_inode = ((inode_t*)(file + 1)) + 1; /* inode 0 is reserved */
 
     write_superblock();
     visit_dir(argv[1], 1);
