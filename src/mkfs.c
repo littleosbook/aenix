@@ -72,11 +72,22 @@ int main(int argc, char **argv)
     }
 
     int fd;
-    if ((fd = open(argv[3], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) == -1) {
+    if ((fd = open(argv[3], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) ==
+        -1) {
         die("ERROR: Couldn't open output file");
     }
 
     size_t size = (size_t) (atoi(argv[2]) << 20);
+
+    if (lseek(fd, size - 1, SEEK_SET) == (off_t) -1) {
+        die("ERROR: Could not seek in file");
+    }
+
+    char dummy = '\0';
+    if (write(fd, &dummy, 1) == -1) {
+        die("ERROR: Could not write last byte of file");
+    }
+
     void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (mem == MAP_FAILED) {
         die("ERROR: Couldn't mmap file");

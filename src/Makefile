@@ -1,6 +1,8 @@
 APPS = init
 FS_ROOT = fs_root
 BIN_PATH = $(FS_ROOT)/bin
+WARNINGS = -Wall -Wextra -Werror
+CC = gcc
 
 all: iso
 
@@ -24,8 +26,14 @@ fs: mkfs create_bin_folder
 	./mkfs $(FS_ROOT) $@
 	@echo ''
 
+mkfs_release: CFLAGS = -O2
+mkfs_release: mkfs
+
+mkfs_debug: CFLAGS = -g
+mkfs_debug: mkfs
+
 mkfs: mkfs.c
-	gcc -Wall -Wextra -Werror -O2 mkfs.c -o mkfs
+	$(CC) $(WARNINGS) $(CFLAGS) mkfs.c -o mkfs
 
 build_apps:
 	@echo '-> Building applications'
