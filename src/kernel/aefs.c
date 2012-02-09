@@ -27,6 +27,10 @@ static int aefs_root(vfs_t *vfs, vnode_t *vroot)
     vroot->v_op = &vnodeops;
     vroot->v_data = (uint32_t) root_inode;
 
+    log_debug("aefs_root",
+              "AEFS_INODE_IS_DIR(root_inode) = %u\n",
+              AEFS_INODE_IS_DIR(root_inode));
+
     return 0;
 }
 
@@ -86,7 +90,8 @@ static int aefs_lookup(vnode_t *dir, char const *name, vnode_t *res)
 
     if (!AEFS_INODE_IS_DIR(inode)) {
         log_error("aefs_lookup",
-                  "dir is not a directory\n");
+                  "dir is not a directory, looking for name %s\n",
+                  name);
         return -1;
     }
 
@@ -160,6 +165,11 @@ uint32_t aefs_init(uint32_t paddr, uint32_t size, vfs_t *vfs)
 
     fs_start = (aefs_block_t *) fs_vaddr;
     sb = (aefs_superblock_t *) fs_vaddr;
+
+    log_debug("aefs_init",
+              "sb->start_block: %u, sb->num_inodes: %u\n",
+              (uint32_t) sb->start_block, (uint32_t) sb->num_inodes);
+
     root_inode = get_inode(ROOT_INODE_ID);
 
     log_info("fs_init", "fs_vaddr: %X, fs_paddr: %X, fs_size: %u\n",

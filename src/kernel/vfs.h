@@ -19,7 +19,7 @@ struct vfsops {
 };
 typedef struct vfsops vfsops_t;
 
-int vfs_lookup(char const *name, vnode_t *res);
+int vfs_lookup(char const *path, vnode_t *res);
 int vfs_open(vnode_t *node);
 int vfs_read(vnode_t *node, void *buf, uint32_t count);
 int vfs_getattr(vnode_t *node, vattr_t *attr);

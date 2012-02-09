@@ -3,7 +3,7 @@ FS_ROOT = fs_root
 BIN_PATH = $(FS_ROOT)/bin
 WARNINGS = -Wall -Wextra -Werror
 CC = gcc
-FS_SIZE = 4 # in MB
+FS_SIZE = 1 # in MB
 
 all: iso
 
