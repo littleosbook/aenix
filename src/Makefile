@@ -35,6 +35,16 @@ mkfs_debug: mkfs
 mkfs: mkfs.c
 	$(CC) $(WARNINGS) $(CFLAGS) mkfs.c -o mkfs
 
+
+rdaefs_release: CFLAGS = -O2
+rdaefs_release: rdaefs
+
+rdaefs_debug: CFLAGS = -g
+rdaefs_debug: rdaefs
+
+rdaefs: rdaefs.c
+	$(CC) $(WARNINGS) $(CFLAGS) rdaefs.c -o rdaefs
+
 build_apps:
 	@echo '-> Building applications'
 	@make --no-print-directory -C apps

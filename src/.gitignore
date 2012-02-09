@@ -3,5 +3,6 @@ bochsrc.txt
 bochslog.txt
 com1.out
 mkfs
+rdaefs
 fs_root
 fs

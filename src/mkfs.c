@@ -9,7 +9,6 @@
 #include <sys/mman.h>
 #include "kernel/inode.h"
 
-#define DIRENT_FNAME_SIZE 256
 #define SLASH_LEN 1
 #define READ_BUFFER_LEN 4096
 
@@ -31,12 +30,12 @@ typedef struct block block_t;
 
 static block_t *file;
 static uint16_t num_inodes;
-static uint16_t current_inode_id = 1;
-static uint16_t current_block_id = 0;
+static uint16_t next_inode_id = 1;
+static uint16_t next_block_id = 0;
 static inode_t *start_inode;
 static block_t *start_block;
 
-static void write_superblock();
+static void write_superblock(uint16_t num_inodes, uint16_t start_block_offset);
 static uint16_t visit_dir(char *path, int is_root);
 static uint16_t visit_file(char *path);
 
@@ -47,10 +46,10 @@ void fill_inode_blocks(inode_t *inode, uint16_t blocks_required,
     inode_t *list = inode;
     for (i = 0; i < blocks_required; ++i) {
         if (i % INODE_NUM_BLOCKS == 0 && i != 0) {
-            list->inode_tail = current_inode_id;
-            list = start_inode + current_inode_id;
+            list->inode_tail = next_inode_id;
+            list = start_inode + next_inode_id;
             memset(list, 0, sizeof(inode_t));
-            current_inode_id++;
+            next_inode_id++;
         }
         list->blocks[i % INODE_NUM_BLOCKS] = start_block_id + i;
     }
@@ -88,7 +87,7 @@ int main(int argc, char **argv)
         die("ERROR: Could not write last byte of file");
     }
 
-    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (mem == MAP_FAILED) {
         die("ERROR: Couldn't mmap file");
     }
@@ -98,12 +97,16 @@ int main(int argc, char **argv)
 
     uint16_t inode_blocks = div_ceil(blocks*sizeof(inode_t), BLOCK_SIZE);
     num_inodes = blocks - inode_blocks - 1;
-    start_block = file + 1 + inode_blocks;
-    start_inode = ((inode_t*)(file + 1)) + 1; /* inode 0 is reserved */
+    uint16_t start_block_offset = 1 + inode_blocks;
+    start_block = file + start_block_offset;
+    start_inode = ((inode_t *)(file + 1));
 
-    write_superblock();
+    write_superblock(num_inodes, start_block_offset);
     visit_dir(argv[1], 1);
 
+    if (msync(mem, size, MS_SYNC)) {
+        die("ERROR: Could not msync");
+    }
     if (munmap(mem, size)) {
         die("ERROR: Couldn't munmap file");
     }
@@ -112,11 +115,12 @@ int main(int argc, char **argv)
     return 0;
 }
 
-static void write_superblock()
+static void write_superblock(uint16_t num_inodes, uint16_t start_block_offset)
 {
     superblock_t *sb = (superblock_t*) file;
     memset(sb, 0, BLOCK_SIZE);
     sb->num_inodes = num_inodes;
+    sb->start_block = start_block_offset;
 }
 
 static uint16_t visit_dir(char *path, int is_root)
@@ -132,7 +136,7 @@ static uint16_t visit_dir(char *path, int is_root)
     inode_t *dir_inode;
 
     child_path =
-        malloc(sizeof(char)*(strlen(path) + DIRENT_FNAME_SIZE + SLASH_LEN));
+        malloc(sizeof(char)*(strlen(path) + FILENAME_MAX_LEN + SLASH_LEN));
     if (child_path == NULL) {
         die("ERROR: out of memory!");
     }
@@ -151,21 +155,24 @@ static uint16_t visit_dir(char *path, int is_root)
     }
 
     if (is_root) {
-        num_files++; /* to make room for /dev */
+        //num_files++; /* to make room for /dev */
     }
 
-    dir_inode_id = current_inode_id;
+    dir_inode_id = next_inode_id;
+    printf("dir_inode_id: %s -> %hu\n", path, dir_inode_id);
     dir_inode = start_inode + dir_inode_id;
-    current_inode_id++;
+    next_inode_id++;
     if (dir_inode_id == num_inodes) {
         die("ERROR: Too many inodes required");
     }
 
     uint32_t blocks_required = div_ceil(num_files*sizeof(direntry_t),
                                         BLOCK_SIZE);
-    uint16_t dir_start_block_id = current_block_id;
-    block_t *dir_start_block = start_block + current_block_id;
-    current_block_id += blocks_required;
+    uint16_t dir_start_block_id = next_block_id;
+    printf ("dir_start_block_id: %hu, blocks_required: %u\n", dir_start_block_id, blocks_required);
+    next_block_id += blocks_required;
+    block_t *dir_start_block = start_block + dir_start_block_id;
+
     memset(dir_start_block, 0, BLOCK_SIZE * blocks_required);
     direntry_t *entries = (direntry_t *) dir_start_block;
 
@@ -191,7 +198,7 @@ static uint16_t visit_dir(char *path, int is_root)
             fprintf(stderr, "ERROR: Unsupported file type: %s", child_path);
             exit(1);
         }
-        entries[i].inode = child_inode_id;
+        entries[i].inode_id = child_inode_id;
         strncpy(entries[i].name, ent->d_name, FILENAME_MAX_LEN);
         ++i;
     }
@@ -220,13 +227,13 @@ uint16_t visit_file(char *path)
         die("ERROR: Couldn't stat file");
     }
 
-    uint16_t file_inode_id = current_inode_id;
-    current_inode_id++;
+    uint16_t file_inode_id = next_inode_id;
+    next_inode_id++;
     inode_t *file_inode = start_inode + file_inode_id;
     uint16_t blocks_required = div_ceil(st.st_size, BLOCK_SIZE);
-    uint16_t file_start_block_id = current_block_id;
+    uint16_t file_start_block_id = next_block_id;
     block_t *file_start_block = start_block + file_start_block_id;
-    current_block_id += blocks_required;
+    next_block_id += blocks_required;
 
     file_inode->type = FILETYPE_REG;
     fill_inode_size(file_inode, st.st_size);

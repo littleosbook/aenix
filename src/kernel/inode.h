@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 
-#define FILENAME_MAX_LEN 240
+#define FILENAME_MAX_LEN 254
 
 #define FILETYPE_REG 0
 #define FILETYPE_DIR 1
@@ -33,7 +33,7 @@ typedef struct inode_list inode_list_t;
 /* sizeof(direntry_t) == 256 bytes */
 struct direntry {
     char name[FILENAME_MAX_LEN];
-    uint16_t inode;
+    uint16_t inode_id;
 } __attribute__((packed));
 typedef struct direntry direntry_t;
 
@@ -41,8 +41,15 @@ typedef struct direntry direntry_t;
 struct superblock {
     uint16_t num_inodes;
     char *mount_path;
-    uint16_t padding;
+    uint16_t start_block;
 } __attribute__((packed));
 typedef struct superblock superblock_t;
+
+#define INODE_SIZE(inode) ((((uint32_t) (inode)->size_high) << 16) | \
+                           ((inode)->size_low))
+#define DIRENTRES_PER_BLOCK (BLOCK_SIZE/sizeof(direntry_t))
+
+#define INODE_IS_REG(inode) ((inode)->type == FILETYPE_REG)
+#define INODE_IS_DIR(inode) ((inode)->type == FILETYPE_DIR)
 
 #endif /* INODE_H */
