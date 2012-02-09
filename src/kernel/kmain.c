@@ -12,7 +12,8 @@
 #include "kernel.h"
 #include "serial.h"
 #include "log.h"
-#include "fs.h"
+#include "vfs.h"
+#include "aefs.h"
 #include "process.h"
 #include "page_frame_allocator.h"
 #include "tss.h"
@@ -83,7 +84,7 @@ static uint32_t kinit(kernel_meminfo_t *mem,
         return KINIT_ERROR_INIT_PFA;
     }
 
-    res = fs_init(fs_paddr, fs_size);
+    res = aefs_init(fs_paddr, fs_size);
     if (res != 0) {
         return KINIT_ERROR_INIT_FS;
     }

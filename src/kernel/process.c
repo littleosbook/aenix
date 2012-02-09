@@ -1,5 +1,5 @@
 #include "process.h"
-#include "fs.h"
+#include "vfs.h"
 #include "kmalloc.h"
 #include "page_frame_allocator.h"
 #include "string.h"
@@ -50,21 +50,27 @@ ps_t *process_create(char *path, uint32_t id)
 {
     pde_t *pdt;
     uint32_t error, bytes, page_frames;
-    uint32_t code_fs_vaddr, code_pfs, code_paddr, code_vaddr;
+    uint32_t code_pfs, code_paddr, code_vaddr;
     uint32_t heap_vaddr, pdt_paddr;
     uint32_t mapped_memory_size;
     uint32_t kernel_stack_paddr, kernel_stack_vaddr;
     ps_t *proc;
 
-    inode_t *node = fs_find_inode(path);
-    if (node == NULL) {
-        log_error("create_process", "Could not find path to process %s\n",
-                   path);
+    vnode_t node;
+    if (vfs_lookup(path, &node)) {
+        log_error("create_process",
+                  "Could not find vnode for path: %s\n", path);
         return NULL;
     }
 
-    code_fs_vaddr = fs_get_addr(node);
-    code_pfs = div_ceil(node->size, FOUR_KB);
+    vattr_t attr;
+    if (vfs_getattr(&node, &attr)) {
+        log_error("create_process",
+                  "Could not get attributes for path: %s\n", path);
+        return NULL;
+    }
+
+    code_pfs = div_ceil(attr.file_size, FOUR_KB);
 
     code_paddr = pfa_allocate(code_pfs);
 
@@ -72,39 +78,39 @@ ps_t *process_create(char *path, uint32_t id)
         log_error("create_process",
                   "Could not allocate page frames for process code. "
                   "size: %u, pfs: %u\n",
-                  node->size, code_pfs);
+                  attr.file_size, code_pfs);
         return NULL;
     }
 
-    code_vaddr = pdt_kernel_find_next_vaddr(node->size);
+    code_vaddr = pdt_kernel_find_next_vaddr(attr.file_size);
 
     if (code_vaddr == 0) {
         log_error("create_process",
                   "Could not find virtual memory for proc code in kernel. "
-                  "paddr: %X, size: %u\n", code_paddr, node->size);
+                  "paddr: %X, size: %u\n", code_paddr, attr.file_size);
         return NULL;
     }
 
     mapped_memory_size =
-        pdt_map_kernel_memory(code_paddr, code_vaddr,
-                              node->size, PAGING_READ_WRITE, PAGING_PL0);
+        pdt_map_kernel_memory(code_paddr, code_vaddr, attr.file_size,
+                              PAGING_READ_WRITE, PAGING_PL0);
 
-    if (mapped_memory_size < node->size) {
-        pdt_unmap_kernel_memory(code_vaddr, node->size);
+    if (mapped_memory_size < attr.file_size) {
+        pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
         log_error("create_process",
                   "Could not map memory in kernel. "
                   "vaddr: %X, paddr: %X, size: %u\n",
-                  code_vaddr, code_paddr, node->size);
+                  code_vaddr, code_paddr, attr.file_size);
         return NULL;
     }
 
-    memcpy((void *) code_vaddr, (void *) code_fs_vaddr, node->size);
+    vfs_read(&node, (void *) code_vaddr, attr.file_size);
 
     log_debug("process_create",
               "code_vaddr[0]: %X, code_vaddr[1]: %X\n",
               *((uint8_t *) code_vaddr), *(((uint8_t *) code_vaddr) + 1));
 
-    pdt_unmap_kernel_memory(code_vaddr, node->size);
+    pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
 
     /* create proc early so that it is mapped both into the kernel PDT and
      * the proc PDT
@@ -128,13 +134,13 @@ ps_t *process_create(char *path, uint32_t id)
     code_vaddr = 0;
     mapped_memory_size =
         pdt_map_memory(pdt, code_paddr, code_vaddr,
-                       node->size, PAGING_READ_WRITE, PAGING_PL3);
-    if (mapped_memory_size < node->size) {
+                       attr.file_size, PAGING_READ_WRITE, PAGING_PL3);
+    if (mapped_memory_size < attr.file_size) {
         kfree(proc);
         log_error("create_process",
                   "Could not map memory in proc PDT. "
                   "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  code_vaddr, code_paddr, node->size, (uint32_t) pdt);
+                  code_vaddr, code_paddr, attr.file_size, (uint32_t) pdt);
         pdt_delete(pdt);
         log_info("create_process", "Proc PDT deleted\n");
         return NULL;

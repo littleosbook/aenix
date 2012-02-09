@@ -2,13 +2,13 @@
 #define PROCESS_H
 
 #include "stdint.h"
-#include "inode.h"
+#include "vnode.h"
 #include "paging.h"
 
 #define PROCESS_MAX_NUM_FD 3
 
 struct fd {
-    inode_t *inode;
+    vnode_t *vnode;
 };
 typedef struct fd fd_t;
 

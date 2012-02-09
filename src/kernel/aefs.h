@@ -1,5 +1,5 @@
-#ifndef INODE_H
-#define INODE_H
+#ifndef FS_H
+#define FS_H
 
 #include "stdint.h"
 
@@ -52,4 +52,6 @@ typedef struct superblock superblock_t;
 #define INODE_IS_REG(inode) ((inode)->type == FILETYPE_REG)
 #define INODE_IS_DIR(inode) ((inode)->type == FILETYPE_DIR)
 
-#endif /* INODE_H */
+uint32_t aefs_init(uint32_t fs_paddr, uint32_t fs_size);
+
+#endif /* FS_H */

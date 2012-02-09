@@ -2,8 +2,9 @@
 #include "interrupt.h"
 #include "log.h"
 #include "stddef.h"
-#include "fs.h"
+#include "vfs.h"
 #include "scheduler.h"
+#include "kmalloc.h"
 
 #define NUM_SYSCALLS 6
 #define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
@@ -48,7 +49,7 @@ static int get_next_fd(fd_t *fds, uint32_t num_fds)
     uint32_t i;
 
     for (i = 0; i < num_fds; ++i) {
-        if (fds[i].inode != NULL) {
+        if (fds[i].vnode != NULL) {
             return i;
         }
     }
@@ -67,8 +68,8 @@ static int sys_open(uint32_t syscall, void *stack)
 
     ps_t *ps = scheduler_get_current_process();
 
-    inode_t *inode = fs_find_inode(path);
-    if (inode == NULL) {
+    vnode_t *vnode = kmalloc(sizeof(vnode_t));
+    if(vfs_lookup(path, vnode)) {
         log_info("sys_open",
                  "process %u tried to open non existing file %s.\n",
                  ps->id, path);
@@ -77,13 +78,14 @@ static int sys_open(uint32_t syscall, void *stack)
 
     int fd = get_next_fd(ps->file_descriptors, PROCESS_MAX_NUM_FD);
     if (fd == -1) {
+        kfree(vnode);
         log_info("sys_open",
                  "File descriptor table for ps %u is full.\n",
                  ps->id);
         return -1;
     }
 
-    ps->file_descriptors[fd].inode = inode;
+    ps->file_descriptors[fd].vnode = vnode;
 
     return fd;
 }

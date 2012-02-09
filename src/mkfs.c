@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#include "kernel/inode.h"
+#include "kernel/aefs.h"
 
 #define SLASH_LEN 1
 #define READ_BUFFER_LEN 4096
@@ -159,7 +159,6 @@ static uint16_t visit_dir(char *path, int is_root)
     }
 
     dir_inode_id = next_inode_id;
-    printf("dir_inode_id: %s -> %hu\n", path, dir_inode_id);
     dir_inode = start_inode + dir_inode_id;
     next_inode_id++;
     if (dir_inode_id == num_inodes) {
@@ -169,7 +168,6 @@ static uint16_t visit_dir(char *path, int is_root)
     uint32_t blocks_required = div_ceil(num_files*sizeof(direntry_t),
                                         BLOCK_SIZE);
     uint16_t dir_start_block_id = next_block_id;
-    printf ("dir_start_block_id: %hu, blocks_required: %u\n", dir_start_block_id, blocks_required);
     next_block_id += blocks_required;
     block_t *dir_start_block = start_block + dir_start_block_id;
 

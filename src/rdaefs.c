@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#include "kernel/inode.h"
+#include "kernel/aefs.h"
 
 static void die(char const *msg)
 {

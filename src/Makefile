@@ -3,6 +3,7 @@ FS_ROOT = fs_root
 BIN_PATH = $(FS_ROOT)/bin
 WARNINGS = -Wall -Wextra -Werror
 CC = gcc
+FS_SIZE = 4 # in MB
 
 all: iso
 
@@ -23,7 +24,7 @@ create_bin_folder: build_apps
 
 fs: mkfs create_bin_folder
 	@echo '-> Creating filesystem'
-	./mkfs $(FS_ROOT) $@
+	./mkfs $(FS_ROOT) $(FS_SIZE) $@
 	@echo ''
 
 mkfs_release: CFLAGS = -O2
@@ -34,7 +35,6 @@ mkfs_debug: mkfs
 
 mkfs: mkfs.c
 	$(CC) $(WARNINGS) $(CFLAGS) mkfs.c -o mkfs
-
 
 rdaefs_release: CFLAGS = -O2
 rdaefs_release: rdaefs
