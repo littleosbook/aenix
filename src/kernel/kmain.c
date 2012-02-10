@@ -23,6 +23,7 @@
 #include "process.h"
 #include "kmalloc.h"
 #include "vfs.h"
+#include "devfs.h"
 
 #define KINIT_ERROR_LOAD_FS 1
 #define KINIT_ERROR_INIT_FS 2
@@ -55,6 +56,35 @@ static uint32_t get_fs_paddr(const multiboot_info_t *mbinfo, uint32_t *size)
     return 0;
 }
 
+static uint32_t populate_devfs()
+{
+    vfs_t *devfs = kmalloc(sizeof(vfs_t));
+    if (devfs == NULL) {
+        log_error("populate_devfs",
+                  "Could not allocate vfs_t struct for devfs\n");
+        return 1;
+    }
+
+    devfs_init(devfs);
+
+    vnode_t *console_device = kmalloc(sizeof(vnode_t));
+    if (console_device == NULL) {
+        log_error("populate_devfs",
+                  "Could not allocate vnode_t struct for console device\n");
+        return 1;
+    }
+
+    if (fb_get_vnode(console_device)) {
+        log_error("populate_devfs",
+                  "Console  device could not generate vnode\n");
+        return 1;
+    }
+    devfs_add_device("console", console_device);
+
+    vfs_mount("/dev/", devfs);
+    return 0;
+}
+
 static uint32_t kinit(kernel_meminfo_t *mem,
                   const multiboot_info_t *mbinfo,
                   uint32_t kernel_pdt_vaddr,
@@ -65,6 +95,8 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     uint32_t tss_vaddr;
     disable_interrupts();
 
+    fb_init();
+
     fs_paddr = get_fs_paddr(mbinfo, &fs_size);
     if (fs_paddr == 0 && fs_size == 0) {
         return KINIT_ERROR_LOAD_FS;
@@ -74,8 +106,10 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     gdt_init(tss_vaddr);
     idt_init();
     pic_init();
+
     kbd_init();
     serial_init(COM1);
+
     pit_init();
 
     res = paging_init(kernel_pdt_vaddr, kernel_pt_vaddr);
@@ -102,6 +136,8 @@ static uint32_t kinit(kernel_meminfo_t *mem,
     if (res != 0) {
         return KINIT_ERROR_INIT_VFS;
     }
+
+    populate_devfs();
 
     enable_interrupts();
     return 0;

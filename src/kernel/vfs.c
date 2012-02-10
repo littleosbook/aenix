@@ -64,7 +64,10 @@ int vfs_lookup(char const *path, vnode_t *res)
 
     vfs_t *root;
     int max_len = find_longest_mount_path(path, &root);
+	log_debug("vfs_lookup", "max_len: %u\n", max_len);
     path += max_len;
+
+	log_debug("vfs_lookup", "path: %s\n", path);
 
     vnode_t vnode;
     if (root->vfs_op->vfs_root(root, &vnode)) {
@@ -116,6 +119,11 @@ int vfs_open(vnode_t *node)
 int vfs_read(vnode_t *node, void *buf, uint32_t count)
 {
     return node->v_op->vn_read(node, buf, count);
+}
+
+int vfs_write(vnode_t *node, char const *str, size_t len)
+{
+	return node->v_op->vn_write(node, str, len);
 }
 
 int vfs_getattr(vnode_t *node, vattr_t *attr)

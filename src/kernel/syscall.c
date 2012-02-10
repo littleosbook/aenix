@@ -38,10 +38,21 @@ static int sys_write(uint32_t syscall, void *stack)
 
     size_t len = PEEK_STACK(stack, size_t);
 
-    log_debug("sys_write",
-              "fd: %u, str: %s, len: %u\n",
-              fd, str, len);
-    return 0;
+	ps_t *ps = scheduler_get_current_process();
+
+	vnode_t *vn = ps->file_descriptors[fd].vnode;
+	if (vn == NULL) {
+		log_error("sys_write",
+				  "trying to write to empty fd. "
+				  "fd: %u, pid: %u\n",
+				  fd, ps->id);
+		return -1;
+	}
+
+	log_debug("sys_write", "str: %s, len: %u, fd: %u, vn->v_data: %u\n",
+			  str, len, fd, vn->v_data);
+
+	return vfs_write(vn, str, len);
 }
 
 static int get_next_fd(fd_t *fds, uint32_t num_fds)
@@ -49,7 +60,7 @@ static int get_next_fd(fd_t *fds, uint32_t num_fds)
     uint32_t i;
 
     for (i = 0; i < num_fds; ++i) {
-        if (fds[i].vnode != NULL) {
+        if (fds[i].vnode == NULL) {
             return i;
         }
     }

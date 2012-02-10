@@ -81,6 +81,18 @@ static int aefs_read(vnode_t *vnode, void *buf, uint32_t count)
     return read;
 }
 
+static int aefs_write(vnode_t *n, char const *s, size_t l)
+{
+    /* TODO: Not implemented yet! */
+    UNUSED_ARGUMENT(n);
+    UNUSED_ARGUMENT(s);
+    UNUSED_ARGUMENT(l);
+
+    log_error("aefs_write", "NOT IMPLEMENTED YET!\n");
+
+    return -1;
+}
+
 static int aefs_lookup(vnode_t *dir, char const *name, vnode_t *res)
 {
     uint32_t i, j;
@@ -123,6 +135,7 @@ static int aefs_open(vnode_t *node)
     /* NOOP for AEFS */
     return 0;
 }
+
 
 static int map_aefs_to_virtual_memory(uint32_t paddr, uint32_t size)
 {
@@ -187,6 +200,7 @@ uint32_t aefs_init(uint32_t paddr, uint32_t size, vfs_t *vfs)
     vnodeops.vn_lookup = &aefs_lookup;
     vnodeops.vn_read = &aefs_read;
     vnodeops.vn_getattr = &aefs_getattr;
+    vnodeops.vn_write = &aefs_write;
 
     vfsops.vfs_root = &aefs_root;
 
