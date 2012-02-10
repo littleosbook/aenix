@@ -12,6 +12,8 @@
 #define AEFS_BLOCK_SIZE 1024 /* in bytes */
 #define AEFS_INODE_NUM_BLOCKS 5
 
+#define AEFS_MAGIC_NUMBER 0xAE12AE34
+
 /* sizeof(inode_t) == 16 bytes */
 struct aefs_inode {
     uint8_t type;
@@ -37,11 +39,12 @@ struct aefs_direntry {
 } __attribute__((packed));
 typedef struct aefs_direntry aefs_direntry_t;
 
-/* sizeof(superblock_t) == 8 bytes */
+/* sizeof(superblock_t) == 12 bytes */
 struct aefs_superblock {
+    uint32_t magic_number;
     uint16_t num_inodes;
-    char *mount_path;
     uint16_t start_block;
+    char *mount_path;
 } __attribute__((packed));
 typedef struct aefs_superblock aefs_superblock_t;
 

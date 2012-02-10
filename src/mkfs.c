@@ -121,6 +121,7 @@ static void write_superblock(uint16_t num_inodes, uint16_t start_block_offset)
     memset(sb, 0, AEFS_BLOCK_SIZE);
     sb->num_inodes = num_inodes;
     sb->start_block = start_block_offset;
+    sb->magic_number = AEFS_MAGIC_NUMBER;
 }
 
 static uint16_t visit_dir(char *path, int is_root)

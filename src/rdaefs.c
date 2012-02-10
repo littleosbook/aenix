@@ -33,6 +33,7 @@ void read_superblock()
 {
     aefs_superblock_t *sb = (aefs_superblock_t *) file;
     printf("-> Superblock\n");
+    printf("\tmagic_number: %X\n", sb->magic_number);
     printf("\tnum_inodes: %hu\n", sb->num_inodes);
     printf("\tstart_block: %hu\n", sb->start_block);
     printf("\n");

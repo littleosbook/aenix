@@ -166,6 +166,13 @@ uint32_t aefs_init(uint32_t paddr, uint32_t size, vfs_t *vfs)
     fs_start = (aefs_block_t *) fs_vaddr;
     sb = (aefs_superblock_t *) fs_vaddr;
 
+    if (sb->magic_number != AEFS_MAGIC_NUMBER) {
+        log_error("aefs_init",
+                  "Magic number of superblock is wrong: %X\n",
+                  sb->magic_number);
+        return 1;
+    }
+
     log_debug("aefs_init",
               "sb->start_block: %u, sb->num_inodes: %u\n",
               (uint32_t) sb->start_block, (uint32_t) sb->num_inodes);
