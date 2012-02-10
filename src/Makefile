@@ -2,6 +2,7 @@ APPS = init
 FS_ROOT = fs_root
 BIN_PATH = $(FS_ROOT)/bin
 WARNINGS = -Wall -Wextra -Werror
+CFLAGS = -m32
 CC = gcc
 FS_SIZE = 1 # in MB
 
@@ -27,19 +28,19 @@ fs: mkfs create_bin_folder
 	./mkfs $(FS_ROOT) $(FS_SIZE) $@
 	@echo ''
 
-mkfs_release: CFLAGS = -O2
+mkfs_release: CFLAGS = $(CFLAGS) -O2
 mkfs_release: mkfs
 
-mkfs_debug: CFLAGS = -g
+mkfs_debug: CFLAGS = $(CFLAGS) -g
 mkfs_debug: mkfs
 
 mkfs: mkfs.c
 	$(CC) $(WARNINGS) $(CFLAGS) mkfs.c -o mkfs
 
-rdaefs_release: CFLAGS = -O2
+rdaefs_release: CFLAGS = $(CFLAGS) -O2
 rdaefs_release: rdaefs
 
-rdaefs_debug: CFLAGS = -g
+rdaefs_debug: CFLAGS = $(CFLAGS) -g
 rdaefs_debug: rdaefs
 
 rdaefs: rdaefs.c
