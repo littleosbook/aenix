@@ -175,9 +175,9 @@ uint32_t pdt_kernel_find_next_vaddr(uint32_t size)
             vaddr =
                 pt_kernel_find_next_vaddr(pdt_idx, (pte_t *) pt_vaddr, size);
 
-	    kernel_set_temporary_entry(tmp_entry);
+	        kernel_set_temporary_entry(tmp_entry);
         } else {
-	    /* no pdt entry */
+            /* no pdt entry */
             vaddr = PDT_IDX_TO_VIRTUAL(pdt_idx);
         }
         if (vaddr != 0) {
@@ -242,6 +242,11 @@ uint32_t pdt_map_memory(pde_t *pdt,
         if (!IS_ENTRY_PRESENT(pdt + pdt_idx)) {
             pt_paddr = pfa_allocate(1);
             if (pt_paddr == 0) {
+                log_error("pdt_map_memory",
+                          "Couldn't allocate page frame for new page table."
+                          "pdt_idx: %u, data vaddr: %X, data paddr: %X, "
+                          "data size: %u\n",
+                          pdt_idx, vaddr, paddr, size);
                 return 0;
             }
             pt_vaddr = kernel_map_temporary_memory(pt_paddr);

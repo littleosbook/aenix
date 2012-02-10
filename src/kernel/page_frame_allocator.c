@@ -114,9 +114,9 @@ static uint32_t construct_bitmap(memory_map_t *mmap, uint32_t n)
 
     }
     log_info("construct_bitmap",
-             "bitmap vaddr: %X, page_frames.len: %u, bitmap_size: %u, "
-             "bitmap_pfs: %u\n",
-              vaddr, page_frames.len, bitmap_size, bitmap_pfs);
+             "bitmap vaddr: %X, bitmap paddr: %X, page_frames.len: %u, "
+             "bitmap_size: %u, bitmap_pfs: %u\n",
+              vaddr, paddr, page_frames.len, bitmap_size, bitmap_pfs);
 
     mapped_mem = pdt_map_kernel_memory(paddr, vaddr, bitmap_size,
                                        PAGING_PL0, PAGING_READ_WRITE);
@@ -201,7 +201,7 @@ static uint32_t paddr_for_idx(uint32_t bit_idx)
 {
     uint32_t i, current_offset = 0, offset = bit_idx * FOUR_KB;
     for (i = 0; i < mmap_len; ++i) {
-        if (current_offset + mmap[i].len < offset) {
+        if (current_offset + mmap[i].len <= offset) {
             current_offset += mmap[i].len;
         } else {
             offset -= current_offset;
@@ -227,10 +227,31 @@ static uint32_t idx_for_paddr(uint32_t paddr)
     return page_frames.len;
 }
 
+static uint32_t fits_in_one_mmap_entry(uint32_t bit_idx, uint32_t pfs)
+{
+    uint32_t i, current_offset = 0, offset = bit_idx * FOUR_KB;
+    for (i = 0; i < mmap_len; ++i) {
+        if (current_offset + mmap[i].len <= offset) {
+            current_offset += mmap[i].len;
+        } else {
+            offset -= current_offset;
+            if (offset + pfs * FOUR_KB <= mmap[i].len) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    return 0;
+}
+
 uint32_t pfa_allocate(uint32_t num_page_frames)
 {
     uint32_t i, j, cell, bit_idx;
     uint32_t n = div_ceil(page_frames.len, 32), frames_found = 0;
+
+    log_debug("pfa_allocate", "Allocating %u page frames\n", num_page_frames);
 
     for (i = 0; i < n; ++i) {
         cell = page_frames.start[i];
@@ -242,8 +263,12 @@ uint32_t pfa_allocate(uint32_t num_page_frames)
                     }
                     ++frames_found;
                     if (frames_found == num_page_frames) {
-                        toggle_bits(bit_idx, num_page_frames);
-                        return paddr_for_idx(bit_idx);
+                        if (fits_in_one_mmap_entry(bit_idx, num_page_frames)) {
+                            toggle_bits(bit_idx, num_page_frames);
+                            return paddr_for_idx(bit_idx);
+                        } else {
+                            frames_found = 0;
+                        }
                     }
                 } else {
                     frames_found = 0;

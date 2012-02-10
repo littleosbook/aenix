@@ -4,7 +4,7 @@ BIN_PATH = $(FS_ROOT)/bin
 WARNINGS = -Wall -Wextra -Werror
 CFLAGS = -m32
 CC = gcc
-FS_SIZE = 1 # in MB
+FS_SIZE = 4 # in MB
 
 all: iso
 

@@ -146,6 +146,10 @@ static int map_aefs_to_virtual_memory(uint32_t paddr, uint32_t size)
         return 0;
     }
 
+    log_info("map_aefs_to_virtual_memory",
+             "fs info: fs_vaddr: %X, fs_paddr: %X, fs_size: %u\n",
+             fs_vaddr, fs_paddr, size);
+
     return fs_vaddr;
 }
 
@@ -178,9 +182,6 @@ uint32_t aefs_init(uint32_t paddr, uint32_t size, vfs_t *vfs)
               (uint32_t) sb->start_block, (uint32_t) sb->num_inodes);
 
     root_inode = get_inode(ROOT_INODE_ID);
-
-    log_info("fs_init", "fs_vaddr: %X, fs_paddr: %X, fs_size: %u\n",
-             fs_vaddr, fs_paddr, fs_size);
 
     vnodeops.vn_open = &aefs_open;
     vnodeops.vn_lookup = &aefs_lookup;
