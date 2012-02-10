@@ -321,7 +321,22 @@ are more architectural and less "low-level", which is a nice change!
 
 ## Achievements
 
-- AEFS2 - TODO: write more
-- VFS - TODO: write more
-- devfs - TODO: write more
+- AEFS2 - We extended the file system created by mkfs so that it is more general
+  and can handle writes. It the "device" is divied into blocks of 1024 bits; the
+  first block is a superblock with general info, then there are some inode
+  blocks, and then datablocks.
+- VFS - We have implemented a virtual file system layer. This deals with the
+  path hierarchy in the file systems (name/path lookup) and with mounting file
+  systems on top of it. An in-memory AEFS file system is mounted at / and a
+  devfs file system is mounted at /dev/. Actually reading a "file" (vnode) is
+  delegated to the file system within which it is located.
+- devfs - devfs is a quite cool idea and a very simple file system. A devfs is
+  mouned at /dev/ and devices (such as the frame buffer, keyboard, serial port
+  etc. ) can register vnodes with the devfs. These vnodes (/dev/cons,
+  /dev/keyboard, etc.) will then be presented as files to user code. Opening,
+  reading, writing etc. to these files will actually be delegated, via the
+  VFS, to the corresponding device drivers to do the work. This also means that
+  there can actually be hierarchies within these devices, such as /dev/cons/1
+  and /dev/cons/2 for two different consoles. These hierarchies will be
+  accessed through the file system but managed by the devices.
 - `SYS_write` and `SYS_open` work, with file descriptors and the whole chebang.
