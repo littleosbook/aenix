@@ -98,7 +98,7 @@ static uint32_t kinit(kernel_meminfo_t *mem,
         return KINIT_ERROR_INIT_FS;
     }
 
-    res = vfs_init(aefs_vfs);
+    res = vfs_mount("/", aefs_vfs);
     if (res != 0) {
         return KINIT_ERROR_INIT_VFS;
     }

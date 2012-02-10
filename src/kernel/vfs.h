@@ -10,6 +10,7 @@ struct vfsops;
 struct vfs {
     struct vfs *vfs_next;
     struct vfsops *vfs_op;
+    char const *mount_path;
     uint32_t vfs_data;
 };
 typedef struct vfs vfs_t;
@@ -19,10 +20,10 @@ struct vfsops {
 };
 typedef struct vfsops vfsops_t;
 
+int vfs_mount(char const *path, vfs_t *vfs);
 int vfs_lookup(char const *path, vnode_t *res);
 int vfs_open(vnode_t *node);
 int vfs_read(vnode_t *node, void *buf, uint32_t count);
 int vfs_getattr(vnode_t *node, vattr_t *attr);
-int vfs_init(vfs_t *root_vfs);
 
 #endif /* VFS_H */

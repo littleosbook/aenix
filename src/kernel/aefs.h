@@ -44,7 +44,6 @@ struct aefs_superblock {
     uint32_t magic_number;
     uint16_t num_inodes;
     uint16_t start_block;
-    char *mount_path;
 } __attribute__((packed));
 typedef struct aefs_superblock aefs_superblock_t;
 
