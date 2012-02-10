@@ -284,21 +284,23 @@ are more architectural and less "low-level", which is a nice change!
   assembler files. We worked around it, but it would be nice for it to work
   directly from the Makefile.
 
+
 # 2012-02-02
 
 ## Achievements
 
 - Wrote a lot of code to do error checking, which caused us to find several
-  bugs. log\_err(), log\_info() and log\_debug() were created to simplify
+  bugs. `log_err()`, `log_info()` and `log_debug()` were created to simplify
   logging
 - "Finished" the page frame allocator.
 - Debugged. A lot. Found several bugs, which we fixed.
-- Modified kmalloc() to use the page frame allocator to ask for page frame-sized
+- Modified `kmalloc()` to use the page frame allocator to ask for page frame-sized
   blocks.
-- process\_create() creates a new process, with code loaded from file and pdt
+- `process_create()` creates a new process, with code loaded from file and pdt
   set up.
 - Can enter user mode for the init program, which is created through
-  process\_create().
+  `process_create()`.
+
 
 # 2012-02-06
 
@@ -308,8 +310,18 @@ are more architectural and less "low-level", which is a nice change!
   (The kernel stack pointer in the TSS was pointed at the wrong end, which only
   mattered if the TSS struct was non-static, because then the TSS was located
   next to the stack and overwritten on some interrupts...)
-- Syscalls works!
+- Syscalls work!
 - Restructured code base to simplfy adding "apps" such as init.
-- User mode programs can now be written in C. With a modest start on our clib
+- User mode programs can now be written in C. With a modest start on our libc
   (there is an interrupt.h|s and a start.s that is linked first into the
   binary with link.ld), init runs compiled from C.
+
+
+# 2012-02-07 - 2012-02-10
+
+## Achievements
+
+- AEFS2 - TODO: write more
+- VFS - TODO: write more
+- devfs - TODO: write more
+- `SYS_write` and `SYS_open` work, with file descriptors and the whole chebang.
