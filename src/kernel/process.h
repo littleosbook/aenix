@@ -20,7 +20,6 @@ struct ps {
     uint32_t pdt_paddr;
     uint32_t code_vaddr;
     uint32_t stack_vaddr;
-    uint32_t heap_vaddr;
 
     uint32_t kernel_stack_vaddr;
 
@@ -28,6 +27,7 @@ struct ps {
 };
 typedef struct ps ps_t;
 
-ps_t *process_create(char *path, uint32_t id);
+ps_t *process_create(char const *path, uint32_t id);
+int process_replace(ps_t *ps, char const *path);
 
 #endif /* PROCESS_H */

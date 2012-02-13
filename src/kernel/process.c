@@ -46,12 +46,12 @@ static uint32_t allocate_and_map(pde_t *pdt,
     return 0;
 }
 
-ps_t *process_create(char *path, uint32_t id)
+ps_t *process_create(char const *path, uint32_t id)
 {
     pde_t *pdt;
     uint32_t error, bytes, page_frames;
     uint32_t code_pfs, code_paddr, code_vaddr;
-    uint32_t heap_vaddr, pdt_paddr;
+    uint32_t pdt_paddr;
     uint32_t mapped_memory_size;
     uint32_t kernel_stack_paddr, kernel_stack_vaddr;
     ps_t *proc;
@@ -167,19 +167,6 @@ ps_t *process_create(char *path, uint32_t id)
         return NULL;
     }
 
-    heap_vaddr = code_vaddr + code_pfs * FOUR_KB;
-    error =
-        allocate_and_map(pdt, heap_vaddr, PROC_INITIAL_HEAP_SIZE,
-                         PAGING_READ_WRITE, PAGING_PL3);
-    if (error) {
-        kfree(proc);
-        log_error("create_process",
-                  "Could not allocate and map memory for heap.\n");
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
     page_frames = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
     kernel_stack_paddr = pfa_allocate(page_frames);
     if (kernel_stack_paddr == 0) {
@@ -216,10 +203,16 @@ ps_t *process_create(char *path, uint32_t id)
     proc->pdt_paddr = pdt_paddr;
     proc->code_vaddr  = code_vaddr;
     proc->stack_vaddr = PROC_INITIAL_ESP;
-    proc->heap_vaddr = heap_vaddr;
     proc->kernel_stack_vaddr = kernel_stack_vaddr;
     memset(proc->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
     proc->id = id;
 
     return proc;
+}
+
+int process_replace(ps_t *ps, char const *path)
+{
+    UNUSED_ARGUMENT(ps);
+    UNUSED_ARGUMENT(path);
+    return 0;
 }
