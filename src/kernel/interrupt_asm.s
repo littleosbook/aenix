@@ -1,9 +1,13 @@
+%include "constants.inc"
+
 extern interrupt_handler
 extern syscall_handle_interrupt
+extern kernel_stack
 
 global enable_interrupts
 global disable_interrupts
 global handle_syscall
+global switch_to_kernel_stack
 
 %macro no_error_code_handler 1
 global interrupt_handler_%1
@@ -102,12 +106,17 @@ handle_syscall:
 	push	esi
 	push	edi
 	call	syscall_handle_interrupt
-	pop	edi
-	pop	esi
-	pop	ebp
-	pop	esp
-	pop	ebx
-	pop	edx
-	pop	ecx
-        add     esp, 4  ; don't pop eax since eax contains return value
-        iret
+	pop		edi
+	pop		esi
+	pop		ebp
+	pop		esp
+	pop		ebx
+	pop		edx
+	pop		ecx
+    add		esp, 4			; don't pop eax since eax contains return value
+    iret
+
+switch_to_kernel_stack:
+    mov     eax, [esp+4]	; load address of continuation into eax
+	mov		esp, kernel_stack + KERNEL_STACK_SIZE
+	jmp		eax

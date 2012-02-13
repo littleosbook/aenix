@@ -5,8 +5,9 @@
 #include "vfs.h"
 #include "scheduler.h"
 #include "kmalloc.h"
+#include "process.h"
 
-#define NUM_SYSCALLS 6
+#define NUM_SYSCALLS 12
 #define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
 #define PEEK_STACK(stack, type) (*((type *) (stack)))
 
@@ -17,6 +18,8 @@ struct stack_state {
 typedef struct stack_state stack_state_t;
 
 typedef int (*syscall_handler_t)(uint32_t syscall, void *stack);
+
+static ps_t *tmp; /* used for holding data when switching stacks */
 
 static int sys_not_supported(uint32_t syscall, void *stack)
 {
@@ -135,13 +138,49 @@ static int sys_open(uint32_t syscall, void *stack)
     return fd;
 }
 
+
+static void continue_execve(void)
+{
+    ps_t *old = scheduler_get_current_process();
+    process_delete(old);
+
+    scheduler_switch_to_process(tmp);
+}
+
+static int sys_execve(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    char const *path;
+    ps_t *current, *new;
+
+    disable_interrupts();
+
+    path = PEEK_STACK(stack, char const *);
+    current = scheduler_get_current_process();
+    new = process_create_fork(current, path);
+    if (new == NULL) {
+        return -1;
+    }
+
+    tmp = new;
+
+    switch_to_kernel_stack(&continue_execve);
+    return 0;
+}
+
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
-        sys_not_supported,
-        sys_not_supported,
-        sys_not_supported,
-        sys_read,
-        sys_write,
-        sys_open
+/* 0 */  sys_not_supported,
+/* 1 */  sys_not_supported,
+/* 2 */  sys_not_supported,
+/* 3 */  sys_read,
+/* 4 */  sys_write,
+/* 5 */  sys_open,
+/* 6 */  sys_not_supported,
+/* 7 */  sys_not_supported,
+/* 8 */  sys_not_supported,
+/* 9 */  sys_not_supported,
+/* 10 */ sys_not_supported,
+/* 11 */ sys_execve
     };
 
 

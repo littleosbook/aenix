@@ -38,5 +38,6 @@ uint32_t register_interrupt_handler(uint32_t interrupt,
 
 void enable_interrupts(void);
 void disable_interrupts(void);
+void switch_to_kernel_stack(void (*continuation)(void));
 
 #endif /* INTERRUPT_H */

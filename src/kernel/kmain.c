@@ -163,9 +163,6 @@ static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
     return mbinfo;
 }
 
-/* defined in enter_user_mode.s */
-void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
-
 static void start_init()
 {
     ps_t *init = process_create("/bin/init", 1);
@@ -173,7 +170,6 @@ static void start_init()
         printf("ERROR: Could not create init!\n");
     } else {
         scheduler_switch_to_process(init);
-        enter_user_mode(init->code_vaddr, init->stack_vaddr);
     }
 }
 

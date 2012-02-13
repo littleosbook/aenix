@@ -5,7 +5,7 @@
 #include "vnode.h"
 #include "paging.h"
 
-#define PROCESS_MAX_NUM_FD 3
+#define PROCESS_MAX_NUM_FD 64
 
 struct paddr_list {
     uint32_t paddr;
@@ -39,6 +39,8 @@ struct ps {
 typedef struct ps ps_t;
 
 ps_t *process_create(char const *path, uint32_t id);
-int process_replace(ps_t *ps, char const *path);
+ps_t *process_replace(ps_t *ps, char const *path);
+void process_delete(ps_t *ps);
+ps_t *process_create_fork(ps_t *parent, char const *path);
 
 #endif /* PROCESS_H */

@@ -1,4 +1,4 @@
-APPS = init
+APPS = init sh
 FS_ROOT = fs_root
 BIN_PATH = $(FS_ROOT)/bin
 WARNINGS = -Wall -Wextra -Werror

@@ -221,7 +221,7 @@ static uint32_t delete_paddr_list(paddr_list_t *l)
     return size * FOUR_KB;
 }
 
-static int process_delete(ps_t *ps)
+void process_delete(ps_t *ps)
 {
     uint32_t size;
 
@@ -237,7 +237,7 @@ static int process_delete(ps_t *ps)
     delete_paddr_list(ps->code_paddrs);
     delete_paddr_list(ps->stack_paddrs);
 
-    return 0;
+    kfree(ps);
 }
 
 ps_t *process_create(char const *path, uint32_t id)
@@ -291,9 +291,24 @@ ps_t *process_create(char const *path, uint32_t id)
 }
 
 
-int process_replace(ps_t *ps, char const *path)
+ps_t *process_create_fork(ps_t *parent, char const *path)
 {
-    UNUSED_ARGUMENT(ps);
-    UNUSED_ARGUMENT(path);
-    return -1;
+    int i;
+    ps_t *child;
+
+    /* create the new process */
+    child = process_create(path, parent->id);
+    if (child == NULL) {
+        return NULL;
+    }
+
+    /* copy the old data */
+    for (i = 0; i < PROCESS_MAX_NUM_FD; ++i) {
+        if (parent->file_descriptors[i].vnode != NULL) {
+            child->file_descriptors[i].vnode =
+                parent->file_descriptors[i].vnode;
+        }
+    }
+
+    return child;
 }
