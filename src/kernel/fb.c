@@ -220,8 +220,6 @@ static int fb_write(vnode_t *n, char const *str, size_t len)
 	UNUSED_ARGUMENT(n);
 	UNUSED_ARGUMENT(len);
 
-	log_debug("fb_write", "str: %s, len: %u\n", str, len);
-
 	fb_put_s(str);
 
 	return 0;

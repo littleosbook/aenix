@@ -1,13 +1,11 @@
 #include "keyboard.h"
 #include "io.h"
-#include "fb.h"
-#include "stdint.h"
 #include "interrupt.h"
 #include "common.h"
-#include "stdio.h"
 #include "pic.h"
 
 #define KBD_DATA_PORT   0x60
+#define KBD_BUFFER_SIZE 512
 
 /* Alphabet */
 #define KBD_SC_A        0x1e
@@ -73,13 +71,21 @@ static uint8_t is_lshift_down       = 0;
 static uint8_t is_rshift_down       = 0;
 static uint8_t is_caps_lock_pressed = 0;
 
-static void keyboard_print_input(void)
-{
-    uint8_t ch = kbd_scan_code_to_ascii(kbd_read_scan_code());
-    if (ch != 0) {
-        printf("%c", ch);
-    }
-}
+struct kbd_buffer {
+    uint8_t buffer[KBD_BUFFER_SIZE];
+    uint8_t *head;
+    uint8_t *tail;
+    uint32_t count;
+};
+typedef struct kbd_buffer kbd_buffer_t;
+static kbd_buffer_t kbd_buffer;
+
+static vnode_t kbd_vnode;
+static vnodeops_t kbd_vnodeops;
+
+/* function declarations */
+static char kbd_scan_code_to_ascii(uint8_t sc);
+static uint8_t kbd_read_scan_code(void);
 
 static void keyboard_handle_interrupt(cpu_state_t state,
                                       idt_info_t info,
@@ -89,13 +95,108 @@ static void keyboard_handle_interrupt(cpu_state_t state,
     UNUSED_ARGUMENT(info);
     UNUSED_ARGUMENT(exec);
 
-    keyboard_print_input();
+    /* DO NOT MODIFY kbd_buffer.head in this function,
+     * it will introcude race conditions!
+     */
+
+    if (kbd_buffer.count < KBD_BUFFER_SIZE) {
+        *kbd_buffer.tail++ = kbd_read_scan_code();
+        ++kbd_buffer.count;
+        if (kbd_buffer.tail == kbd_buffer.buffer + KBD_BUFFER_SIZE) {
+            kbd_buffer.tail = kbd_buffer.buffer;
+        }
+    }
+
     pic_acknowledge();
+}
+
+static int kbd_open(vnode_t *n)
+{
+    UNUSED_ARGUMENT(n);
+
+    return 0;
+}
+
+static int kbd_lookup(vnode_t *d, char const *n, vnode_t *o)
+{
+    UNUSED_ARGUMENT(d);
+    UNUSED_ARGUMENT(n);
+    UNUSED_ARGUMENT(o);
+
+    return -1;
+}
+
+static int kbd_read(vnode_t *n, void *buf, size_t count)
+{
+    UNUSED_ARGUMENT(n);
+
+    /* DO NOT MODIFY kbd_buffer.tail or kbd_buffer.count in this function,
+     * it will introcude race conditions!
+     */
+
+    char ch;
+    int i = 0;
+    char *b = buf;
+
+    while (count > 0) {
+        while (kbd_buffer.head != kbd_buffer.tail) {
+            ch = kbd_scan_code_to_ascii(*kbd_buffer.head++);
+            if (kbd_buffer.head == kbd_buffer.buffer + KBD_BUFFER_SIZE) {
+                kbd_buffer.head = kbd_buffer.buffer;
+            }
+            if (ch != -1) {
+                b[i] = ch;
+                ++i;
+                --count;
+            }
+        }
+    }
+
+    return i;
+}
+
+static int kbd_write(vnode_t *n, char const *name, size_t count)
+{
+    UNUSED_ARGUMENT(n);
+    UNUSED_ARGUMENT(name);
+    UNUSED_ARGUMENT(count);
+
+    return -1;
+}
+
+static int kbd_getattr(vnode_t *n, vattr_t *a)
+{
+    UNUSED_ARGUMENT(n);
+    UNUSED_ARGUMENT(a);
+
+    return -1;
 }
 
 uint32_t kbd_init(void)
 {
     register_interrupt_handler(KBD_INT_IDX, keyboard_handle_interrupt);
+
+    kbd_buffer.count = 0;
+    kbd_buffer.head = kbd_buffer.buffer;
+    kbd_buffer.tail = kbd_buffer.buffer;
+
+    kbd_vnodeops.vn_open = &kbd_open;
+    kbd_vnodeops.vn_lookup = &kbd_lookup;
+    kbd_vnodeops.vn_read = &kbd_read;
+    kbd_vnodeops.vn_write = &kbd_write;
+    kbd_vnodeops.vn_getattr = &kbd_getattr;
+
+    kbd_vnode.v_op = &kbd_vnodeops;
+    kbd_vnode.v_data = 0;
+
+    return 0;
+}
+
+int kbd_get_vnode(vnode_t *out)
+{
+    out->v_op = kbd_vnode.v_op;
+    out->v_data = kbd_vnode.v_data;
+
     return 0;
 }
 
@@ -114,7 +215,7 @@ static void toggle_caps_lock(void)
     is_caps_lock_pressed = is_caps_lock_pressed ? 0 : 1;
 }
 
-static uint8_t handle_caps_lock(uint8_t ch)
+static char handle_caps_lock(uint8_t ch)
 {
     if (ch >= 'a' && ch <= 'z') {
         return ch + 'A' - 'a';
@@ -122,7 +223,7 @@ static uint8_t handle_caps_lock(uint8_t ch)
     return ch;
 }
 
-static uint8_t handle_shift(uint8_t ch)
+static char handle_shift(uint8_t ch)
 {
     /* Alphabetic characters */
     if (ch >= 'a' && ch <= 'z') {
@@ -144,6 +245,7 @@ static uint8_t handle_shift(uint8_t ch)
         case '5':
             return '%';
         case '6':
+
             return '^';
         case '7':
             return '&';
@@ -189,9 +291,9 @@ uint8_t kbd_read_scan_code(void)
     return inb(KBD_DATA_PORT);
 }
 
-uint8_t kbd_scan_code_to_ascii(uint8_t scan_code)
+static char kbd_scan_code_to_ascii(uint8_t scan_code)
 {
-    uint8_t ch = 0;
+    char ch = -1;
 
     if (scan_code & 0x80) {
         scan_code &= 0x7F; /* clear the bit set by key break */
@@ -210,7 +312,7 @@ uint8_t kbd_scan_code_to_ascii(uint8_t scan_code)
                 break;
         }
 
-        return ch;
+        return -1;
     }
 
     switch (scan_code) {
@@ -369,14 +471,12 @@ uint8_t kbd_scan_code_to_ascii(uint8_t scan_code)
             break;
         case KBD_SC_LSHIFT:
             toggle_left_shift();
-            ch = 0;
             break;
         case KBD_SC_RSHIFT:
             toggle_right_shift();
-            ch = 0;
             break;
         default:
-            return 0;
+            return -1;
     }
 
     if (is_caps_lock_pressed) {

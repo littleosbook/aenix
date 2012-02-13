@@ -26,6 +26,36 @@ static int sys_not_supported(uint32_t syscall, void *stack)
     return -1;
 }
 
+static int sys_read(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+
+    uint32_t fd = PEEK_STACK(stack, uint32_t);
+    stack = NEXT_STACK_ITEM(stack);
+
+    char *buf = PEEK_STACK(stack, char *);
+    stack = NEXT_STACK_ITEM(stack);
+
+    size_t count = PEEK_STACK(stack, size_t);
+
+    ps_t *ps = scheduler_get_current_process();
+
+    if (fd >= PROCESS_MAX_NUM_FD) {
+        log_info("sys_read", "pid %u tried to open bad fd %u\n",
+                 ps->id, fd);
+        return -1;
+    }
+
+    vnode_t *vnode = ps->file_descriptors[fd].vnode;
+    if (vnode == NULL) {
+        log_info("sys_read", "Couldn't find vnode for fd %u, pid %u\n",
+                 fd, ps->id);
+        return -1;
+    }
+
+    return vnode->v_op->vn_read(vnode, buf, count);
+}
+
 static int sys_write(uint32_t syscall, void *stack)
 {
     UNUSED_ARGUMENT(syscall);
@@ -38,21 +68,17 @@ static int sys_write(uint32_t syscall, void *stack)
 
     size_t len = PEEK_STACK(stack, size_t);
 
-	ps_t *ps = scheduler_get_current_process();
+    ps_t *ps = scheduler_get_current_process();
 
-	vnode_t *vn = ps->file_descriptors[fd].vnode;
-	if (vn == NULL) {
-		log_error("sys_write",
-				  "trying to write to empty fd. "
-				  "fd: %u, pid: %u\n",
-				  fd, ps->id);
-		return -1;
-	}
+    vnode_t *vn = ps->file_descriptors[fd].vnode;
+    if (vn == NULL) {
+    	log_error("sys_write",
+    		  "trying to write to empty fd. fd: %u, pid: %u\n",
+    		  fd, ps->id);
+    	return -1;
+    }
 
-	log_debug("sys_write", "str: %s, len: %u, fd: %u, vn->v_data: %u\n",
-			  str, len, fd, vn->v_data);
-
-	return vfs_write(vn, str, len);
+    return vfs_write(vn, str, len);
 }
 
 static int get_next_fd(fd_t *fds, uint32_t num_fds)
@@ -89,10 +115,18 @@ static int sys_open(uint32_t syscall, void *stack)
 
     int fd = get_next_fd(ps->file_descriptors, PROCESS_MAX_NUM_FD);
     if (fd == -1) {
-        kfree(vnode);
         log_info("sys_open",
                  "File descriptor table for ps %u is full.\n",
                  ps->id);
+        kfree(vnode);
+        return -1;
+    }
+
+    if (vnode->v_op->vn_open(vnode)) {
+        log_error("sys_open",
+                  "Can't open the vnode for path %s for ps %u\n",
+                  path, ps->id);
+        kfree(vnode);
         return -1;
     }
 
@@ -105,7 +139,7 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
         sys_not_supported,
         sys_not_supported,
         sys_not_supported,
-        sys_not_supported,
+        sys_read,
         sys_write,
         sys_open
     };

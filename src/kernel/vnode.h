@@ -16,8 +16,8 @@ typedef struct vnode vnode_t;
 struct vnodeops {
     int (*vn_open)(vnode_t *node);
     int (*vn_lookup)(vnode_t *dir, char const *name, vnode_t *res);
-    int (*vn_read)(vnode_t *node, void *buf, uint32_t count);
-    int (*vn_write)(vnode_t *node, char const *name, size_t count);
+    int (*vn_read)(vnode_t *node, void *buf, size_t count);
+    int (*vn_write)(vnode_t *node, char const *buf, size_t count);
     int (*vn_getattr)(vnode_t *node, vattr_t *attr);
 };
 typedef struct vnodeops vnodeops_t;

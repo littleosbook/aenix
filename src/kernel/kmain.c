@@ -56,6 +56,26 @@ static uint32_t get_fs_paddr(const multiboot_info_t *mbinfo, uint32_t *size)
     return 0;
 }
 
+static uint32_t add_device(char const *name, int (*get_vnode)(vnode_t *out))
+{
+    vnode_t *device = kmalloc(sizeof(vnode_t));
+    if (device == NULL) {
+        log_error("populate_devfs",
+                  "Could not allocate vnode_t struct for device %s\n", name);
+        return 1;
+    }
+
+    if (get_vnode(device)) {
+        log_error("populate_devfs",
+                  "Device %s could not generate vnode\n", name);
+        return 1;
+    }
+
+    devfs_add_device(name, device);
+
+    return 0;
+}
+
 static uint32_t populate_devfs()
 {
     vfs_t *devfs = kmalloc(sizeof(vfs_t));
@@ -67,21 +87,11 @@ static uint32_t populate_devfs()
 
     devfs_init(devfs);
 
-    vnode_t *console_device = kmalloc(sizeof(vnode_t));
-    if (console_device == NULL) {
-        log_error("populate_devfs",
-                  "Could not allocate vnode_t struct for console device\n");
-        return 1;
-    }
-
-    if (fb_get_vnode(console_device)) {
-        log_error("populate_devfs",
-                  "Console  device could not generate vnode\n");
-        return 1;
-    }
-    devfs_add_device("console", console_device);
+    add_device("console", fb_get_vnode);
+    add_device("keyboard", kbd_get_vnode);
 
     vfs_mount("/dev/", devfs);
+
     return 0;
 }
 

@@ -2,9 +2,9 @@
 #define KEYBOARD_H
 
 #include "stdint.h"
+#include "vnode.h"
 
 uint32_t kbd_init(void);
-uint8_t kbd_read_scan_code(void);
-uint8_t kbd_scan_code_to_ascii(uint8_t scan_code);
+int kbd_get_vnode(vnode_t *out);
 
 #endif /* KEYBOARD_H */
