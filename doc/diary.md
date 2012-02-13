@@ -340,3 +340,25 @@ are more architectural and less "low-level", which is a nice change!
   and /dev/cons/2 for two different consoles. These hierarchies will be
   accessed through the file system but managed by the devices.
 - `SYS_write` and `SYS_open` work, with file descriptors and the whole chebang.
+
+# 2012-02-13
+
+## Achievements
+- Implemented the `SYS_read` system call which enables reading from the
+  keyboard, which is mounted under `/dev/keyboard`. However, we haven't
+  implemented the ECHO feature that most consoles have (if you type something,
+  it will show up on your console, whether the program reads it or not).
+- Implemented the `SYS_execve` as a first step towards a multiprocess OS. As a
+  result of this, `/bin/init` is now launching `/bin/sh`.
+- Wrote our first concurrent code in the kernel when buffering the keyboard
+  input.
+
+## Issues
+- We were a little bit puzzled about how to handle the input buffering from the
+  keyboard, but we settled on the way MINIX and FreeBSD does when the buffer is
+  full: discarding the new input.
+- We haven't implemented the ECHO feature of the console yet, since we want to
+  do it in a proper way (NOT in the keyboard interrupt handler!). To do this,
+  we think we want some kind of higher level event handling facility. But in
+  order to achieve that, we need kernel processes, so therefore we have started
+  to work on the scheduler.
