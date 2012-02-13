@@ -14,34 +14,31 @@
 #define PROC_INITIAL_STACK_SIZE 1 /* in page frames */
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
 #define PROC_INITIAL_ESP (KERNEL_START_VADDR - 4)
-#define PROC_INITIAL_HEAP_SIZE 1 /* in page frames */
 
-static uint32_t allocate_and_map(pde_t *pdt,
-                                 uint32_t vaddr,
-                                 uint32_t pfs,
-                                 uint8_t rw,
-                                 uint8_t pl)
+static int fill_paddr_lists(ps_t *ps, uint32_t code_paddr, uint32_t code_pfs,
+                             uint32_t stack_paddr, uint32_t stack_pfs)
 {
-    uint32_t mapped_memory_size;
-    uint32_t paddr = pfa_allocate(pfs);
-    uint32_t byte_size = pfs * FOUR_KB;
-    if (paddr == 0) {
-        log_error("allocate_and_map",
-                  "Could not allocate page frames. "
-                  "paddr: %X, pfs: %u\n",
-                  paddr, pfs);
-        return 1;
+    ps->code_paddrs = kmalloc(sizeof(paddr_list_t));
+    if (ps->code_paddrs == NULL) {
+        log_error("fill_paddr_lists",
+                  "Couldn't kmalloc memory for code_paddrs\n");
+        return -1;
     }
+    ps->code_paddrs->paddr = code_paddr;
+    ps->code_paddrs->count = code_pfs;
+    ps->code_paddrs->next = NULL;
 
-    mapped_memory_size = pdt_map_memory(pdt, paddr, vaddr, byte_size, rw, pl);
-
-    if (mapped_memory_size < byte_size) {
-        log_error("allocate_and_map",
-                  "Could not map memory in given pdt. "
-                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  vaddr, paddr, byte_size, (uint32_t) pdt);
-        return 1;
+    ps->stack_paddrs = kmalloc(sizeof(paddr_list_t));
+    if (ps->stack_paddrs == NULL) {
+        log_error("fill_paddr_lists",
+                  "Couldn't kmalloc memory for stack_paddrs\n");
+        return -1;
     }
+    ps->stack_paddrs->paddr = stack_paddr;
+    ps->stack_paddrs->count = stack_pfs;
+    ps->stack_paddrs->next = NULL;
+
+    ps->heap_paddrs = NULL;
 
     return 0;
 }
@@ -49,8 +46,8 @@ static uint32_t allocate_and_map(pde_t *pdt,
 ps_t *process_create(char const *path, uint32_t id)
 {
     pde_t *pdt;
-    uint32_t error, bytes, page_frames;
-    uint32_t code_pfs, code_paddr, code_vaddr;
+    uint32_t bytes, page_frames;
+    uint32_t code_pfs, code_paddr, code_vaddr, stack_paddr;
     uint32_t pdt_paddr;
     uint32_t mapped_memory_size;
     uint32_t kernel_stack_paddr, kernel_stack_vaddr;
@@ -120,16 +117,6 @@ ps_t *process_create(char const *path, uint32_t id)
 
     pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
 
-    /* create proc early so that it is mapped both into the kernel PDT and
-     * the proc PDT
-     */
-    proc = (ps_t *) kmalloc(sizeof(ps_t));
-    if (proc == NULL) {
-        log_error("create_process",
-                  "kmalloc return NULL pointer for proc.\n");
-        return NULL;
-    }
-
     pdt = pdt_create(&pdt_paddr);
     if (pdt == NULL || pdt_paddr == 0) {
         log_error("create_process",
@@ -144,7 +131,6 @@ ps_t *process_create(char const *path, uint32_t id)
         pdt_map_memory(pdt, code_paddr, code_vaddr,
                        attr.file_size, PAGING_READ_WRITE, PAGING_PL3);
     if (mapped_memory_size < attr.file_size) {
-        kfree(proc);
         log_error("create_process",
                   "Could not map memory in proc PDT. "
                   "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
@@ -154,14 +140,26 @@ ps_t *process_create(char const *path, uint32_t id)
         return NULL;
     }
 
-    error = allocate_and_map(pdt, PROC_INITIAL_STACK_VADDR,
-                             PROC_INITIAL_STACK_SIZE, PAGING_READ_WRITE,
-                             PAGING_PL3);
+    stack_paddr = pfa_allocate(PROC_INITIAL_STACK_SIZE);
+    bytes = PROC_INITIAL_STACK_SIZE * FOUR_KB;
+    if (stack_paddr == 0) {
+        log_error("process_create",
+                  "Could not allocate page frames for stack. "
+                  "pfs: %u\n", PROC_INITIAL_STACK_SIZE);
+        pdt_delete(pdt);
+        log_info("create_process", "Process PDT deleted\n");
+        return NULL;
+    }
 
-    if (error) {
-        kfree(proc);
-        log_error("create_process",
-                  "Could not allocate and map memory for stack.\n");
+    mapped_memory_size =
+        pdt_map_memory(pdt, stack_paddr, PROC_INITIAL_STACK_VADDR, bytes,
+                       PAGING_READ_WRITE, PAGING_PL3);
+
+    if (mapped_memory_size < bytes) {
+        log_error("process_create",
+                  "Could not map memory for stack in given pdt. "
+                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
+                  PROC_INITIAL_STACK_VADDR, stack_paddr, bytes, (uint32_t) pdt);
         pdt_delete(pdt);
         log_info("create_process", "Process PDT deleted\n");
         return NULL;
@@ -170,20 +168,22 @@ ps_t *process_create(char const *path, uint32_t id)
     page_frames = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
     kernel_stack_paddr = pfa_allocate(page_frames);
     if (kernel_stack_paddr == 0) {
-        kfree(proc);
         log_error("create_process",
                   "Could not allocate page for kernel stack. "
                   "pfs: %u\n", page_frames);
+        pdt_delete(pdt);
+        log_info("create_process", "Process PDT deleted\n");
         return NULL;
     }
 
     bytes = page_frames * FOUR_KB;
     kernel_stack_vaddr = pdt_kernel_find_next_vaddr(bytes);
     if (kernel_stack_vaddr == 0) {
-        kfree(proc);
         log_error("create_process",
                   "Could not find virtual address for kernel stack."
                   "bytes: %u\n", bytes);
+        pdt_delete(pdt);
+        log_info("create_process", "Process PDT deleted\n");
         return NULL;
     }
 
@@ -191,22 +191,37 @@ ps_t *process_create(char const *path, uint32_t id)
         pdt_map_kernel_memory(kernel_stack_paddr, kernel_stack_vaddr, bytes,
                               PAGING_READ_WRITE, PAGING_PL0);
     if (mapped_memory_size != bytes) {
-        kfree(proc);
         log_error("create_process",
                   "Could not map memory for kernel stack."
                   "kernel_stack_paddr: %X, kernel_stack_vaddr: %X, bytes: %u\n",
                   kernel_stack_paddr, kernel_stack_vaddr, bytes);
+        pdt_delete(pdt);
+        log_info("create_process", "Process PDT deleted\n");
         return NULL;
     }
 
+    proc = (ps_t *) kmalloc(sizeof(ps_t));
+    if (proc == NULL) {
+        log_error("create_process",
+                  "kmalloc return NULL pointer for proc.\n");
+        pdt_delete(pdt);
+        log_info("create_process", "Process PDT deleted\n");
+        return NULL;
+    }
+
+    proc->id = id;
     proc->pdt = pdt;
     proc->pdt_paddr = pdt_paddr;
     proc->code_vaddr  = code_vaddr;
     proc->stack_vaddr = PROC_INITIAL_ESP;
     proc->kernel_stack_vaddr = kernel_stack_vaddr;
-    memset(proc->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
-    proc->id = id;
 
+    memset(proc->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
+
+    if (fill_paddr_lists(proc, code_paddr, code_pfs, stack_paddr, 1)) {
+        log_error("create_process", "Couldn't fill paddr lists");
+        return NULL;
+    }
     return proc;
 }
 
@@ -214,5 +229,5 @@ int process_replace(ps_t *ps, char const *path)
 {
     UNUSED_ARGUMENT(ps);
     UNUSED_ARGUMENT(path);
-    return 0;
+    return -1;
 }

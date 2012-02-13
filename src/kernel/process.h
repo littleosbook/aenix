@@ -7,6 +7,14 @@
 
 #define PROCESS_MAX_NUM_FD 3
 
+struct paddr_list {
+    uint32_t paddr;
+    uint32_t count;
+    struct paddr_list *next;
+};
+typedef struct paddr_list paddr_list_t;
+
+
 struct fd {
     vnode_t *vnode;
 };
@@ -18,12 +26,17 @@ struct ps {
     pde_t *pdt;
 
     uint32_t pdt_paddr;
+
     uint32_t code_vaddr;
     uint32_t stack_vaddr;
 
     uint32_t kernel_stack_vaddr;
 
     fd_t file_descriptors[PROCESS_MAX_NUM_FD];
+
+    paddr_list_t *code_paddrs;
+    paddr_list_t *stack_paddrs;
+    paddr_list_t *heap_paddrs;
 };
 typedef struct ps ps_t;
 
