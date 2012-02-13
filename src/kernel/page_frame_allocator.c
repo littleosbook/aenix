@@ -291,3 +291,11 @@ void pfa_free(uint32_t paddr)
         toggle_bit(bit_idx);
     }
 }
+
+void pfa_free_cont(uint32_t paddr, uint32_t n)
+{
+    uint32_t i;
+    for (i = 0; i < n; ++i) {
+        pfa_free(paddr + i * FOUR_KB);
+    }
+}

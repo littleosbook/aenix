@@ -24,19 +24,17 @@ struct ps {
     uint32_t id;
 
     pde_t *pdt;
-
     uint32_t pdt_paddr;
 
     uint32_t code_vaddr;
     uint32_t stack_vaddr;
-
     uint32_t kernel_stack_vaddr;
 
     fd_t file_descriptors[PROCESS_MAX_NUM_FD];
 
     paddr_list_t *code_paddrs;
     paddr_list_t *stack_paddrs;
-    paddr_list_t *heap_paddrs;
+    paddr_list_t *kernel_stack_paddrs;
 };
 typedef struct ps ps_t;
 

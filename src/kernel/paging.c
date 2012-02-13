@@ -403,9 +403,7 @@ void pdt_delete(pde_t *pdt)
     uint32_t i, pdt_paddr;
     for (i = 0; i < NUM_ENTRIES; ++i) {
         if (IS_ENTRY_PRESENT(pdt + i) && IS_ENTRY_PAGE_TABLE(pdt + i)) {
-            if ((kernel_pdt + i) != (pdt + i)) {
-                pfa_free(get_pt_paddr(pdt, i));
-            }
+            pfa_free(get_pt_paddr(pdt, i));
         }
     }
 

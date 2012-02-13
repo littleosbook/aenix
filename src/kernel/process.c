@@ -15,215 +15,281 @@
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
 #define PROC_INITIAL_ESP (KERNEL_START_VADDR - 4)
 
-static int fill_paddr_lists(ps_t *ps, uint32_t code_paddr, uint32_t code_pfs,
-                             uint32_t stack_paddr, uint32_t stack_pfs)
+static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
 {
-    ps->code_paddrs = kmalloc(sizeof(paddr_list_t));
-    if (ps->code_paddrs == NULL) {
-        log_error("fill_paddr_lists",
-                  "Couldn't kmalloc memory for code_paddrs\n");
+    uint32_t pfs, paddr, kernel_vaddr, mapped_memory_size;
+
+    vnode_t node;
+    if (vfs_lookup(path, &node)) {
+        log_error("process_load_code",
+                  "Could not find vnode for path: %s\n", path);
         return -1;
     }
-    ps->code_paddrs->paddr = code_paddr;
-    ps->code_paddrs->count = code_pfs;
-    ps->code_paddrs->next = NULL;
+
+    vattr_t attr;
+    if (vfs_getattr(&node, &attr)) {
+        log_error("process_load_code",
+                  "Could not get attributes for path: %s\n", path);
+        return -1;
+    }
+
+    pfs = div_ceil(attr.file_size, FOUR_KB);
+    paddr = pfa_allocate(pfs);
+    if (paddr == 0) {
+        log_error("process_load_code",
+                  "Could not allocate page frames for process code. "
+                  "size: %u, pfs: %u\n",
+                  attr.file_size, pfs);
+        return -1;
+    }
+
+    kernel_vaddr = pdt_kernel_find_next_vaddr(attr.file_size);
+    if (kernel_vaddr == 0) {
+        log_error("process_load_code",
+                  "Could not find virtual memory for proc code in kernel. "
+                  "paddr: %X, size: %u\n", paddr, attr.file_size);
+        return -1;
+    }
+
+    mapped_memory_size =
+        pdt_map_kernel_memory(paddr, kernel_vaddr, attr.file_size,
+                              PAGING_READ_WRITE, PAGING_PL0);
+    if (mapped_memory_size < attr.file_size) {
+        pdt_unmap_kernel_memory(kernel_vaddr, attr.file_size);
+        log_error("process_load_code",
+                  "Could not map memory in kernel. "
+                  "kernel_vaddr: %X, paddr: %X, size: %u\n",
+                  kernel_vaddr, paddr, attr.file_size);
+        return -1;
+    }
+
+    if(vfs_read(&node, (void *) kernel_vaddr, attr.file_size) !=
+       (int) attr.file_size) {
+        pdt_unmap_kernel_memory(kernel_vaddr, attr.file_size);
+        log_error("process_load_code",
+                  "Could not copy the process code. "
+                  "kernel_vaddr: %X, attr.file_size: %u\n",
+                  kernel_vaddr, attr.file_size);
+        return -1;
+    }
+
+    pdt_unmap_kernel_memory(kernel_vaddr, attr.file_size);
+
+    mapped_memory_size =
+        pdt_map_memory(ps->pdt, paddr, vaddr, attr.file_size,
+                       PAGING_READ_WRITE, PAGING_PL3);
+    if (mapped_memory_size < attr.file_size) {
+        log_error("process_load_code",
+                  "Could not map memory in proc PDT. "
+                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
+                  vaddr, paddr, attr.file_size, (uint32_t) ps->pdt);
+        return -1;
+    }
+
+    ps->code_paddrs = kmalloc(sizeof(paddr_list_t));
+    if (ps->code_paddrs == NULL) {
+        log_error("process_load_code",
+                  "Could not allocated memory for code paddr list\n");
+        return -1;
+    }
+
+    ps->code_paddrs->paddr = paddr;
+    ps->code_paddrs->count = pfs;
+    ps->code_vaddr = vaddr;
+
+    return 0;
+}
+
+static int process_load_stack(ps_t *ps)
+{
+    uint32_t paddr, bytes, pfs, mapped_memory_size;
+
+    pfs = div_ceil(PROC_INITIAL_STACK_SIZE, FOUR_KB);
+    paddr = pfa_allocate(pfs);
+    if (paddr == 0) {
+        log_error("process_load_stack",
+                  "Could not allocate page frames for stack. pfs: %u\n", pfs);
+        return -1;
+    }
+
+    bytes = pfs * FOUR_KB;
+    mapped_memory_size =
+        pdt_map_memory(ps->pdt, paddr, PROC_INITIAL_STACK_VADDR, bytes,
+                       PAGING_READ_WRITE, PAGING_PL3);
+    if (mapped_memory_size < bytes) {
+        log_error("process_load_stack",
+                  "Could not map memory for stack in given pdt. "
+                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
+                  PROC_INITIAL_STACK_VADDR, paddr, bytes, (uint32_t) ps->pdt);
+        return -1;
+    }
 
     ps->stack_paddrs = kmalloc(sizeof(paddr_list_t));
     if (ps->stack_paddrs == NULL) {
-        log_error("fill_paddr_lists",
-                  "Couldn't kmalloc memory for stack_paddrs\n");
+        log_error("process_load_stack",
+                  "Could not allocated memory for stack paddr list\n");
         return -1;
     }
-    ps->stack_paddrs->paddr = stack_paddr;
-    ps->stack_paddrs->count = stack_pfs;
-    ps->stack_paddrs->next = NULL;
 
-    ps->heap_paddrs = NULL;
+    ps->stack_paddrs->paddr = paddr;
+    ps->stack_paddrs->count = pfs;
+    ps->stack_vaddr = PROC_INITIAL_ESP;
+
+    return 0;
+}
+
+static int process_load_kernel_stack(ps_t *ps)
+{
+    uint32_t pfs, bytes, vaddr, paddr, mapped_memory_size;
+
+    pfs = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
+    paddr = pfa_allocate(pfs);
+    if (paddr == 0) {
+        log_error("process_load_kernel_stack",
+                  "Could not allocate page for kernel stack. pfs: %u\n", pfs);
+        return -1;
+    }
+
+    bytes = pfs * FOUR_KB;
+    vaddr = pdt_kernel_find_next_vaddr(bytes);
+    if (vaddr == 0) {
+        log_error("process_load_kernel_stack",
+                  "Could not find virtual address for kernel stack."
+                  "bytes: %u\n", bytes);
+        return -1;
+    }
+
+    mapped_memory_size =
+        pdt_map_kernel_memory(paddr, vaddr, bytes, PAGING_READ_WRITE,
+                              PAGING_PL0);
+    if (mapped_memory_size != bytes) {
+        log_error("process_load_kernel_stack",
+                  "Could not map memory for kernel stack."
+                  "paddr: %X, vaddr: %X, bytes: %u\n",
+                  paddr, vaddr, bytes);
+        return -1;
+    }
+
+    ps->kernel_stack_paddrs = kmalloc(sizeof(paddr_list_t));
+    if (ps->kernel_stack_paddrs == NULL) {
+        log_error("process_load_kernel_stack",
+                  "Could not allocated memory for kernel stack paddr list\n");
+        return -1;
+    }
+
+    ps->kernel_stack_paddrs->paddr = paddr;
+    ps->kernel_stack_paddrs->count = pfs;
+    ps->kernel_stack_vaddr = vaddr + bytes - 4;
+
+    return 0;
+}
+
+static int process_load_pdt(ps_t *ps)
+{
+    pde_t *pdt;
+    uint32_t paddr;
+
+    pdt = pdt_create(&paddr);
+    if (pdt == NULL || paddr == 0) {
+        log_error("process_load_pdt",
+                  "Could not create PDT for process."
+                  "pdt: %X, pdt_paddr: %u\n",
+                  (uint32_t) pdt, paddr);
+        return -1;
+    }
+
+    ps->pdt = pdt;
+    ps->pdt_paddr = paddr;
+
+    return 0;
+}
+
+static uint32_t delete_paddr_list(paddr_list_t *l)
+{
+    uint32_t size = 0;
+    paddr_list_t *current, *tmp;
+
+    current = l;
+    while (current != NULL) {
+        size += current->count;
+        tmp = current->next;
+        pfa_free_cont(current->paddr, current->count);
+        kfree(current);
+        current = tmp;
+    }
+
+    return size * FOUR_KB;
+}
+
+static int process_delete(ps_t *ps)
+{
+    uint32_t size;
+
+    if (ps->pdt != 0) {
+        pdt_delete(ps->pdt);
+    }
+
+    if (ps->kernel_stack_vaddr != 0) {
+        size = delete_paddr_list(ps->kernel_stack_paddrs);
+        pdt_unmap_kernel_memory(ps->kernel_stack_vaddr, size);
+    }
+
+    delete_paddr_list(ps->code_paddrs);
+    delete_paddr_list(ps->stack_paddrs);
 
     return 0;
 }
 
 ps_t *process_create(char const *path, uint32_t id)
 {
-    pde_t *pdt;
-    uint32_t bytes, page_frames;
-    uint32_t code_pfs, code_paddr, code_vaddr, stack_paddr;
-    uint32_t pdt_paddr;
-    uint32_t mapped_memory_size;
-    uint32_t kernel_stack_paddr, kernel_stack_vaddr;
-    ps_t *proc;
+    ps_t *ps;
 
-    vnode_t node;
-    if (vfs_lookup(path, &node)) {
-        log_error("create_process",
-                  "Could not find vnode for path: %s\n", path);
-        return NULL;
-    }
-
-    vattr_t attr;
-    if (vfs_getattr(&node, &attr)) {
-        log_error("create_process",
-                  "Could not get attributes for path: %s\n", path);
-        return NULL;
-    }
-
-    code_pfs = div_ceil(attr.file_size, FOUR_KB);
-
-    code_paddr = pfa_allocate(code_pfs);
-
-    if (code_paddr == 0) {
-        log_error("create_process",
-                  "Could not allocate page frames for process code. "
-                  "size: %u, pfs: %u\n",
-                  attr.file_size, code_pfs);
-        return NULL;
-    }
-
-    code_vaddr = pdt_kernel_find_next_vaddr(attr.file_size);
-
-    if (code_vaddr == 0) {
-        log_error("create_process",
-                  "Could not find virtual memory for proc code in kernel. "
-                  "paddr: %X, size: %u\n", code_paddr, attr.file_size);
-        return NULL;
-    }
-
-    mapped_memory_size =
-        pdt_map_kernel_memory(code_paddr, code_vaddr, attr.file_size,
-                              PAGING_READ_WRITE, PAGING_PL0);
-
-    if (mapped_memory_size < attr.file_size) {
-        pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
-        log_error("create_process",
-                  "Could not map memory in kernel. "
-                  "vaddr: %X, paddr: %X, size: %u\n",
-                  code_vaddr, code_paddr, attr.file_size);
-        return NULL;
-    }
-
-    if(vfs_read(&node, (void *) code_vaddr, attr.file_size) !=
-       (int) attr.file_size) {
-        pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
+    ps = (ps_t *) kmalloc(sizeof(ps_t));
+    if (ps == NULL) {
         log_error("process_create",
-                  "Could not copy the process code. "
-                  "code_vaddr: %X, attr.file_size: %u\n",
-                  code_vaddr, attr.file_size);
-        return NULL;
-    }
-
-    log_debug("process_create",
-              "code_vaddr[0]: %X, code_vaddr[1]: %X\n",
-              *((uint8_t *) code_vaddr), *(((uint8_t *) code_vaddr) + 1));
-
-    pdt_unmap_kernel_memory(code_vaddr, attr.file_size);
-
-    pdt = pdt_create(&pdt_paddr);
-    if (pdt == NULL || pdt_paddr == 0) {
-        log_error("create_process",
-                  "Could not create PDT for process %s. "
-                  "pdt: %X, pdt_paddr: %u\n",
-                  path, (uint32_t) pdt, pdt_paddr);
-        return NULL;
-    }
-
-    code_vaddr = 0;
-    mapped_memory_size =
-        pdt_map_memory(pdt, code_paddr, code_vaddr,
-                       attr.file_size, PAGING_READ_WRITE, PAGING_PL3);
-    if (mapped_memory_size < attr.file_size) {
-        log_error("create_process",
-                  "Could not map memory in proc PDT. "
-                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  code_vaddr, code_paddr, attr.file_size, (uint32_t) pdt);
-        pdt_delete(pdt);
-        log_info("create_process", "Proc PDT deleted\n");
-        return NULL;
-    }
-
-    stack_paddr = pfa_allocate(PROC_INITIAL_STACK_SIZE);
-    bytes = PROC_INITIAL_STACK_SIZE * FOUR_KB;
-    if (stack_paddr == 0) {
-        log_error("process_create",
-                  "Could not allocate page frames for stack. "
-                  "pfs: %u\n", PROC_INITIAL_STACK_SIZE);
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
-    mapped_memory_size =
-        pdt_map_memory(pdt, stack_paddr, PROC_INITIAL_STACK_VADDR, bytes,
-                       PAGING_READ_WRITE, PAGING_PL3);
-
-    if (mapped_memory_size < bytes) {
-        log_error("process_create",
-                  "Could not map memory for stack in given pdt. "
-                  "vaddr: %X, paddr: %X, size: %u, pdt: %X\n",
-                  PROC_INITIAL_STACK_VADDR, stack_paddr, bytes, (uint32_t) pdt);
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
-    page_frames = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
-    kernel_stack_paddr = pfa_allocate(page_frames);
-    if (kernel_stack_paddr == 0) {
-        log_error("create_process",
-                  "Could not allocate page for kernel stack. "
-                  "pfs: %u\n", page_frames);
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
-    bytes = page_frames * FOUR_KB;
-    kernel_stack_vaddr = pdt_kernel_find_next_vaddr(bytes);
-    if (kernel_stack_vaddr == 0) {
-        log_error("create_process",
-                  "Could not find virtual address for kernel stack."
-                  "bytes: %u\n", bytes);
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
-    mapped_memory_size =
-        pdt_map_kernel_memory(kernel_stack_paddr, kernel_stack_vaddr, bytes,
-                              PAGING_READ_WRITE, PAGING_PL0);
-    if (mapped_memory_size != bytes) {
-        log_error("create_process",
-                  "Could not map memory for kernel stack."
-                  "kernel_stack_paddr: %X, kernel_stack_vaddr: %X, bytes: %u\n",
-                  kernel_stack_paddr, kernel_stack_vaddr, bytes);
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
-        return NULL;
-    }
-
-    proc = (ps_t *) kmalloc(sizeof(ps_t));
-    if (proc == NULL) {
-        log_error("create_process",
                   "kmalloc return NULL pointer for proc.\n");
-        pdt_delete(pdt);
-        log_info("create_process", "Process PDT deleted\n");
+        return NULL;
+    }
+    ps->pdt = 0;
+    ps->id = id;
+    ps->pdt_paddr = 0;
+    ps->code_paddrs = NULL;
+    ps->stack_paddrs = NULL;
+    ps->kernel_stack_paddrs = NULL;
+    ps->kernel_stack_vaddr = 0;
+    memset(ps->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
+
+    if (process_load_pdt(ps)) {
+        log_error("process_create",
+                  "Couldn't create pdt for process %u\n", id);
+        process_delete(ps);
         return NULL;
     }
 
-    proc->id = id;
-    proc->pdt = pdt;
-    proc->pdt_paddr = pdt_paddr;
-    proc->code_vaddr  = code_vaddr;
-    proc->stack_vaddr = PROC_INITIAL_ESP;
-    proc->kernel_stack_vaddr = kernel_stack_vaddr;
-
-    memset(proc->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
-
-    if (fill_paddr_lists(proc, code_paddr, code_pfs, stack_paddr, 1)) {
-        log_error("create_process", "Couldn't fill paddr lists");
+    if (process_load_code(ps, path, 0)) {
+        log_error("process_create",
+                  "Couldn't load code at path %s for process %u\n", path, id);
+        process_delete(ps);
         return NULL;
     }
-    return proc;
+
+    if (process_load_stack(ps)) {
+        log_error("process_create",
+                  "Couldn't load stack for process %u\n", id);
+        process_delete(ps);
+        return NULL;
+    }
+
+    if (process_load_kernel_stack(ps)) {
+        log_error("process_create",
+                  "Couldn't load kernel stack for process %u\n", id);
+        process_delete(ps);
+        return NULL;
+    }
+
+    return ps;
 }
+
 
 int process_replace(ps_t *ps, char const *path)
 {
