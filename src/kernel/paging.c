@@ -377,7 +377,6 @@ uint32_t pdt_unmap_kernel_memory(uint32_t virtual_addr, uint32_t size)
 pde_t *pdt_create(uint32_t *out_paddr)
 {
     pde_t *pdt;
-    uint32_t i;
     *out_paddr = 0;
     uint32_t pdt_paddr = pfa_allocate(1);
     uint32_t pdt_vaddr = pdt_kernel_find_next_vaddr(PDT_SIZE);
@@ -394,15 +393,6 @@ pde_t *pdt_create(uint32_t *out_paddr)
     pdt = (pde_t *) pdt_vaddr;
 
     memset(pdt, 0, PDT_SIZE);
-
-    for (i = 0; i < NUM_ENTRIES; ++i) {
-        if (IS_ENTRY_PRESENT(kernel_pdt + i)) {
-            log_debug("pdt_create",
-                      "copying index %u from kernel_pdt\n",
-                      i);
-            pdt[i] = kernel_pdt[i];
-        }
-    }
 
     *out_paddr = pdt_paddr;
     return pdt;
@@ -423,6 +413,19 @@ void pdt_delete(pde_t *pdt)
     pfa_free(pdt_paddr);
 }
 
+void pdt_set(uint32_t pdt_paddr);
+void pdt_load_process_pdt(pde_t *pdt, uint32_t pdt_paddr)
+{
+    uint32_t i;
+
+    for (i = KERNEL_PDT_IDX; i < NUM_ENTRIES; ++i) {
+        if (IS_ENTRY_PRESENT(kernel_pdt + i)) {
+            pdt[i] = kernel_pdt[i];
+        }
+    }
+
+    pdt_set(pdt_paddr);
+}
 /**
  * Creates an entry in the page descriptor table at the specified index.
  * THe entry will point to the given PTE.

@@ -15,5 +15,5 @@ void scheduler_switch_to_process(ps_t *ps)
 {
     current = ps;
     tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_vaddr);
-    pdt_set(ps->pdt_paddr);
+    pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
 }
