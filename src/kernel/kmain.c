@@ -169,7 +169,8 @@ static void start_init()
     if (init == NULL) {
         printf("ERROR: Could not create init!\n");
     } else {
-        scheduler_switch_to_process(init);
+        scheduler_add_process(init);
+        scheduler_schedule();
     }
 }
 

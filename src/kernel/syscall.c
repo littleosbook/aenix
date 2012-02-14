@@ -140,14 +140,12 @@ static int sys_open(uint32_t syscall, void *stack)
 static void continue_execve(uint32_t data)
 {
     ps_t *new = (ps_t *) data;
-
-    log_debug("continue_execve", "new->pid %u\n", new->id);
-
     ps_t *old = scheduler_get_current_process();
-    process_delete(old);
 
-    scheduler_switch_to_process(new);
+    scheduler_remove_process(old->id);
+    scheduler_add_process(new);
 
+    scheduler_schedule();
     /* will never reach this code */
 }
 
@@ -173,10 +171,19 @@ static int sys_execve(uint32_t syscall, void *stack)
     return 0;
 }
 
+static int sys_fork(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    UNUSED_ARGUMENT(stack);
+
+    /* HELINO_RESUME */
+    return -1;
+}
+
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 0 */  sys_not_supported,
 /* 1 */  sys_not_supported,
-/* 2 */  sys_not_supported,
+/* 2 */  sys_fork,
 /* 3 */  sys_read,
 /* 4 */  sys_write,
 /* 5 */  sys_open,
