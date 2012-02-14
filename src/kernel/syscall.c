@@ -174,12 +174,30 @@ static int sys_fork(uint32_t syscall, void *stack)
     current = scheduler_get_current_process();
     new = process_clone(current, new_pid);
     if (new == NULL) {
+        log_error("sys_fork", "can't create fork of process %u\n",
+                  current->id);
         return -1;
     }
+    new->registers.eax = 0;
 
     scheduler_add_process(new);
 
     return new_pid;
+}
+
+static int sys_yield(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    UNUSED_ARGUMENT(stack);
+
+    ps_t *current = scheduler_get_current_process();
+    current->registers.eax = 0;
+
+    scheduler_schedule();
+
+    /* we should not get here */
+
+    return -1;
 }
 
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
@@ -188,7 +206,7 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 2 */ sys_write,
 /* 3 */ sys_execve,
 /* 4 */ sys_fork,
-/*5 sys_yield,*/
+/* 5 */ sys_yield,
 /*6 sys_exit*/
     };
 

@@ -217,6 +217,8 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
         return 0xDEADDEAD;
     }
 
+    log_info("kmain", "kernel initialized successfully!\n");
+
     start_init();
 
     return 0xDEADBEEF;

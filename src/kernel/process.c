@@ -273,7 +273,7 @@ static void process_init(ps_t *ps, uint32_t id)
     ps->pdt_paddr = 0;
     ps->kernel_stack_start_vaddr = 0;
     ps->code_start_vaddr = 0;
-    ps->stack_start_vaddr = 0;
+    ps->stack_start_vaddr = PROC_INITIAL_STACK_VADDR;
     ps->code_paddrs.start = NULL;
     ps->code_paddrs.end = NULL;
     ps->stack_paddrs.start = NULL;
@@ -389,7 +389,7 @@ static int process_copy_paddr_list(pde_t *pdt, uint32_t vaddr,
             return -1;
         }
 
-        bytes = paddr * FOUR_KB;
+        bytes = p->count * FOUR_KB;
         kernel_vaddr = pdt_kernel_find_next_vaddr(bytes);
         if (kernel_vaddr == 0) {
             log_error("process_copy_paddr_list",
@@ -433,7 +433,7 @@ static int process_copy_paddr_list(pde_t *pdt, uint32_t vaddr,
         }
         to->end = pe;
 
-        mapped = pdt_map_memory(pdt, vaddr, paddr, bytes,
+        mapped = pdt_map_memory(pdt, paddr, vaddr, bytes,
                                 PAGING_READ_WRITE, PAGING_PL3);
         if (mapped < bytes) {
             log_error("process_copy_paddr_list",
@@ -466,6 +466,7 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
 
     /* copy registers */
     child->registers = parent->registers;
+    child->registers.eflags = REG_EFLAGS_DEFAULT; /* create clean eflags */
 
     /* create a new PDT */
     error = process_load_pdt(child);
@@ -496,6 +497,13 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
                                     parent->stack_start_vaddr,
                                     &parent->stack_paddrs,
                                     &child->stack_paddrs);
+    if (error) {
+        log_error("process_clone",
+                  "couldn't stack from parent ps. parent: %u, child: %u\n",
+                  parent->id, id);
+        process_delete(child);
+        return NULL;
+    }
 
     /* create a new kernel stack */
     error = process_load_kernel_stack(child);

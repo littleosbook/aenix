@@ -164,20 +164,12 @@ uint32_t pfa_init(multiboot_info_t const *mbinfo,
     mmap_len = n;
 
     for (i = 0; i < n; ++i) {
-        log_debug("pfa_init",
-                  "mmap[%u].addr: %X, mmap[%u].len: %u\n",
-                  i, mmap[i].addr, i, mmap[i].len);
-
         /* align addresses on 4kB blocks */
         addr = align_up(mmap[i].addr, FOUR_KB);
         len = align_down(mmap[i].len - (addr - mmap[i].addr), FOUR_KB);
 
         mmap[i].addr = addr;
         mmap[i].len = len;
-
-        log_debug("pfa_init",
-                  "after alignment: mmap[%u].addr: %X, mmap[%u].len: %u\n",
-                  i, mmap[i].addr, i, mmap[i].len);
     }
 
     return construct_bitmap(mmap, n);
@@ -250,8 +242,6 @@ uint32_t pfa_allocate(uint32_t num_page_frames)
 {
     uint32_t i, j, cell, bit_idx;
     uint32_t n = div_ceil(page_frames.len, 32), frames_found = 0;
-
-    log_debug("pfa_allocate", "Allocating %u page frames\n", num_page_frames);
 
     for (i = 0; i < n; ++i) {
         cell = page_frames.start[i];

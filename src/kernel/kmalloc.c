@@ -56,9 +56,6 @@ void *kmalloc(size_t nbytes)
                 p->size = nunits;
             }
             freep = prevp;
-            log_debug("kmalloc",
-                      "address: %X (header_t: %X)\n",
-                      (uint32_t) (p + 1), (uint32_t) p);
             return (void *)(p+1);
         }
         if (p == freep) {
@@ -126,8 +123,6 @@ void kfree(void * ap)
 
     if (ap == 0)
         return;
-
-    log_debug("kfree", "address: %X\n", (uint32_t) ap);
 
     /* point to block header */
     bp = (header_t *)ap - 1;

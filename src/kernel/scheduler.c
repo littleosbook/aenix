@@ -26,6 +26,7 @@ uint32_t scheduler_next_pid(void)
         if (p->ps != NULL && p->ps->id >= pid) {
             pid = p->ps->id + 1;
         }
+        p = p->next;
     }
 
     return pid;

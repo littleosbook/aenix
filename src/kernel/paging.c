@@ -327,10 +327,6 @@ uint32_t pdt_unmap_memory(pde_t *pdt, uint32_t vaddr, uint32_t size)
     uint32_t freed_size = 0;
     uint32_t end_vaddr;
 
-	log_debug("pdt_unmap_memory",
-			  "pdt: %X, vaddr: %X, size: %u\n",
-			  (uint32_t) pdt, vaddr, size);
-
     size = align_up(size, PT_ENTRY_SIZE);
     end_vaddr = vaddr + size;
 
@@ -346,9 +342,6 @@ uint32_t pdt_unmap_memory(pde_t *pdt, uint32_t vaddr, uint32_t size)
         tmp_entry = kernel_get_temporary_entry();
 
         pt_vaddr = kernel_map_temporary_memory(pt_paddr);
-		log_debug("pdt_unmap_memory",
-				  "pt_paddr: %X, pt_vaddr: %X, vaddr: %X, size: %u pdt_idx: %u\n",
-				  pt_paddr, pt_vaddr, vaddr, size, pdt_idx);
 
         freed_size =
             pt_unmap_memory((pte_t *) pt_vaddr, pdt_idx, vaddr, size);

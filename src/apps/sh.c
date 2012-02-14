@@ -4,20 +4,16 @@
 
 int main(void)
 {
-    char *prompt = "aenix> ";
-
-    while(1) {
-        syscall(SYS_write, 1, prompt, strlen(prompt));
-
-        char ch = 0, buf[128];
-        size_t i = 0;
-        while (ch != '\n' && i < 127) {
-            syscall(SYS_read, 0, &ch, 1);
-            buf[i] = ch;
-            ++i;
+    if (syscall(SYS_fork)) {
+        while (1) {
+            syscall(SYS_write, 1, "parent\n", 7);
+            syscall(SYS_yield);
         }
-        buf[i] = '\0';
-        syscall(SYS_write, 1, buf, i);
+    } else {
+        while (1) {
+            syscall(SYS_write, 1, "child\n", 6);
+            syscall(SYS_yield);
+        }
     }
 
     return 0;
