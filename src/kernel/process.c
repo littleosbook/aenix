@@ -19,6 +19,7 @@
 static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
 {
     uint32_t pfs, paddr, kernel_vaddr, mapped_memory_size;
+    paddr_ele_t *code_paddrs;
 
     vnode_t node;
     if (vfs_lookup(path, &node)) {
@@ -87,16 +88,21 @@ static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
         return -1;
     }
 
-    ps->code_paddrs = kmalloc(sizeof(paddr_list_t));
-    if (ps->code_paddrs == NULL) {
+    code_paddrs = kmalloc(sizeof(paddr_ele_t));
+    if (code_paddrs == NULL) {
         log_error("process_load_code",
                   "Could not allocated memory for code paddr list\n");
         return -1;
     }
 
-    ps->code_paddrs->paddr = paddr;
-    ps->code_paddrs->count = pfs;
+    code_paddrs->paddr = paddr;
+    code_paddrs->count = pfs;
+    code_paddrs->next = NULL;
+
+    ps->code_paddrs.start = code_paddrs;
+    ps->code_paddrs.end = code_paddrs;
     ps->registers.eip = vaddr;
+    ps->code_start_vaddr = vaddr;
 
     return 0;
 }
@@ -104,6 +110,7 @@ static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
 static int process_load_stack(ps_t *ps)
 {
     uint32_t paddr, bytes, pfs, mapped_memory_size;
+    paddr_ele_t *stack_paddrs;
 
     pfs = div_ceil(PROC_INITIAL_STACK_SIZE, FOUR_KB);
     paddr = pfa_allocate(pfs);
@@ -125,15 +132,20 @@ static int process_load_stack(ps_t *ps)
         return -1;
     }
 
-    ps->stack_paddrs = kmalloc(sizeof(paddr_list_t));
-    if (ps->stack_paddrs == NULL) {
+    stack_paddrs = kmalloc(sizeof(paddr_ele_t));
+    if (stack_paddrs == NULL) {
         log_error("process_load_stack",
                   "Could not allocated memory for stack paddr list\n");
         return -1;
     }
 
-    ps->stack_paddrs->paddr = paddr;
-    ps->stack_paddrs->count = pfs;
+    stack_paddrs->paddr = paddr;
+    stack_paddrs->count = pfs;
+    stack_paddrs->next = NULL;
+
+    ps->stack_paddrs.start = stack_paddrs;
+    ps->stack_paddrs.end = stack_paddrs;
+    ps->stack_start_vaddr = PROC_INITIAL_STACK_VADDR;
     ps->registers.esp = PROC_INITIAL_ESP;
 
     return 0;
@@ -142,6 +154,7 @@ static int process_load_stack(ps_t *ps)
 static int process_load_kernel_stack(ps_t *ps)
 {
     uint32_t pfs, bytes, vaddr, paddr, mapped_memory_size;
+    paddr_ele_t *kernel_stack_paddrs;
 
     pfs = div_ceil(KERNEL_STACK_SIZE, FOUR_KB);
     paddr = pfa_allocate(pfs);
@@ -171,16 +184,20 @@ static int process_load_kernel_stack(ps_t *ps)
         return -1;
     }
 
-    ps->kernel_stack_paddrs = kmalloc(sizeof(paddr_list_t));
-    if (ps->kernel_stack_paddrs == NULL) {
+    kernel_stack_paddrs = kmalloc(sizeof(paddr_ele_t));
+    if (kernel_stack_paddrs == NULL) {
         log_error("process_load_kernel_stack",
                   "Could not allocated memory for kernel stack paddr list\n");
         return -1;
     }
 
-    ps->kernel_stack_paddrs->paddr = paddr;
-    ps->kernel_stack_paddrs->count = pfs;
-    ps->kernel_stack_vaddr = vaddr + bytes - 4;
+    kernel_stack_paddrs->count = pfs;
+    kernel_stack_paddrs->paddr = paddr;
+    kernel_stack_paddrs->next = NULL;
+
+    ps->kernel_stack_paddrs.start = kernel_stack_paddrs;
+    ps->kernel_stack_paddrs.end = kernel_stack_paddrs;
+    ps->kernel_stack_start_vaddr = vaddr + bytes - 4;
 
     return 0;
 }
@@ -208,9 +225,9 @@ static int process_load_pdt(ps_t *ps)
 static uint32_t delete_paddr_list(paddr_list_t *l)
 {
     uint32_t size = 0;
-    paddr_list_t *current, *tmp;
+    paddr_ele_t *current, *tmp;
 
-    current = l;
+    current = l->start;
     while (current != NULL) {
         size += current->count;
         tmp = current->next;
@@ -224,21 +241,48 @@ static uint32_t delete_paddr_list(paddr_list_t *l)
 
 void process_delete(ps_t *ps)
 {
-    uint32_t size;
+    uint32_t size, i;
 
     if (ps->pdt != 0) {
         pdt_delete(ps->pdt);
     }
 
-    if (ps->kernel_stack_vaddr != 0) {
-        size = delete_paddr_list(ps->kernel_stack_paddrs);
-        pdt_unmap_kernel_memory(ps->kernel_stack_vaddr, size);
+    if (ps->kernel_stack_start_vaddr != 0) {
+        size = delete_paddr_list(&ps->kernel_stack_paddrs);
+        pdt_unmap_kernel_memory(ps->kernel_stack_start_vaddr, size);
     }
 
-    delete_paddr_list(ps->code_paddrs);
-    delete_paddr_list(ps->stack_paddrs);
+    delete_paddr_list(&ps->code_paddrs);
+    delete_paddr_list(&ps->stack_paddrs);
+
+    for (i = 0; i < PROCESS_MAX_NUM_FD; ++i) {
+        if (ps->file_descriptors[i].vnode != NULL) {
+            /* TODO: implement reference counting for vnodes to support
+             *       freeing them
+             */
+        }
+    }
 
     kfree(ps);
+}
+
+static void process_init(ps_t *ps, uint32_t id)
+{
+    ps->pdt = 0;
+    ps->id = id;
+    ps->pdt_paddr = 0;
+    ps->kernel_stack_start_vaddr = 0;
+    ps->code_start_vaddr = 0;
+    ps->stack_start_vaddr = 0;
+    ps->code_paddrs.start = NULL;
+    ps->code_paddrs.end = NULL;
+    ps->stack_paddrs.start = NULL;
+    ps->stack_paddrs.end = NULL;
+    ps->kernel_stack_paddrs.start = NULL;
+    ps->kernel_stack_paddrs.end = NULL;
+    memset(ps->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
+    memset(&ps->registers, 0, sizeof(registers_t));
+    ps->registers.eflags = REG_EFLAGS_DEFAULT;
 }
 
 ps_t *process_create(char const *path, uint32_t id)
@@ -251,16 +295,8 @@ ps_t *process_create(char const *path, uint32_t id)
                   "kmalloc return NULL pointer for proc.\n");
         return NULL;
     }
-    ps->pdt = 0;
-    ps->id = id;
-    ps->pdt_paddr = 0;
-    ps->code_paddrs = NULL;
-    ps->stack_paddrs = NULL;
-    ps->kernel_stack_paddrs = NULL;
-    ps->kernel_stack_vaddr = 0;
-    memset(ps->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
-    memset(&ps->registers, 0, sizeof(registers_t));
-    ps->registers.eflags = REG_EFLAGS_DEFAULT;
+
+    process_init(ps, id);
 
     if (process_load_pdt(ps)) {
         log_error("process_create",
@@ -293,24 +329,190 @@ ps_t *process_create(char const *path, uint32_t id)
     return ps;
 }
 
+static int process_copy_file_descriptors(ps_t *from, ps_t *to)
+{
+    vnode_t *copy;
+    int i;
+    for (i = 0; i < PROCESS_MAX_NUM_FD; ++i) {
+        if (from->file_descriptors[i].vnode != NULL) {
+            copy = kmalloc(sizeof(vnode_t));
+            if (copy == NULL) {
+                log_error("process_copy_file_descriptors",
+                          "Couldn't allocate memory for vnode. "
+                          "from: %u, to: %u\n", from->id, to->id);
+                return -1; /* process_delete will free previous vnodes */
+            }
+            vnode_copy(from->file_descriptors[i].vnode, copy);
+            to->file_descriptors[i].vnode = copy;
+        }
+    }
+
+    return 0;
+}
 
 ps_t *process_create_replacement(ps_t *parent, char const *path)
 {
-    int i;
     ps_t *child;
 
     /* create the new process */
     child = process_create(path, parent->id);
     if (child == NULL) {
+        log_error("process_create_replacement",
+                  "Could not create child process. parent: %u.\n", parent->id);
         return NULL;
     }
 
     /* copy the old data */
-    for (i = 0; i < PROCESS_MAX_NUM_FD; ++i) {
-        if (parent->file_descriptors[i].vnode != NULL) {
-            child->file_descriptors[i].vnode =
-                parent->file_descriptors[i].vnode;
+    if (process_copy_file_descriptors(parent, child)) {
+        log_error("process_create_replacement",
+                  "Could not copy file descriptors from. "
+                  "parent: %u, child: %u.\n", parent->id, child->id);
+        process_delete(child);
+        return NULL;
+    }
+
+    return child;
+}
+
+static int process_copy_paddr_list(pde_t *pdt, uint32_t vaddr,
+                                   paddr_list_t *from, paddr_list_t *to)
+{
+    uint32_t bytes, mapped, paddr, kernel_vaddr;
+
+    paddr_ele_t *p = from->start;
+    while (p != NULL) {
+        /* allocated and copy the pages */
+        paddr = pfa_allocate(p->count);
+        if (paddr == 0) {
+            log_error("process_copy_paddr_list",
+                      "Could not allocate page frames. pfs: %u.\n", p->count);
+            return -1;
         }
+
+        bytes = paddr * FOUR_KB;
+        kernel_vaddr = pdt_kernel_find_next_vaddr(bytes);
+        if (kernel_vaddr == 0) {
+            log_error("process_copy_paddr_list",
+                      "Could not find virtual memory for proc code in kernel. "
+                      "paddr: %X, bytes: %u\n", paddr, bytes);
+            pfa_free_cont(paddr, p->count);
+            return -1;
+        }
+
+        mapped = pdt_map_kernel_memory(paddr, kernel_vaddr, bytes,
+                                       PAGING_READ_WRITE, PAGING_PL0);
+        if (mapped < bytes) {
+            log_error("process_copy_paddr_list",
+                      "Could not map memory in kernel. "
+                      "kernel_vaddr: %X, paddr: %X, bytes: %u\n",
+                      kernel_vaddr, paddr, bytes);
+            pdt_unmap_kernel_memory(kernel_vaddr, bytes);
+            pfa_free_cont(paddr, p->count);
+            return -1;
+        }
+
+        memcpy((void *) kernel_vaddr, (void *) vaddr, bytes);
+        pdt_unmap_kernel_memory(kernel_vaddr, bytes);
+
+        /* set up childs paddr_list_t */
+        paddr_ele_t *pe = kmalloc(sizeof(paddr_ele_t));
+        if (pe == NULL) {
+            log_error("process_copy_paddr_list",
+                      "Could not allocate memory for paddr_ele_t struct\n");
+            pfa_free_cont(paddr, p->count);
+            return -1;
+        }
+        pe->count = p->count;
+        pe->paddr = paddr;
+        pe->next = NULL;
+
+        if (to->start == NULL) {
+            to->start = pe;
+        } else {
+            to->end->next = pe;
+        }
+        to->end = pe;
+
+        mapped = pdt_map_memory(pdt, vaddr, paddr, bytes,
+                                PAGING_READ_WRITE, PAGING_PL3);
+        if (mapped < bytes) {
+            log_error("process_copy_paddr_list",
+                      "Could not map memory in PDT."
+                      "vaddr: %X, paddr: %X, bytes: %X", vaddr, paddr, bytes);
+            kfree(pe);
+            pfa_free_cont(paddr, p->count);
+            return -1;
+        }
+
+        vaddr += bytes;
+        p = p->next;
+    }
+
+    return 0;
+}
+
+ps_t *process_clone(ps_t *parent, uint32_t id)
+{
+    uint32_t error;
+
+    /* initialize the new process */
+    ps_t *child = kmalloc(sizeof(ps_t));
+    if (child == NULL) {
+        log_error("process_clone",
+                  "Couldn't allocate memory for ps_t struct\n");
+        return NULL;
+    }
+    process_init(child, id);
+
+    /* copy registers */
+    child->registers = parent->registers;
+
+    /* create a new PDT */
+    error = process_load_pdt(child);
+    if (error) {
+        log_error("process_clone",
+                  "Could not create PDT for child process %u.\n", id);
+        process_delete(child);
+        return NULL;
+    }
+
+    /* copy code */
+    child->code_start_vaddr = parent->code_start_vaddr;
+    error = process_copy_paddr_list(child->pdt,
+                                    parent->code_start_vaddr,
+                                    &parent->code_paddrs,
+                                    &child->code_paddrs);
+    if (error) {
+        log_error("process_clone",
+                  "couldn't copy code from parent ps. parent: %u, child: %u\n",
+                  parent->id, id);
+        process_delete(child);
+        return NULL;
+    }
+
+    /* copy stack */
+    child->stack_start_vaddr = parent->stack_start_vaddr;
+    error = process_copy_paddr_list(child->pdt,
+                                    parent->stack_start_vaddr,
+                                    &parent->stack_paddrs,
+                                    &child->stack_paddrs);
+
+    /* create a new kernel stack */
+    error = process_load_kernel_stack(child);
+    if (error) {
+        log_error("process_clone",
+                  "Couldn't create kernel stack for process %u\n", id);
+        process_delete(child);
+        return NULL;
+    }
+
+    /* copy the file descriptors */
+    error = process_copy_file_descriptors(parent, child);
+    if (error) {
+        log_error("process_clone", "Error copying file descriptors. "
+                  "parent: %u, child: %u.\n", parent->id, id);
+        process_delete(child);
+        return NULL;
     }
 
     return child;

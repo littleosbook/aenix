@@ -22,4 +22,9 @@ struct vnodeops {
 };
 typedef struct vnodeops vnodeops_t;
 
+/* NOTE: This is not a "deep" copy. The v_op pointer will point to the
+ * same struct in both from and to.
+ */
+void vnode_copy(vnode_t *from, vnode_t *to);
+
 #endif /* VNODE_H */

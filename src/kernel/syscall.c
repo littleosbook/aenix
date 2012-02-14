@@ -19,14 +19,6 @@ typedef struct stack_state stack_state_t;
 
 typedef int (*syscall_handler_t)(uint32_t syscall, void *stack);
 
-static int sys_not_supported(uint32_t syscall, void *stack)
-{
-    UNUSED_ARGUMENT(syscall);
-    UNUSED_ARGUMENT(stack);
-
-    return -1;
-}
-
 static int sys_read(uint32_t syscall, void *stack)
 {
     UNUSED_ARGUMENT(syscall);
@@ -171,29 +163,31 @@ static int sys_execve(uint32_t syscall, void *stack)
     return 0;
 }
 
-/*static int sys_fork(uint32_t syscall, void *stack)*/
-/*{*/
-    /*UNUSED_ARGUMENT(syscall);*/
-    /*ps_t *current, *new;*/
+static int sys_fork(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    UNUSED_ARGUMENT(stack);
 
-    /*uint32_t new_pid = scheduler_next_pid();*/
-    /*current = scheduler_get_current_process();*/
-    /*new = process_clone(current, new_pid);*/
-    /*if (new == NULL) {*/
-        /*return -1;*/
-    /*}*/
+    ps_t *current, *new;
 
-    /*scheduler_add_process(new);*/
+    uint32_t new_pid = scheduler_next_pid();
+    current = scheduler_get_current_process();
+    new = process_clone(current, new_pid);
+    if (new == NULL) {
+        return -1;
+    }
 
-    /*return new_pid;*/
-/*}*/
+    scheduler_add_process(new);
+
+    return new_pid;
+}
 
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 0 */ sys_open,
 /* 1 */ sys_read,
 /* 2 */ sys_write,
-/* 3 */ sys_execve
-/*4 sys_fork,*/
+/* 3 */ sys_execve,
+/* 4 */ sys_fork,
 /*5 sys_yield,*/
 /*6 sys_exit*/
     };

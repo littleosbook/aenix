@@ -106,7 +106,7 @@ void scheduler_schedule(void)
     }
 
     ps_t *ps = next->ps;
-    tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_vaddr);
+    tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_start_vaddr);
     pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
     enter_user_mode(&ps->registers);
 }
