@@ -118,5 +118,8 @@ handle_syscall:
 
 switch_to_kernel_stack:
     mov     eax, [esp+4]	; load address of continuation into eax
-	mov		esp, kernel_stack + KERNEL_STACK_SIZE
-	jmp		eax
+    mov     ebx, [esp+8]    ; load the data into ebx
+    mov	    esp, kernel_stack + KERNEL_STACK_SIZE
+    push    ebx             ; push the data on the new stack
+    call    eax             ; use call instead of jmp since C expects ret addr
+    jmp     $

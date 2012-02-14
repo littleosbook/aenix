@@ -291,7 +291,7 @@ ps_t *process_create(char const *path, uint32_t id)
 }
 
 
-ps_t *process_create_fork(ps_t *parent, char const *path)
+ps_t *process_create_replacement(ps_t *parent, char const *path)
 {
     int i;
     ps_t *child;

@@ -19,8 +19,6 @@ typedef struct stack_state stack_state_t;
 
 typedef int (*syscall_handler_t)(uint32_t syscall, void *stack);
 
-static ps_t *tmp; /* used for holding data when switching stacks */
-
 static int sys_not_supported(uint32_t syscall, void *stack)
 {
     UNUSED_ARGUMENT(syscall);
@@ -139,12 +137,18 @@ static int sys_open(uint32_t syscall, void *stack)
 }
 
 
-static void continue_execve(void)
+static void continue_execve(uint32_t data)
 {
+    ps_t *new = (ps_t *) data;
+
+    log_debug("continue_execve", "new->pid %u\n", new->id);
+
     ps_t *old = scheduler_get_current_process();
     process_delete(old);
 
-    scheduler_switch_to_process(tmp);
+    scheduler_switch_to_process(new);
+
+    /* will never reach this code */
 }
 
 static int sys_execve(uint32_t syscall, void *stack)
@@ -157,14 +161,15 @@ static int sys_execve(uint32_t syscall, void *stack)
 
     path = PEEK_STACK(stack, char const *);
     current = scheduler_get_current_process();
-    new = process_create_fork(current, path);
+    new = process_create_replacement(current, path);
     if (new == NULL) {
         return -1;
     }
 
-    tmp = new;
+    switch_to_kernel_stack(&continue_execve, (uint32_t) new);
 
-    switch_to_kernel_stack(&continue_execve);
+    /* will never reach this code */
+
     return 0;
 }
 
