@@ -12,24 +12,31 @@ section .text
 align 4
 enter_user_mode:
     cli                             ; disable external interrupts
-    mov     eax, [esp+4]            ; load address of init into eax
-    mov     ebx, [esp+8]            ; load address of stack into ebx
+    mov     eax, [esp+4]            ; load address of registers_t into eax
+
+    ; restore all the registers except eax
+    mov     ebx, [eax+4]
+    mov     ecx, [eax+8]
+    mov     edx, [eax+12]
+    mov     ebp, [eax+16]
+    mov     esi, [eax+20]
+    mov     edi, [eax+24]
+
+    ; push information for iret onto the stack
     push    USER_MODE_DS            ; push the SS onto the stack
-    push    ebx                     ; push the ESP of the user stack
-
-    pushf                           ; push the current value of EFLAGS
-    pop     edx                     ; store the value of EFLAGS in edx
-    or      edx, ENABLE_INTERRUPTS  ; set the IF bit to 1
-    push    edx                     ; push the value of EFLAGS back on the stack
-
+    push    DWORD [eax+28]          ; push the ESP of the user stack
+    push    DWORD [eax+32]          ; push EFLAGS
     push    USER_MODE_CS            ; push the segment selector
-    push    eax                     ; push EIP, the CPU will start to exec init
+    push    DWORD [eax+36]          ; push EIP, the CPU will start to exec init
+    mov     eax, [eax]              ; restore eax
 
     ; move index for the user mode data segment with RPL = 3 into data registers
+    push    ecx
     mov     cx, USER_MODE_DS
     mov     ds, cx
     mov     gs, cx
     mov     es, cx
     mov     fs, cx
+    pop     ecx
 
     iret                            ; iret into user mode

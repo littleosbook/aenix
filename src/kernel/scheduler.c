@@ -16,7 +16,20 @@ static ps_list_t *last = NULL;
 static ps_list_t *pss = NULL;
 
 /* defined in scheduler_asm.s */
-void enter_user_mode(uint32_t init_addr, uint32_t stack_addr);
+void enter_user_mode(registers_t *registers);
+
+uint32_t scheduler_next_pid(void)
+{
+    uint32_t pid = 1;
+    ps_list_t *p = pss;
+    while (p != NULL) {
+        if (p->ps != NULL && p->ps->id >= pid) {
+            pid = p->ps->id + 1;
+        }
+    }
+
+    return pid;
+}
 
 ps_t *scheduler_get_current_process()
 {
@@ -95,5 +108,5 @@ void scheduler_schedule(void)
     ps_t *ps = next->ps;
     tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_vaddr);
     pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
-    enter_user_mode(ps->code_vaddr, ps->stack_vaddr);
+    enter_user_mode(&ps->registers);
 }

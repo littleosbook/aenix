@@ -23,4 +23,7 @@
 #define SEGSEL_USER_SPACE_CS 0x18
 #define SEGSEL_USER_SPACE_DS 0x20
 
+/* registers */
+#define REG_EFLAGS_DEFAULT 0x202
+
 #endif

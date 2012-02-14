@@ -3,6 +3,7 @@
 extern interrupt_handler
 extern syscall_handle_interrupt
 extern kernel_stack
+extern enter_user_mode
 
 global enable_interrupts
 global disable_interrupts
@@ -106,15 +107,9 @@ handle_syscall:
 	push	esi
 	push	edi
 	call	syscall_handle_interrupt
-	pop		edi
-	pop		esi
-	pop		ebp
-	pop		esp
-	pop		ebx
-	pop		edx
-	pop		ecx
-    add		esp, 4			; don't pop eax since eax contains return value
-    iret
+    push    eax
+    call    enter_user_mode
+    jmp     $
 
 switch_to_kernel_stack:
     mov     eax, [esp+4]	; load address of continuation into eax

@@ -7,7 +7,7 @@
 #include "kmalloc.h"
 #include "process.h"
 
-#define NUM_SYSCALLS 12
+#define NUM_SYSCALLS 7
 #define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
 #define PEEK_STACK(stack, type) (*((type *) (stack)))
 
@@ -171,39 +171,55 @@ static int sys_execve(uint32_t syscall, void *stack)
     return 0;
 }
 
-static int sys_fork(uint32_t syscall, void *stack)
-{
-    UNUSED_ARGUMENT(syscall);
-    UNUSED_ARGUMENT(stack);
+/*static int sys_fork(uint32_t syscall, void *stack)*/
+/*{*/
+    /*UNUSED_ARGUMENT(syscall);*/
+    /*ps_t *current, *new;*/
 
-    /* HELINO_RESUME */
-    return -1;
-}
+    /*uint32_t new_pid = scheduler_next_pid();*/
+    /*current = scheduler_get_current_process();*/
+    /*new = process_clone(current, new_pid);*/
+    /*if (new == NULL) {*/
+        /*return -1;*/
+    /*}*/
+
+    /*scheduler_add_process(new);*/
+
+    /*return new_pid;*/
+/*}*/
 
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
-/* 0 */  sys_not_supported,
-/* 1 */  sys_not_supported,
-/* 2 */  sys_fork,
-/* 3 */  sys_read,
-/* 4 */  sys_write,
-/* 5 */  sys_open,
-/* 6 */  sys_not_supported,
-/* 7 */  sys_not_supported,
-/* 8 */  sys_not_supported,
-/* 9 */  sys_not_supported,
-/* 10 */ sys_not_supported,
-/* 11 */ sys_execve
+/* 0 */ sys_open,
+/* 1 */ sys_read,
+/* 2 */ sys_write,
+/* 3 */ sys_execve
+/*4 sys_fork,*/
+/*5 sys_yield,*/
+/*6 sys_exit*/
     };
 
-
-int syscall_handle_interrupt(cpu_state_t cpu_state,
-                                  exec_state_t exec_state,
-                                  stack_state_t ss)
+static void update_register_values(ps_t *ps, cpu_state_t cs, exec_state_t es,
+                                   stack_state_t ss)
 {
-    UNUSED_ARGUMENT(cpu_state);
-    UNUSED_ARGUMENT(exec_state);
+    ps->registers.eax = cs.eax;
+    ps->registers.ebx = cs.ebx;
+    ps->registers.ecx = cs.ecx;
+    ps->registers.edx = cs.edx;
+    ps->registers.ebp = cs.ebp;
+    ps->registers.esi = cs.esi;
+    ps->registers.edi = cs.edi;
+    ps->registers.eflags = es.eflags;
+    ps->registers.eip = es.eip;
+    ps->registers.esp = ss.user_esp;
+}
 
-    /* TODO: Take care of security issues regarding syscall params */
+registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
+                                     exec_state_t exec_state,
+                                     stack_state_t ss)
+{
+    ps_t *ps = scheduler_get_current_process();
+    update_register_values(ps, cpu_state, exec_state, ss);
+
     uint32_t *user_stack = (uint32_t *) ss.user_esp;
     uint32_t syscall = *user_stack;
 
@@ -212,8 +228,11 @@ int syscall_handle_interrupt(cpu_state_t cpu_state,
                  "bad syscall used."
                  "syscall: %X, ss.user_esp: %X, ss.user_ss: %X\n",
                  syscall, ss.user_esp, ss.user_ss);
-        return 1;
+        ps->registers.eax = -1;
+        return &ps->registers;
     }
 
-    return handlers[syscall](syscall, user_stack + 1);
+    int eax = handlers[syscall](syscall, user_stack + 1);
+    ps->registers.eax = eax;
+    return &ps->registers;
 }

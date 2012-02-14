@@ -10,6 +10,7 @@
 #include "math.h"
 #include "tss.h"
 #include "gdt.h"
+#include "constants.h"
 
 #define PROC_INITIAL_STACK_SIZE 1 /* in page frames */
 #define PROC_INITIAL_STACK_VADDR (KERNEL_START_VADDR - FOUR_KB)
@@ -95,7 +96,7 @@ static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
 
     ps->code_paddrs->paddr = paddr;
     ps->code_paddrs->count = pfs;
-    ps->code_vaddr = vaddr;
+    ps->registers.eip = vaddr;
 
     return 0;
 }
@@ -133,7 +134,7 @@ static int process_load_stack(ps_t *ps)
 
     ps->stack_paddrs->paddr = paddr;
     ps->stack_paddrs->count = pfs;
-    ps->stack_vaddr = PROC_INITIAL_ESP;
+    ps->registers.esp = PROC_INITIAL_ESP;
 
     return 0;
 }
@@ -258,6 +259,8 @@ ps_t *process_create(char const *path, uint32_t id)
     ps->kernel_stack_paddrs = NULL;
     ps->kernel_stack_vaddr = 0;
     memset(ps->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
+    memset(&ps->registers, 0, sizeof(registers_t));
+    ps->registers.eflags = REG_EFLAGS_DEFAULT;
 
     if (process_load_pdt(ps)) {
         log_error("process_create",

@@ -165,7 +165,7 @@ static multiboot_info_t *remap_multiboot_info(uint32_t mbaddr)
 
 static void start_init()
 {
-    ps_t *init = process_create("/bin/init", 1);
+    ps_t *init = process_create("/bin/init", scheduler_next_pid());
     if (init == NULL) {
         printf("ERROR: Could not create init!\n");
     } else {
