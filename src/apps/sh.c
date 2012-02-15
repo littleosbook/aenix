@@ -25,7 +25,8 @@ int main(void)
 
             if (i++ >= 5) {
                 syscall(SYS_write, 1, "child exiting\n", 14);
-                syscall(SYS_exit, 0);
+                /*syscall(SYS_exit, 0);*/
+                return 0;
             }
         }
     }
