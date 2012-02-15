@@ -7,7 +7,7 @@
 #include "kmalloc.h"
 #include "process.h"
 
-#define NUM_SYSCALLS 7
+#define NUM_SYSCALLS 8
 #define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
 #define PEEK_STACK(stack, type) (*((type *) (stack)))
 
@@ -143,6 +143,7 @@ static void continue_execve(uint32_t data)
 static int sys_execve(uint32_t syscall, void *stack)
 {
     UNUSED_ARGUMENT(syscall);
+
     char const *path;
     ps_t *current, *new;
 
@@ -150,6 +151,8 @@ static int sys_execve(uint32_t syscall, void *stack)
     current = scheduler_get_current_process();
     new = process_create_replacement(current, path);
     if (new == NULL) {
+        log_error("sys_execve", "Could not create replacement process. "
+                  "current: %u, path: %s\n", current->id, path);
         return -1;
     }
 
@@ -165,17 +168,19 @@ static int sys_fork(uint32_t syscall, void *stack)
     UNUSED_ARGUMENT(syscall);
     UNUSED_ARGUMENT(stack);
 
-    ps_t *current, *new;
+    ps_t *parent, *new;
 
     uint32_t new_pid = scheduler_next_pid();
-    current = scheduler_get_current_process();
-    new = process_clone(current, new_pid);
+    parent = scheduler_get_current_process();
+    new = process_clone(parent, new_pid);
     if (new == NULL) {
         log_error("sys_fork", "can't create fork of process %u\n",
-                  current->id);
+                  parent->id);
         return -1;
     }
-    new->registers.eax = 0;
+
+    new->user_mode.eax = 0;
+    new->current = new->user_mode;
 
     scheduler_add_runnable_process(new);
 
@@ -187,8 +192,11 @@ static int sys_yield(uint32_t syscall, void *stack)
     UNUSED_ARGUMENT(syscall);
     UNUSED_ARGUMENT(stack);
 
-    ps_t *current = scheduler_get_current_process();
-    current->registers.eax = 0;
+    ps_t *ps = scheduler_get_current_process();
+    ps->user_mode.eax = 0;
+
+    disable_interrupts();
+    ps->current = ps->user_mode;
 
     scheduler_schedule();
 
@@ -200,9 +208,9 @@ static int sys_yield(uint32_t syscall, void *stack)
 static void continue_exit(uint32_t data)
 {
     UNUSED_ARGUMENT(data);
-    ps_t *current = scheduler_get_current_process();
+    ps_t *ps = scheduler_get_current_process();
 
-    scheduler_terminate_process(current);
+    scheduler_terminate_process(ps);
 
     scheduler_schedule();
     /* we should never get here */
@@ -221,6 +229,32 @@ static int sys_exit(uint32_t syscall, void *stack)
     return -1;
 }
 
+static int sys_wait(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    UNUSED_ARGUMENT(stack);
+
+    ps_t *ps = scheduler_get_current_process();
+
+    if (!scheduler_num_children(ps->id)) {
+        return -1;
+    }
+
+    while (1) {
+        if (scheduler_has_any_child_terminated(ps)) {
+            /* will be turned to user mode process by wrapper */
+            return 0;
+        } else {
+            /* should continue to be kernel process */
+            snapshot_and_schedule(&ps->current);
+        }
+    }
+
+    /* can't reach this code */
+
+    return -1;
+}
+
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 0 */ sys_open,
 /* 1 */ sys_read,
@@ -229,21 +263,24 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 4 */ sys_fork,
 /* 5 */ sys_yield,
 /* 6 */ sys_exit,
+/* 7 */ sys_wait,
     };
 
-static void update_register_values(ps_t *ps, cpu_state_t cs, exec_state_t es,
-                                   stack_state_t ss)
+static void update_user_mode_registers(ps_t *ps, cpu_state_t cs,
+                                       exec_state_t es, stack_state_t ss)
 {
-    ps->registers.eax = cs.eax;
-    ps->registers.ebx = cs.ebx;
-    ps->registers.ecx = cs.ecx;
-    ps->registers.edx = cs.edx;
-    ps->registers.ebp = cs.ebp;
-    ps->registers.esi = cs.esi;
-    ps->registers.edi = cs.edi;
-    ps->registers.eflags = es.eflags;
-    ps->registers.eip = es.eip;
-    ps->registers.esp = ss.user_esp;
+    ps->user_mode.eax = cs.eax;
+    ps->user_mode.ebx = cs.ebx;
+    ps->user_mode.ecx = cs.ecx;
+    ps->user_mode.edx = cs.edx;
+    ps->user_mode.ebp = cs.ebp;
+    ps->user_mode.esi = cs.esi;
+    ps->user_mode.edi = cs.edi;
+    ps->user_mode.eflags = es.eflags;
+    ps->user_mode.eip = es.eip;
+    ps->user_mode.esp = ss.user_esp;
+    ps->user_mode.stack_ss = ss.user_ss;
+    ps->user_mode.code_ss = es.cs;
 }
 
 registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
@@ -251,7 +288,7 @@ registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
                                      stack_state_t ss)
 {
     ps_t *ps = scheduler_get_current_process();
-    update_register_values(ps, cpu_state, exec_state, ss);
+    update_user_mode_registers(ps, cpu_state, exec_state, ss);
 
     uint32_t *user_stack = (uint32_t *) ss.user_esp;
     uint32_t syscall = *user_stack;
@@ -261,11 +298,12 @@ registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
                  "bad syscall used."
                  "syscall: %X, ss.user_esp: %X, ss.user_ss: %X\n",
                  syscall, ss.user_esp, ss.user_ss);
-        ps->registers.eax = -1;
-        return &ps->registers;
+        ps->user_mode.eax = -1;
+        return &ps->user_mode;
     }
 
     int eax = handlers[syscall](syscall, user_stack + 1);
-    ps->registers.eax = eax;
-    return &ps->registers;
+    disable_interrupts();
+    ps->user_mode.eax = eax;
+    return &ps->user_mode;
 }

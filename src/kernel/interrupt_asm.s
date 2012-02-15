@@ -3,7 +3,7 @@
 extern interrupt_handler
 extern syscall_handle_interrupt
 extern kernel_stack
-extern enter_user_mode
+extern run_process
 
 global enable_interrupts
 global disable_interrupts
@@ -109,10 +109,11 @@ handle_syscall:
     push	edi
     call	syscall_handle_interrupt
     push    eax
-    call    enter_user_mode
+    call    run_process
     jmp     $
 
 switch_to_kernel_stack:
+    cli                     ; can't be interrupted while running on shared stack
     mov     eax, [esp+4]	; load address of continuation into eax
     mov     ebx, [esp+8]    ; load the data into ebx
     mov	    esp, kernel_stack + KERNEL_STACK_SIZE

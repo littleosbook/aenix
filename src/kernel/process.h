@@ -16,8 +16,10 @@ struct registers {
     uint32_t ebp;
     uint32_t esi;
     uint32_t edi;
+    uint32_t stack_ss;
     uint32_t esp;
     uint32_t eflags;
+    uint32_t code_ss;
     uint32_t eip;
 } __attribute__((packed));
 typedef struct registers registers_t;
@@ -48,7 +50,8 @@ struct ps {
     pde_t *pdt;
     uint32_t pdt_paddr;
 
-    registers_t registers;
+    registers_t current;
+    registers_t user_mode;
 
     uint32_t kernel_stack_start_vaddr;
     uint32_t stack_start_vaddr;
@@ -72,5 +75,7 @@ ps_t *process_replace(ps_t *ps, char const *path);
 void process_delete_resources(ps_t *ps);
 ps_t *process_create_replacement(ps_t *parent, char const *path);
 ps_t *process_clone(ps_t *parent, uint32_t pid);
+void process_mark_as_user(ps_t *ps);
+void process_mark_as_kernel(ps_t *ps);
 
 #endif /* PROCESS_H */

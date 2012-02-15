@@ -23,7 +23,7 @@ static ps_list_t runnable_pss = { NULL, NULL };
 static ps_list_t zombie_pss = { NULL, NULL };
 
 /* defined in scheduler_asm.s */
-void enter_user_mode(registers_t *registers);
+void run_process(registers_t *registers);
 
 static uint32_t max_id_in_ps_list(ps_list_t *pss)
 {
@@ -31,7 +31,7 @@ static uint32_t max_id_in_ps_list(ps_list_t *pss)
     ps_list_ele_t *p = pss->start;
     while (p != NULL) {
         if (p->ps != NULL && p->ps->id >= max) {
-            max = p->ps->id + 1;
+            max = p->ps->id;
         }
         p = p->next;
     }
@@ -43,7 +43,7 @@ uint32_t scheduler_next_pid(void)
     uint32_t pid_runnable = max_id_in_ps_list(&runnable_pss);
     uint32_t pid_zombie = max_id_in_ps_list(&zombie_pss);
 
-    return maxu(pid_runnable, pid_zombie);
+    return maxu(pid_runnable, pid_zombie) + 1;
 }
 
 ps_t *scheduler_get_current_process()
@@ -120,6 +120,41 @@ void scheduler_terminate_process(ps_t *ps)
     scheduler_add_process(&zombie_pss, ps);
 }
 
+int scheduler_has_any_child_terminated(ps_t *parent)
+{
+    ps_list_ele_t *e = zombie_pss.start;
+    while (e != NULL) {
+        if (e->ps->parent_id == parent->id) {
+            return 1;
+        }
+        e = e->next;
+    }
+
+    return 0;
+}
+
+static int scheduler_count_children_in_list(ps_list_t *pss, uint32_t pid)
+{
+    int num = 0;
+    ps_list_ele_t *e = pss->start;
+    while (e != NULL) {
+        if (e->ps->parent_id == pid) {
+            ++num;
+        }
+        e = e->next;
+    }
+
+    return num;
+}
+
+int scheduler_num_children(uint32_t pid)
+{
+    int num_zombies = scheduler_count_children_in_list(&zombie_pss, pid);
+    int num_running = scheduler_count_children_in_list(&runnable_pss, pid);
+
+    return num_zombies + num_running;
+}
+
 int scheduler_replace_process(ps_t *old, ps_t *new)
 {
     int error;
@@ -165,5 +200,5 @@ void scheduler_schedule(void)
 
     tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_start_vaddr);
     pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
-    enter_user_mode(&ps->registers);
+    run_process(&ps->current);
 }

@@ -4,13 +4,22 @@
 
 int main(void)
 {
+    int pid;
+
     /* open the devices for standard file descriptors */
     syscall(SYS_open, "/dev/keyboard"); /* STDIN  */
     syscall(SYS_open, "/dev/console");  /* STDOUT */
     syscall(SYS_open, "/dev/console");  /* STDERR */
 
     /* start the shell */
-    syscall(SYS_execve, "/bin/sh");
+    pid = syscall(SYS_fork);
+    if (pid == 0) {
+        syscall(SYS_execve, "/bin/sh");
+    } else {
+        while (syscall(SYS_wait) != -1) {
+        }
+        /* TODO: shut down the kernel */
+    }
 
     return 0;
 }

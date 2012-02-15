@@ -101,7 +101,7 @@ static int process_load_code(ps_t *ps, char const *path, uint32_t vaddr)
 
     ps->code_paddrs.start = code_paddrs;
     ps->code_paddrs.end = code_paddrs;
-    ps->registers.eip = vaddr;
+    ps->user_mode.eip = vaddr;
     ps->code_start_vaddr = vaddr;
 
     return 0;
@@ -146,7 +146,7 @@ static int process_load_stack(ps_t *ps)
     ps->stack_paddrs.start = stack_paddrs;
     ps->stack_paddrs.end = stack_paddrs;
     ps->stack_start_vaddr = PROC_INITIAL_STACK_VADDR;
-    ps->registers.esp = PROC_INITIAL_ESP;
+    ps->user_mode.esp = PROC_INITIAL_ESP;
 
     return 0;
 }
@@ -285,9 +285,14 @@ static void process_init(ps_t *ps, uint32_t id)
     ps->stack_paddrs.end = NULL;
     ps->kernel_stack_paddrs.start = NULL;
     ps->kernel_stack_paddrs.end = NULL;
+
     memset(ps->file_descriptors, 0, PROCESS_MAX_NUM_FD * sizeof(fd_t));
-    memset(&ps->registers, 0, sizeof(registers_t));
-    ps->registers.eflags = REG_EFLAGS_DEFAULT;
+    memset(&ps->user_mode, 0, sizeof(registers_t));
+    memset(&ps->current, 0, sizeof(registers_t));
+
+    ps->user_mode.eflags = REG_EFLAGS_DEFAULT;
+    ps->user_mode.stack_ss = (SEGSEL_USER_SPACE_DS | 0x03);
+    ps->user_mode.code_ss = (SEGSEL_USER_SPACE_CS | 0x03);
 }
 
 ps_t *process_create(char const *path, uint32_t id)
@@ -331,6 +336,7 @@ ps_t *process_create(char const *path, uint32_t id)
         return NULL;
     }
 
+    ps->current = ps->user_mode;
     return ps;
 }
 
@@ -472,8 +478,8 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
     process_init(child, id);
     child->parent_id = parent->id;
 
-    /* copy registers */
-    child->registers = parent->registers;
+    /* copy user mode registers */
+    child->user_mode = parent->user_mode;
 
     /* create a new PDT */
     error = process_load_pdt(child);
