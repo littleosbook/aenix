@@ -134,8 +134,7 @@ static void continue_execve(uint32_t data)
     ps_t *new = (ps_t *) data;
     ps_t *old = scheduler_get_current_process();
 
-    scheduler_remove_process(old->id);
-    scheduler_add_process(new);
+    scheduler_replace_process(old, new);
 
     scheduler_schedule();
     /* will never reach this code */
@@ -146,8 +145,6 @@ static int sys_execve(uint32_t syscall, void *stack)
     UNUSED_ARGUMENT(syscall);
     char const *path;
     ps_t *current, *new;
-
-    disable_interrupts();
 
     path = PEEK_STACK(stack, char const *);
     current = scheduler_get_current_process();
@@ -180,7 +177,7 @@ static int sys_fork(uint32_t syscall, void *stack)
     }
     new->registers.eax = 0;
 
-    scheduler_add_process(new);
+    scheduler_add_runnable_process(new);
 
     return new_pid;
 }
@@ -205,10 +202,7 @@ static void continue_exit(uint32_t data)
     UNUSED_ARGUMENT(data);
     ps_t *current = scheduler_get_current_process();
 
-    /* TODO: change process state into zombie, and don't delete it until some
-     * process waits on it
-     */
-    scheduler_remove_process(current->id);
+    scheduler_terminate_process(current);
 
     scheduler_schedule();
     /* we should never get here */

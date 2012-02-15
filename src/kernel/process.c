@@ -239,7 +239,7 @@ static uint32_t delete_paddr_list(paddr_list_t *l)
     return size * FOUR_KB;
 }
 
-void process_delete(ps_t *ps)
+void process_delete_resources(ps_t *ps)
 {
     uint32_t size, i;
 
@@ -262,14 +262,19 @@ void process_delete(ps_t *ps)
              */
         }
     }
+}
 
+static void process_delete_and_free(ps_t *ps)
+{
+    process_delete_resources(ps);
     kfree(ps);
 }
 
 static void process_init(ps_t *ps, uint32_t id)
 {
-    ps->pdt = 0;
     ps->id = id;
+    ps->parent_id = 0;
+    ps->pdt = 0;
     ps->pdt_paddr = 0;
     ps->kernel_stack_start_vaddr = 0;
     ps->code_start_vaddr = 0;
@@ -301,28 +306,28 @@ ps_t *process_create(char const *path, uint32_t id)
     if (process_load_pdt(ps)) {
         log_error("process_create",
                   "Couldn't create pdt for process %u\n", id);
-        process_delete(ps);
+        process_delete_and_free(ps);
         return NULL;
     }
 
     if (process_load_code(ps, path, 0)) {
         log_error("process_create",
                   "Couldn't load code at path %s for process %u\n", path, id);
-        process_delete(ps);
+        process_delete_and_free(ps);
         return NULL;
     }
 
     if (process_load_stack(ps)) {
         log_error("process_create",
                   "Couldn't load stack for process %u\n", id);
-        process_delete(ps);
+        process_delete_and_free(ps);
         return NULL;
     }
 
     if (process_load_kernel_stack(ps)) {
         log_error("process_create",
                   "Couldn't load kernel stack for process %u\n", id);
-        process_delete(ps);
+        process_delete_and_free(ps);
         return NULL;
     }
 
@@ -340,7 +345,7 @@ static int process_copy_file_descriptors(ps_t *from, ps_t *to)
                 log_error("process_copy_file_descriptors",
                           "Couldn't allocate memory for vnode. "
                           "from: %u, to: %u\n", from->id, to->id);
-                return -1; /* process_delete will free previous vnodes */
+                return -1; /* process_delete_resources will free prev vnodes */
             }
             vnode_copy(from->file_descriptors[i].vnode, copy);
             to->file_descriptors[i].vnode = copy;
@@ -362,12 +367,14 @@ ps_t *process_create_replacement(ps_t *parent, char const *path)
         return NULL;
     }
 
+    child->parent_id = parent->parent_id;
+
     /* copy the old data */
     if (process_copy_file_descriptors(parent, child)) {
         log_error("process_create_replacement",
                   "Could not copy file descriptors from. "
                   "parent: %u, child: %u.\n", parent->id, child->id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 
@@ -463,17 +470,17 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
         return NULL;
     }
     process_init(child, id);
+    child->parent_id = parent->id;
 
     /* copy registers */
     child->registers = parent->registers;
-    child->registers.eflags = REG_EFLAGS_DEFAULT; /* create clean eflags */
 
     /* create a new PDT */
     error = process_load_pdt(child);
     if (error) {
         log_error("process_clone",
                   "Could not create PDT for child process %u.\n", id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 
@@ -487,7 +494,7 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
         log_error("process_clone",
                   "couldn't copy code from parent ps. parent: %u, child: %u\n",
                   parent->id, id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 
@@ -501,7 +508,7 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
         log_error("process_clone",
                   "couldn't stack from parent ps. parent: %u, child: %u\n",
                   parent->id, id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 
@@ -510,7 +517,7 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
     if (error) {
         log_error("process_clone",
                   "Couldn't create kernel stack for process %u\n", id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 
@@ -519,7 +526,7 @@ ps_t *process_clone(ps_t *parent, uint32_t id)
     if (error) {
         log_error("process_clone", "Error copying file descriptors. "
                   "parent: %u, child: %u.\n", parent->id, id);
-        process_delete(child);
+        process_delete_and_free(child);
         return NULL;
     }
 

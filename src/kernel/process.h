@@ -5,7 +5,7 @@
 #include "vnode.h"
 #include "paging.h"
 
-#define PROCESS_MAX_NUM_FD 64
+#define PROCESS_MAX_NUM_FD      64
 
 /* do not change order of variables in the struct, asm code depends on it! */
 struct registers {
@@ -43,6 +43,7 @@ typedef struct fd fd_t;
 
 struct ps {
     uint32_t id;
+    uint32_t parent_id;
 
     pde_t *pdt;
     uint32_t pdt_paddr;
@@ -63,7 +64,12 @@ typedef struct ps ps_t;
 
 ps_t *process_create(char const *path, uint32_t id);
 ps_t *process_replace(ps_t *ps, char const *path);
-void process_delete(ps_t *ps);
+
+/*
+ * does not free the ps_t struct, only the memory and resources used by the
+ * process
+ */
+void process_delete_resources(ps_t *ps);
 ps_t *process_create_replacement(ps_t *parent, char const *path);
 ps_t *process_clone(ps_t *parent, uint32_t pid);
 
