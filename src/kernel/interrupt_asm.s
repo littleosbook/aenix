@@ -98,15 +98,16 @@ no_error_code_handler 47
 
 ; system call interrupt
 handle_syscall:
-	push	eax
-	push	ecx
-	push	edx
-	push	ebx
-	push	esp
-	push	ebp
-	push	esi
-	push	edi
-	call	syscall_handle_interrupt
+    cli             ; TODO: replace with kernel locks
+    push	eax
+    push	ecx
+    push	edx
+    push	ebx
+    push	esp
+    push	ebp
+    push	esi
+    push	edi
+    call	syscall_handle_interrupt
     push    eax
     call    enter_user_mode
     jmp     $
