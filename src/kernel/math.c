@@ -9,3 +9,8 @@ uint32_t minu(uint32_t a, uint32_t b)
 {
     return a < b ? a : b;
 }
+
+uint32_t maxu(uint32_t a, uint32_t b)
+{
+    return a > b ? a : b;
+}
