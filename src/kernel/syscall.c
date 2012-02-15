@@ -200,6 +200,33 @@ static int sys_yield(uint32_t syscall, void *stack)
     return -1;
 }
 
+static void continue_exit(uint32_t data)
+{
+    UNUSED_ARGUMENT(data);
+    ps_t *current = scheduler_get_current_process();
+
+    /* TODO: change process state into zombie, and don't delete it until some
+     * process waits on it
+     */
+    scheduler_remove_process(current->id);
+
+    scheduler_schedule();
+    /* we should never get here */
+}
+
+static int sys_exit(uint32_t syscall, void *stack)
+{
+    UNUSED_ARGUMENT(syscall);
+    UNUSED_ARGUMENT(stack);
+
+    /* TODO: use exit status from stack */
+
+    switch_to_kernel_stack(continue_exit, 0);
+
+    /* we should never get here */
+    return -1;
+}
+
 static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 0 */ sys_open,
 /* 1 */ sys_read,
@@ -207,7 +234,7 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
 /* 3 */ sys_execve,
 /* 4 */ sys_fork,
 /* 5 */ sys_yield,
-/*6 sys_exit*/
+/* 6 */ sys_exit,
     };
 
 static void update_register_values(ps_t *ps, cpu_state_t cs, exec_state_t es,
