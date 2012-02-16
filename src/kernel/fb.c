@@ -136,7 +136,7 @@ void fb_put_ui(uint32_t i)
         n = 1000000000;
     } else {
         n = 1;
-        while (n*10 < i) {
+        while (n*10 <= i) {
             n *= 10;
         }
     }
