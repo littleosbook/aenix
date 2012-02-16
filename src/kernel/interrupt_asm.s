@@ -28,24 +28,26 @@ interrupt_handler_%1:
 section .text:
 
 common_interrupt_handler:
+    push    esp
+    ; BEWARE: DON'T ADD INSTRUCTIONS ABOVE THIS LINE IF YOU DON'T KNOW WHAT THE
+    ;         INSTRUCTIONS FOLLOWING THIS COMMENT DOES!
+    add     DWORD [esp], 8 ; the callers esp. 12 since ERROR, SYSCALL, ESP
 	push	eax
+	push	ebx
 	push	ecx
 	push	edx
-	push	ebx
-	push	esp
 	push	ebp
 	push	esi
 	push	edi
 	call	interrupt_handler
-	pop	edi
-	pop	esi
-	pop	ebp
-	pop	esp
-	pop	ebx
-	pop	edx
-	pop	ecx
-	pop	eax
-	add	esp, 8
+	pop	    edi
+	pop	    esi
+	pop	    ebp
+	pop	    edx
+	pop	    ecx
+	pop	    ebx
+	pop	    eax
+	pop     esp
 	iret
 
 enable_interrupts:
@@ -98,7 +100,7 @@ no_error_code_handler 47
 
 ; system call interrupt
 handle_syscall:
-    cli             ; TODO: replace with kernel locks
+    ;cli             ; TODO: replace with kernel locks
     push	eax
     push	ecx
     push	edx

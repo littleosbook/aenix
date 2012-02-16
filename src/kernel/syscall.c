@@ -11,12 +11,6 @@
 #define NEXT_STACK_ITEM(stack) ((uint32_t *) (stack) + 1)
 #define PEEK_STACK(stack, type) (*((type *) (stack)))
 
-struct stack_state {
-    uint32_t user_esp;
-    uint32_t user_ss;
-} __attribute__((packed));
-typedef struct stack_state stack_state_t;
-
 typedef int (*syscall_handler_t)(uint32_t syscall, void *stack);
 
 static int sys_read(uint32_t syscall, void *stack)
@@ -195,7 +189,7 @@ static int sys_yield(uint32_t syscall, void *stack)
     ps_t *ps = scheduler_get_current_process();
     ps->user_mode.eax = 0;
 
-    disable_interrupts();
+    /*disable_interrupts();*/
     ps->current = ps->user_mode;
 
     scheduler_schedule();
@@ -267,7 +261,7 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
     };
 
 static void update_user_mode_registers(ps_t *ps, cpu_state_t cs,
-                                       exec_state_t es, stack_state_t ss)
+                                       exec_state_t es)
 {
     ps->user_mode.eax = cs.eax;
     ps->user_mode.ebx = cs.ebx;
@@ -278,32 +272,31 @@ static void update_user_mode_registers(ps_t *ps, cpu_state_t cs,
     ps->user_mode.edi = cs.edi;
     ps->user_mode.eflags = es.eflags;
     ps->user_mode.eip = es.eip;
-    ps->user_mode.esp = ss.user_esp;
-    ps->user_mode.stack_ss = ss.user_ss;
+    ps->user_mode.esp = es.user_esp;
+    ps->user_mode.stack_ss = es.user_ss;
     ps->user_mode.code_ss = es.cs;
 }
 
 registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
-                                     exec_state_t exec_state,
-                                     stack_state_t ss)
+                                      exec_state_t exec_state)
 {
     ps_t *ps = scheduler_get_current_process();
-    update_user_mode_registers(ps, cpu_state, exec_state, ss);
+    update_user_mode_registers(ps, cpu_state, exec_state);
 
-    uint32_t *user_stack = (uint32_t *) ss.user_esp;
+    uint32_t *user_stack = (uint32_t *) exec_state.user_esp;
     uint32_t syscall = *user_stack;
 
     if (syscall >= NUM_SYSCALLS) {
         log_info("syscall_handle_interrupt",
                  "bad syscall used."
                  "syscall: %X, ss.user_esp: %X, ss.user_ss: %X\n",
-                 syscall, ss.user_esp, ss.user_ss);
+                 syscall, exec_state.user_esp, exec_state.user_ss);
         ps->user_mode.eax = -1;
         return &ps->user_mode;
     }
 
     int eax = handlers[syscall](syscall, user_stack + 1);
-    disable_interrupts();
+    /*disable_interrupts();*/
     ps->user_mode.eax = eax;
     return &ps->user_mode;
 }

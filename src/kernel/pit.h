@@ -4,6 +4,7 @@
 #include "stdint.h"
 
 void pit_init(void);
-void pit_set_callback(uint16_t interval, void (*callback)(void));
+/* interval is in ms */
+void pit_set_interval(uint32_t interval);
 
 #endif /* PIT_H */

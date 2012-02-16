@@ -6,6 +6,8 @@
 
 uint32_t scheduler_next_pid(void);
 
+int scheduler_init(void);
+
 int scheduler_add_runnable_process(ps_t *ps);
 int scheduler_replace_process(ps_t *old, ps_t *new);
 void scheduler_terminate_process(ps_t *ps);

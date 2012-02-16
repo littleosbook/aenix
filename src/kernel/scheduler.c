@@ -6,6 +6,16 @@
 #include "log.h"
 #include "kmalloc.h"
 #include "math.h"
+#include "pit.h"
+#include "interrupt.h"
+#include "pic.h"
+#include "common.h"
+#include "stdio.h"
+
+#define SCHEDULER_PIT_INTERVAL 1 /* in ms */
+#define SCHEDULER_TIME_SLICE   SCHEDULER_PIT_INTERVAL // (5 * SCHEDULER_PIT_INTERVAL) /* in ms */
+
+uint32_t ms = 0;
 
 struct ps_list_ele {
     struct ps_list_ele *next;
@@ -44,6 +54,39 @@ uint32_t scheduler_next_pid(void)
     uint32_t pid_zombie = max_id_in_ps_list(&zombie_pss);
 
     return maxu(pid_runnable, pid_zombie) + 1;
+}
+
+static void scheduler_schedule_on_intterupt(cpu_state_t cs, exec_state_t es)
+{
+    UNUSED_ARGUMENT(cs);
+    if (es.cs == (SEGSEL_USER_SPACE_CS | 0x03)) {
+        printf("from user space\n");
+    } else {
+        printf("from kernel space\n");
+    }
+}
+
+static void scheduler_handle_pit_interrupt(cpu_state_t state, idt_info_t info,
+                                           exec_state_t exec)
+{
+    UNUSED_ARGUMENT(info);
+    ms += SCHEDULER_PIT_INTERVAL;
+
+    if (ms >= SCHEDULER_TIME_SLICE) {
+        scheduler_schedule_on_intterupt(state, exec);
+        ms = 0;
+    }
+
+    pic_acknowledge();
+
+    return;
+}
+
+int scheduler_init(void)
+{
+    pit_set_interval(SCHEDULER_PIT_INTERVAL);
+    return register_interrupt_handler(PIT_INT_IDX,
+                                      &scheduler_handle_pit_interrupt);
 }
 
 ps_t *scheduler_get_current_process()

@@ -31,6 +31,7 @@
 #define KINIT_ERROR_INIT_PFA 4
 #define KINIT_ERROR_MALLOC_ROOT_VFS 5
 #define KINIT_ERROR_INIT_VFS 6
+#define KINIT_ERROR_INIT_SCHEDULER 7
 
 /* Gets the physical address of the filesystem, which is the address of the
  * only GRUB module loaded
@@ -149,6 +150,11 @@ static uint32_t kinit(kernel_meminfo_t *mem,
 
     populate_devfs();
 
+    res = scheduler_init();
+    if (res != 0) {
+        return KINIT_ERROR_INIT_SCHEDULER;
+    }
+
     enable_interrupts();
     return 0;
 }
@@ -208,6 +214,9 @@ int kmain(uint32_t mbaddr, uint32_t magic_number, kernel_meminfo_t mem,
                 break;
             case KINIT_ERROR_INIT_VFS:
                 printf("ERROR: Could not initialize virtual filesystem!\n");
+                break;
+            case KINIT_ERROR_INIT_SCHEDULER:
+                printf("ERROR: Could not initialize scheduler!\n");
                 break;
             default:
                 printf("ERROR: Unknown error\n");
