@@ -74,7 +74,6 @@ static uint32_t fill_memory_map(multiboot_info_t const *mbinfo,
 static uint32_t construct_bitmap(memory_map_t *mmap, uint32_t n)
 {
     uint32_t i, bitmap_pfs, bitmap_size, paddr, vaddr, mapped_mem;
-    uint32_t *last;
     uint32_t total_pfs = 0;
 
     /* calculate number of available page frames */
@@ -126,14 +125,12 @@ static uint32_t construct_bitmap(memory_map_t *mmap, uint32_t n)
                   "paddr: %X, vaddr: %X, bitmap_size: %u\n",
                   paddr, vaddr, bitmap_size);
         return 1;
-
     }
 
     page_frames.start = (uint32_t *) vaddr;
 
-
     memset(page_frames.start, 0xFF, bitmap_size);
-    last = page_frames.start + bitmap_size - 1;
+    uint8_t *last = (uint8_t *)((uint32_t)page_frames.start + bitmap_size - 1);
     *last = 0;
     for (i = 0; i < page_frames.len % 8; ++i) {
         *last |= 0x01 << (7 - i);
@@ -170,6 +167,8 @@ uint32_t pfa_init(multiboot_info_t const *mbinfo,
 
         mmap[i].addr = addr;
         mmap[i].len = len;
+
+        log_debug("pfa_init", "mmap[%u] -> addr: %X, len: %u, pfs: %u\n", i, addr, len, len / FOUR_KB);
     }
 
     return construct_bitmap(mmap, n);
