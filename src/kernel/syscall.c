@@ -189,7 +189,7 @@ static int sys_yield(uint32_t syscall, void *stack)
     ps_t *ps = scheduler_get_current_process();
     ps->user_mode.eax = 0;
 
-    /*disable_interrupts();*/
+    disable_interrupts();
     ps->current = ps->user_mode;
 
     scheduler_schedule();
@@ -288,15 +288,14 @@ registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
 
     if (syscall >= NUM_SYSCALLS) {
         log_info("syscall_handle_interrupt",
-                 "bad syscall used."
-                 "syscall: %X, ss.user_esp: %X, ss.user_ss: %X\n",
-                 syscall, exec_state.user_esp, exec_state.user_ss);
+                 "bad syscall used." "syscall: %u, ps: %u\n", syscall, ps->id);
         ps->user_mode.eax = -1;
         return &ps->user_mode;
     }
 
     int eax = handlers[syscall](syscall, user_stack + 1);
-    /*disable_interrupts();*/
+
+    disable_interrupts();
     ps->user_mode.eax = eax;
     return &ps->user_mode;
 }

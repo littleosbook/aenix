@@ -10,7 +10,6 @@ int main(void)
             syscall(SYS_write, 1, "parent\n", 7);
             while (j++ < 1000000) {} /* do work */
             j = 0;
-            syscall(SYS_yield);
 
             if (i++ >= 10) {
                 char *msg = "parent doing nothing\n";
@@ -27,11 +26,9 @@ int main(void)
             syscall(SYS_write, 1, "child\n", 6);
             while (j++ < 1000000) {} /* do work */
             j = 0;
-            syscall(SYS_yield);
 
             if (i++ >= 7) {
                 syscall(SYS_write, 1, "child exiting\n", 14);
-                /*syscall(SYS_exit, 0);*/
                 return 0;
             }
         }

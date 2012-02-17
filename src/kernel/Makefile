@@ -6,7 +6,7 @@ OBJECTS = loader.o kmain.o fb.o io.o gdt.o gdt_asm.o pic.o idt.o idt_asm.o \
 		  vnode.o
 CC = gcc
 CFLAGS = -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
-		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror \
+		 -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -fomit-frame-pointer \
 		 -Wno-unused-function -c
 LDFLAGS = -T link.ld -melf_i386
 AS = nasm

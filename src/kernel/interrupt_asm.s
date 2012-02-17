@@ -3,7 +3,7 @@
 extern interrupt_handler
 extern syscall_handle_interrupt
 extern kernel_stack
-extern run_process
+extern run_process_in_user_mode
 
 global enable_interrupts
 global disable_interrupts
@@ -31,7 +31,7 @@ common_interrupt_handler:
     push    esp
     ; BEWARE: DON'T ADD INSTRUCTIONS ABOVE THIS LINE IF YOU DON'T KNOW WHAT THE
     ;         INSTRUCTIONS FOLLOWING THIS COMMENT DOES!
-    add     DWORD [esp], 8 ; the callers esp. 12 since ERROR, SYSCALL, ESP
+    add     DWORD [esp], 8
 	push	eax
 	push	ebx
 	push	ecx
@@ -111,7 +111,7 @@ handle_syscall:
     push	edi
     call	syscall_handle_interrupt
     push    eax
-    call    run_process
+    call    run_process_in_user_mode
     jmp     $
 
 switch_to_kernel_stack:

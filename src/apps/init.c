@@ -19,6 +19,7 @@ int main(void)
         while (syscall(SYS_wait) != -1) {
         }
         /* TODO: shut down the kernel */
+        while (1) {}
     }
 
     return 0;

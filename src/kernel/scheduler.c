@@ -10,10 +10,9 @@
 #include "interrupt.h"
 #include "pic.h"
 #include "common.h"
-#include "stdio.h"
 
 #define SCHEDULER_PIT_INTERVAL 1 /* in ms */
-#define SCHEDULER_TIME_SLICE   SCHEDULER_PIT_INTERVAL // (5 * SCHEDULER_PIT_INTERVAL) /* in ms */
+#define SCHEDULER_TIME_SLICE   (5 * SCHEDULER_PIT_INTERVAL) /* in ms */
 
 uint32_t ms = 0;
 
@@ -33,7 +32,8 @@ static ps_list_t runnable_pss = { NULL, NULL };
 static ps_list_t zombie_pss = { NULL, NULL };
 
 /* defined in scheduler_asm.s */
-void run_process(registers_t *registers);
+void run_process_in_user_mode(registers_t *registers);
+void run_process_in_kernel_mode(registers_t *registers);
 
 static uint32_t max_id_in_ps_list(ps_list_t *pss)
 {
@@ -48,6 +48,7 @@ static uint32_t max_id_in_ps_list(ps_list_t *pss)
 
     return max;
 }
+
 uint32_t scheduler_next_pid(void)
 {
     uint32_t pid_runnable = max_id_in_ps_list(&runnable_pss);
@@ -56,30 +57,68 @@ uint32_t scheduler_next_pid(void)
     return maxu(pid_runnable, pid_zombie) + 1;
 }
 
-static void scheduler_schedule_on_intterupt(cpu_state_t cs, exec_state_t es)
+static void scheduler_copy_common_registers(registers_t *r,
+                                            cpu_state_t const *cpu,
+                                            exec_state_t const *stack)
 {
-    UNUSED_ARGUMENT(cs);
-    if (es.cs == (SEGSEL_USER_SPACE_CS | 0x03)) {
-        printf("from user space\n");
-    } else {
-        printf("from kernel space\n");
-    }
+    r->eax = cpu->eax;
+    r->ebx = cpu->ebx;
+    r->ecx = cpu->ecx;
+    r->edx = cpu->edx;
+    r->ebp = cpu->ebp;
+    r->esi = cpu->esi;
+    r->edi = cpu->edi;
+    r->eip = stack->eip;
+    r->eflags = stack->eflags;
+    r->code_ss = stack->cs;
 }
 
-static void scheduler_handle_pit_interrupt(cpu_state_t state, idt_info_t info,
-                                           exec_state_t exec)
+static void scheduler_update_user_registers(ps_t *ps, cpu_state_t const *cpu,
+                                            exec_state_t const *stack)
+{
+    scheduler_copy_common_registers(&ps->user_mode, cpu, stack);
+    ps->user_mode.esp = stack->user_esp;
+    ps->user_mode.stack_ss = stack->user_ss;
+    ps->current = ps->user_mode;
+}
+
+static void scheduler_update_kernel_registers(ps_t *ps, cpu_state_t const *cpu,
+                                              exec_state_t const *stack)
+{
+    scheduler_copy_common_registers(&ps->current, cpu, stack);
+    ps->current.esp = cpu->esp + 12; /* +12 to skip EIP, CS and EFLAGS */
+    ps->current.stack_ss = SEGSEL_KERNEL_DS;
+}
+
+
+static void scheduler_schedule_on_intterupt(cpu_state_t const *cpu,
+                                            exec_state_t const *stack)
+{
+    disable_interrupts();
+    ps_t *ps = scheduler_get_current_process();
+    if (stack->cs == (SEGSEL_USER_SPACE_CS | 0x03)) {
+        scheduler_update_user_registers(ps, cpu, stack);
+    } else {
+        scheduler_update_kernel_registers(ps, cpu, stack);
+    }
+
+    pic_acknowledge();
+
+    scheduler_schedule();
+}
+
+static void scheduler_handle_pit_interrupt(cpu_state_t cpu, idt_info_t info,
+                                           exec_state_t stack)
 {
     UNUSED_ARGUMENT(info);
     ms += SCHEDULER_PIT_INTERVAL;
 
     if (ms >= SCHEDULER_TIME_SLICE) {
-        scheduler_schedule_on_intterupt(state, exec);
         ms = 0;
+        scheduler_schedule_on_intterupt(&cpu, &stack);
+    } else {
+        pic_acknowledge();
     }
-
-    pic_acknowledge();
-
-    return;
 }
 
 int scheduler_init(void)
@@ -243,5 +282,10 @@ void scheduler_schedule(void)
 
     tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_start_vaddr);
     pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
-    run_process(&ps->current);
+
+    if (ps->current.code_ss == SEGSEL_KERNEL_CS) {
+        run_process_in_kernel_mode(&ps->current);
+    } else {
+        run_process_in_user_mode(&ps->current);
+    }
 }
