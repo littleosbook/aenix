@@ -59,7 +59,7 @@ uint32_t scheduler_next_pid(void)
 
 static void scheduler_copy_common_registers(registers_t *r,
                                             cpu_state_t const *cpu,
-                                            exec_state_t const *stack)
+                                            stack_state_t const *stack)
 {
     r->eax = cpu->eax;
     r->ebx = cpu->ebx;
@@ -70,29 +70,29 @@ static void scheduler_copy_common_registers(registers_t *r,
     r->edi = cpu->edi;
     r->eip = stack->eip;
     r->eflags = stack->eflags;
-    r->code_ss = stack->cs;
+    r->cs = stack->cs;
 }
 
 static void scheduler_update_user_registers(ps_t *ps, cpu_state_t const *cpu,
-                                            exec_state_t const *stack)
+                                            stack_state_t const *stack)
 {
     scheduler_copy_common_registers(&ps->user_mode, cpu, stack);
     ps->user_mode.esp = stack->user_esp;
-    ps->user_mode.stack_ss = stack->user_ss;
+    ps->user_mode.ss = stack->user_ss;
     ps->current = ps->user_mode;
 }
 
 static void scheduler_update_kernel_registers(ps_t *ps, cpu_state_t const *cpu,
-                                              exec_state_t const *stack)
+                                              stack_state_t const *stack)
 {
     scheduler_copy_common_registers(&ps->current, cpu, stack);
     ps->current.esp = cpu->esp + 12; /* +12 to skip EIP, CS and EFLAGS */
-    ps->current.stack_ss = SEGSEL_KERNEL_DS;
+    ps->current.ss = SEGSEL_KERNEL_DS;
 }
 
 
 static void scheduler_schedule_on_intterupt(cpu_state_t const *cpu,
-                                            exec_state_t const *stack)
+                                            stack_state_t const *stack)
 {
     disable_interrupts();
     ps_t *ps = scheduler_get_current_process();
@@ -108,7 +108,7 @@ static void scheduler_schedule_on_intterupt(cpu_state_t const *cpu,
 }
 
 static void scheduler_handle_pit_interrupt(cpu_state_t cpu, idt_info_t info,
-                                           exec_state_t stack)
+                                           stack_state_t stack)
 {
     UNUSED_ARGUMENT(info);
     ms += SCHEDULER_PIT_INTERVAL;
@@ -283,7 +283,7 @@ void scheduler_schedule(void)
     tss_set_kernel_stack(SEGSEL_KERNEL_DS, ps->kernel_stack_start_vaddr);
     pdt_load_process_pdt(ps->pdt, ps->pdt_paddr);
 
-    if (ps->current.code_ss == SEGSEL_KERNEL_CS) {
+    if (ps->current.cs == SEGSEL_KERNEL_CS) {
         run_process_in_kernel_mode(&ps->current);
     } else {
         run_process_in_user_mode(&ps->current);

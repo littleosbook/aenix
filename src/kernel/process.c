@@ -291,8 +291,8 @@ static void process_init(ps_t *ps, uint32_t id)
     memset(&ps->current, 0, sizeof(registers_t));
 
     ps->user_mode.eflags = REG_EFLAGS_DEFAULT;
-    ps->user_mode.stack_ss = (SEGSEL_USER_SPACE_DS | 0x03);
-    ps->user_mode.code_ss = (SEGSEL_USER_SPACE_CS | 0x03);
+    ps->user_mode.ss = (SEGSEL_USER_SPACE_DS | 0x03);
+    ps->user_mode.cs = (SEGSEL_USER_SPACE_CS | 0x03);
 }
 
 ps_t *process_create(char const *path, uint32_t id)

@@ -89,7 +89,7 @@ static uint8_t kbd_read_scan_code(void);
 
 static void keyboard_handle_interrupt(cpu_state_t state,
                                       idt_info_t info,
-                                      exec_state_t exec)
+                                      stack_state_t exec)
 {
     UNUSED_ARGUMENT(state);
     UNUSED_ARGUMENT(info);

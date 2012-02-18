@@ -22,18 +22,18 @@ struct cpu_state {
 } __attribute__((packed));
 typedef struct cpu_state cpu_state_t;
 
-struct exec_state {
+struct stack_state {
     uint32_t eip;
     uint32_t cs;
     uint32_t eflags;
     uint32_t user_esp; /* not always safe to derefence! */
     uint32_t user_ss;  /* not always safe to derefence! */
 } __attribute__((packed));
-typedef struct exec_state exec_state_t;
+typedef struct stack_state stack_state_t;
 
 typedef void (*interrupt_handler_t)(cpu_state_t state,
                                     idt_info_t info,
-                                    exec_state_t exec);
+                                    stack_state_t exec);
 
 uint32_t register_interrupt_handler(uint32_t interrupt,
                                     interrupt_handler_t handler);

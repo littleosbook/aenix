@@ -261,7 +261,7 @@ static syscall_handler_t handlers[NUM_SYSCALLS] = {
     };
 
 static void update_user_mode_registers(ps_t *ps, cpu_state_t cs,
-                                       exec_state_t es)
+                                       stack_state_t es)
 {
     ps->user_mode.eax = cs.eax;
     ps->user_mode.ebx = cs.ebx;
@@ -273,12 +273,12 @@ static void update_user_mode_registers(ps_t *ps, cpu_state_t cs,
     ps->user_mode.eflags = es.eflags;
     ps->user_mode.eip = es.eip;
     ps->user_mode.esp = es.user_esp;
-    ps->user_mode.stack_ss = es.user_ss;
-    ps->user_mode.code_ss = es.cs;
+    ps->user_mode.ss = es.user_ss;
+    ps->user_mode.cs = es.cs;
 }
 
 registers_t *syscall_handle_interrupt(cpu_state_t cpu_state,
-                                      exec_state_t exec_state)
+                                      stack_state_t exec_state)
 {
     ps_t *ps = scheduler_get_current_process();
     update_user_mode_registers(ps, cpu_state, exec_state);

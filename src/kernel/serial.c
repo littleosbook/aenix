@@ -20,7 +20,7 @@
 #define BAUD_RATE_DIVISOR 0x03 /* will give a baud rate of 115200 / 3 = 38400 */
 
 static void serial_handle_interrupt_com1(cpu_state_t state, idt_info_t info,
-                          exec_state_t exec)
+                          stack_state_t exec)
 {
     UNUSED_ARGUMENT(state);
     UNUSED_ARGUMENT(info);
@@ -30,7 +30,7 @@ static void serial_handle_interrupt_com1(cpu_state_t state, idt_info_t info,
 }
 
 static void serial_handle_interrupt_com2(cpu_state_t state, idt_info_t info,
-                          exec_state_t exec)
+                          stack_state_t exec)
 {
     UNUSED_ARGUMENT(state);
     UNUSED_ARGUMENT(info);

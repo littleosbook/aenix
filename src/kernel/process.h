@@ -16,10 +16,10 @@ struct registers {
     uint32_t ebp;
     uint32_t esi;
     uint32_t edi;
-    uint32_t stack_ss;
+    uint32_t ss;
     uint32_t esp;
     uint32_t eflags;
-    uint32_t code_ss;
+    uint32_t cs;
     uint32_t eip;
 } __attribute__((packed));
 typedef struct registers registers_t;

@@ -27,7 +27,7 @@ uint32_t register_interrupt_handler(uint32_t interrupt,
     return 0;
 }
 
-void interrupt_handler(cpu_state_t state, idt_info_t info, exec_state_t exec)
+void interrupt_handler(cpu_state_t state, idt_info_t info, stack_state_t exec)
 {
     if (interrupt_handlers[info.idt_index] != NULL) {
         interrupt_handlers[info.idt_index](state, info, exec);
