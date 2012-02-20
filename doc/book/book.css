@@ -39,12 +39,12 @@ img.right {
   font-family: Courier;
   text-align: left;
   background: #222;
-  -moz-border-radius-topleft: 1em;
-  -webkit-border-top-left-radius: 1em;
-  -moz-border-radius-topright: 1em;
-  -webkit-border-top-right-radius: 1em;
-  border-top-left-radius: 1em;
-  border-top-right-radius: 1em;
+  -moz-border-radius-topleft: 0.4em;
+  -webkit-border-top-left-radius: 0.4em;
+  -moz-border-radius-topright: 0.4em;
+  -webkit-border-top-right-radius: 0.4em;
+  border-top-left-radius: 0.4em;
+  border-top-right-radius: 0.4em;
   padding: 1em;
   text-align: center;
 }
@@ -73,9 +73,10 @@ img.right {
   margin: 2em auto 0;
   padding: 0;
   background: #fff;
-  -moz-border-radius: 1.0em;
-  -webkit-border-radius: 1.0em;
-  border-radius: 1.0em;
+  -moz-border-radius: 0.4em;
+  -webkit-border-radius: 0.4em;
+  border-radius: 0.4em;
+  box-shadow: 0 3px 7px #999;
 }
 
 #menu {
@@ -154,6 +155,19 @@ pre {
   font-family: "Consolas","Courier New",Courier,mono;
   font-size: 12px;
   letter-spacing: 0;
+}
+
+table {
+    font-size: 12px;
+}
+
+table thead {
+    font-weight: bold;
+    background: #eaeaea;
+}
+
+table th, table td {
+    padding: 8px;
 }
 
 table.post-list {
