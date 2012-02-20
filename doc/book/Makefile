@@ -1,15 +1,18 @@
 CSS = book.css
 HTML_TEMPLATE = template.html
 TEX_HEADER = header.tex
-SECTIONS = title.txt introduction.md environment_and_booting.md
+CHAPTERS = title.txt introduction.md environment_and_booting.md references.md
+BIB = bibliography.bib
+CITATION = citation_style.csl
 
 all: book.html
 
-book.html: $(SECTIONS) $(CSS) $(HTML_TEMPLATE)
-	pandoc -s -S --toc -c $(CSS) --template $(HTML_TEMPLATE) $(SECTIONS) -o $@
+book.html: $(CHAPTERS) $(CSS) $(HTML_TEMPLATE) $(BIB) $(CITATION)
+	pandoc -s -S --toc -c $(CSS) --template $(HTML_TEMPLATE) \
+		   --bibliography $(BIB) --csl $(CITATION) $(CHAPTERS) -o $@
 
-book.pdf: $(SECTIONS)
-	markdown2pdf --toc -H $(TEX_HEADER) $(SECTIONS) -o $@
+book.pdf: $(CHAPTERS)
+	markdown2pdf --toc -H $(TEX_HEADER) $(CHAPTERS) -o $@
 
 clean:
 	rm -f book.pdf book.html

@@ -1,37 +1,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml"$if(lang)$ lang="$lang$" xml:lang="$lang$"$endif$>
 <head>
-  <title>$if(title-prefix)$$title-prefix$ - $endif$$if(pagetitle)$$pagetitle$$endif$</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-$for(author)$
-  <meta name="author" content="$author$" />
+$for(author-meta)$
+  <meta name="author" content="$author-meta$" />
 $endfor$
-  <meta name="date" content="$date$" />
-$if(highlighting)$
+$if(date-meta)$
+  <meta name="date" content="$date-meta$" />
+$endif$
+  <title>$if(title-prefix)$$title-prefix$ - $endif$$if(pagetitle)$$pagetitle$$endif$</title>
+$if(highlighting-css)$
   <style type="text/css">
-    table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode, table.sourceCode pre { margin: 0; padding: 0; border: 0; vertical-align: baseline; border: none; }
-    td.lineNumbers { border-right: 1px solid #AAAAAA; text-align: right; color: #AAAAAA; padding-right: 5px; padding-left: 5px; }
-    td.sourceCode { padding-left: 5px; }
-    pre.sourceCode { }
-    pre.sourceCode span.Normal { }
-    pre.sourceCode span.Keyword { color: #007020; font-weight: bold; } 
-    pre.sourceCode span.DataType { color: #902000; }
-    pre.sourceCode span.DecVal { color: #40a070; }
-    pre.sourceCode span.BaseN { color: #40a070; }
-    pre.sourceCode span.Float { color: #40a070; }
-    pre.sourceCode span.Char { color: #4070a0; }
-    pre.sourceCode span.String { color: #4070a0; }
-    pre.sourceCode span.Comment { color: #60a0b0; font-style: italic; }
-    pre.sourceCode span.Others { color: #007020; }
-    pre.sourceCode span.Alert { color: red; font-weight: bold; }
-    pre.sourceCode span.Function { color: #06287e; }
-    pre.sourceCode span.RegionMarker { }
-    pre.sourceCode span.Error { color: red; font-weight: bold; }
+$highlighting-css$
   </style>
 $endif$
 $for(css)$
-  <link rel="stylesheet" href="$css$" type="text/css" />
+  <link rel="stylesheet" href="$css$" $if(html5)$$else$type="text/css" $endif$/>
 $endfor$
 $if(math)$
   $math$
@@ -42,18 +28,26 @@ $endfor$
 </head>
 <body>
 <div id='wrapper'>
-    <div id='content'>
-$if(title)$
+<div id="$idprefix$header">
 <h1 class="title">$title$</h1>
-<h3 class="author">$author$</h3>
-<h5 class="date">Last updated: $date$</h3>
+$for(author)$
+<h2 class="author">$author$</h2>
+$endfor$
+</div>
+$if(date)$
+<span class="date">$date$</span>
 $endif$
+<div id='content'>
 $for(include-before)$
 $include-before$
 $endfor$
+$if(title)$
+$endif$
 $if(toc)$
-<h2>Contents</h2>
+<div id="$idprefix$TOC">
+<h1>Contents</h1>
 $toc$
+</div>
 $endif$
 $body$
 $for(include-after)$
