@@ -1,4 +1,4 @@
-# Segmentation and the GDT
+# Segmentation
 
 ## Virtual memory
 
@@ -8,21 +8,26 @@ technique, and we'll implement it in the next chapter. Some use of segmentation
 is still necessary (to allow for code to execute under different privilege
 levels), so we'll use a minimal segmentation setup.
 
+It might be interesting to note that in x86\_64, segmentation is almost
+completely removed.
+
 Segmentation and paging is described in [@intel3a], chapter 3.
 
 ## Segmentation
 
-Segmentation means accessing the memory through segments. Segments are portions
-of the address space, possibly overlapping, specified by a base address and a
-limit. To address a byte in segmented memory, you use a **logical address**,
-which specifies what segment, and what offset within that segment you want. The
-offset is added to the base address of the segment, and the resulting linear
-address is checked against the segment's limit. If everything checks out fine,
-(including access-right-checks ignored for now), this results in a **linear
-address**. If paging is disabled, this linear address space is mapped 1:1 on
-the **physical address** space, and the physical memory can be accessed.
+Segmentation in x86 means accessing the memory through segments. Segments are
+portions of the address space, possibly overlapping, specified by a base
+address and a limit. To address a byte in segmented memory, you use a 48-bit
+**logical address**: 16 bits that specifies the segment, and 32-bits to specify
+what offset within that segment you want. The offset is added to the base
+address of the segment, and the resulting linear address is checked against the
+segment's limit. If everything checks out fine, (including access-right-checks
+ignored for now), this results in a **linear address**. If paging is disabled,
+this linear address space is mapped 1:1 on the **physical address** space, and
+the physical memory can be accessed.
 
-[Figure 3-4]
+![Figure: Translation of logical addresses to linear addresses.
+](images/intel_3_5_logical_to_linear.png)
 
 To enable segmentation you need to set up a table that describes each segment -
 a segment descriptor table. In x86, there are two types of descriptor tables:
@@ -35,11 +40,11 @@ use it. The GDT shared by everyone - it's global.
 
 Most of the time when we access memory we don't have to explicitly specify the
 segment we want to use. The processor has six 16-bit segment registers: `cs`,
-`ss`, `ds`, `es`, `gs`, `fs`. `cs` is the code segment register and specifies
-the segment to use when fetching instructions. `ss` is used whenever the
-accessing the stack (through the stack pointer `esp`), and `ds` is used for
+`ss`, `ds`, `es`, `gs` and  `fs`. `cs` is the code segment register and
+specifies the segment to use when fetching instructions. `ss` is used whenever
+the accessing the stack (through the stack pointer `esp`), and `ds` is used for
 other data accesses. `es`, `gs` and `fs` are free to use however we or the user
-programs wish (we will set them, but not use them).
+processes wish (we will set them, but not use them).
 
 Implicit use of segment registers:
 
@@ -50,7 +55,7 @@ Implicit use of segment registers:
         mov [eax], ebx
         ret
 
-Explicitly:
+Explicit version:
 
     func:
         mov eax, [ss:esp+4]
@@ -92,8 +97,8 @@ Segment descriptors needed:
       2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
 
 Note that the segments overlap - they both encompass the entire linear address
-space. In our minimal setup we'll only use segmentation for privilege levels.
-See the Intel manual for details on the other fields.
+space. In our minimal setup we'll only use segmentation to get privilege levels.
+See the [@intel3a], chapter 3, for details on the other descriptor fields.
 
 ### Creating and loading the GDT
 
@@ -106,7 +111,7 @@ the address of a struct that specifies the start and size of the GDT:
     32-bit: start of GDT
     16-bit: size of GDT (8 bytes * num entries)
 
-(The number of entries is for us 3.)
+We have three entries.
 
 If `eax` has an address to such a struct, we can just to the following:
 
@@ -130,7 +135,7 @@ copy the correct offsets into the registers:
     mov es, 0x10
     ; ...
 
-To load `cs` we have do make a "far jump":
+To load `cs` we have to do a "far jump":
 
         ; using previous cs
         jmp 0x08:flush_cs
@@ -143,14 +148,15 @@ address: The segment selector to use, and the absolute address to jump to. It
 will first set `cs` to `0x08`, and then jump to `.flush_cs` using its absolute
 address.
 
-Whenever load a new segment selector into a segment register, the processor
+Whenever we load a new segment selector into a segment register, the processor
 reads the entire descriptor and stores it in shadow registers within the
 processor.
 
-## Why doing segmentation?
+## Why segmentation?
 
 The reason we want segmentation is because the `cs` segment selector specifies
-what privilege level the processor executes as. This is needed to make sure
-that user-space processes (PL3) cannot read/execute kernel-space (PL0) data.
-The actual memory protection is done through paging, but to set up the
-different privilege levels, x86 requires us to use segmentation.
+what privilege level the processor executes as. Without segments there is no
+concept of different privilege levels, and privilege levels are needed to make
+sure that user-space processes (PL3) cannot read/execute kernel-space (PL0)
+data. The actual memory protection is done through paging, but to set up the
+different privilege levels x86 requires us to use segmentation.
