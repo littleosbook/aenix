@@ -4,7 +4,7 @@
 ISO=aenix.iso
 BOCHS_LOG=bochslog.txt
 BOCHS_CONFIG=bochsrc.txt
-BOCHS_BIOS_PATH=../tools/bochs
+BOCHS_BIOS_PATH=/usr/share/bochs/
 COM1_LOG=com1.out
 
 set -e # fail as soon as one command fails
@@ -24,8 +24,9 @@ rm -f $COM1_LOG
 
 # create the config file for bochs
 CONFIG="megs:           32
-romimage:       file=$BOCHS_BIOS_PATH/BIOS-bochs-latest
-vgaromimage:    file=$BOCHS_BIOS_PATH/VGABIOS-lgpl-latest
+display_library: x
+romimage:       file=\"$BOCHS_BIOS_PATH/BIOS-bochs-latest\"
+vgaromimage:    file=\"$BOCHS_BIOS_PATH/VGABIOS-lgpl-latest\"
 ata0-master:    type=cdrom, path=$ISO, status=inserted
 boot:           cdrom
 log:            $BOCHS_LOG
