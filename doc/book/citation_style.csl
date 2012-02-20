@@ -25,7 +25,7 @@
       <if type="webpage">
         <text variable="title" suffix=":"/>
       </if>
-      <else>
+      <else-if type="article-journal">
         <names variable="author">
           <name name-as-sort-order="all" and="text" sort-separator=", " initialize-with="." delimiter-precedes-last="never" delimiter=", "/>
           <label form="short" prefix=" " suffix="." text-case="lowercase" strip-periods="true"/>
@@ -34,6 +34,11 @@
             <names variable="translator"/>
           </substitute>
         </names>
+      </else-if>
+      <else>
+        <names variable="author">
+            <name />
+        </name>
       </else>
     </choose>
   </macro>
@@ -53,8 +58,7 @@
   </citation>
   <bibliography entry-spacing="0" second-field-align="flush" et-al-min="3" et-al-use-first="1">
     <sort>
-      <key macro="author"/>
-      <key variable="title"/>
+      <key variable="citation-number"/>
     </sort>
     <layout suffix=",">
       <text variable="citation-number" prefix="[" suffix="] "/>
