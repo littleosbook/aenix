@@ -21,12 +21,12 @@ address and a limit. To address a byte in segmented memory, you use a 48-bit
 **logical address**: 16 bits that specifies the segment, and 32-bits to specify
 what offset within that segment you want. The offset is added to the base
 address of the segment, and the resulting linear address is checked against the
-segment's limit. If everything checks out fine, (including access-right-checks
-ignored for now), this results in a **linear address**. If paging is disabled,
-this linear address space is mapped 1:1 on the **physical address** space, and
-the physical memory can be accessed.
+segment's limit - see figure 5-1. If everything checks out fine, (including
+access-right-checks ignored for now), this results in a **linear address**. If
+paging is disabled, this linear address space is mapped 1:1 on the **physical
+address** space, and the physical memory can be accessed.
 
-![Figure: Translation of logical addresses to linear addresses.
+![Figure 5-1: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
 
 To enable segmentation you need to set up a table that describes each segment -
@@ -68,7 +68,7 @@ Explicit version:
 other memory. But it is convenient, and makes it possible to use the implicit
 style above.)
 
-[Figure 3-8, describing a segment descriptor]
+Segment descriptors and their fields are described in figure 3-8 in [@intel3a].
 
 ### The Global Descriptor Table (GDT)
 
@@ -86,15 +86,16 @@ code (to put in `cs`) (Execute-only or Execute-Read) and one to read and write
 data (Read/Write) (to put in the other segment registers).
 
 The DPL specifies the privilege levels required to execute in this segment.
-Since we are now executing in kernel mode (PL0), the DPL should be 0.
+Since we are now executing in kernel mode (PL0), the DPL should be 0. The
+segments we need are described in table 5-1.
 
-Segment descriptors needed:
-
-  index   offset   name                 address range             type   DPL
- ------  -------   -------------------  ------------------------- -----  ----
+  Index   Offset   Name                 Address range             Type   DPL
+-------  -------   -------------------  ------------------------- -----  ----
       0   `0x00`   null descriptor
       1   `0x08`   kernel code segment  `0x00000000 - 0xFFFFFFFF` RX     PL0
       2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
+
+Table: Table 5-1: The segment descriptors needed.
 
 Note that the segments overlap - they both encompass the entire linear address
 space. In our minimal setup we'll only use segmentation to get privilege levels.
@@ -118,9 +119,21 @@ If `eax` has an address to such a struct, we can just to the following:
     lgdt [eax]
 
 Now that the processor knows where to look for the segment descriptors we need
-to load the segment registers. Segment selectors look like this:
+to load the segment registers. The content of a segment selector is described
+in table 5-2.
 
-[Figure 3-6]
+-------------------------------------------------------------------------------
+  Bits Name             Description
+------ ---------------- -------------------------------------------------------
+   0-1 RPL              Requested Privilege Level.
+
+     2 Table Indicator  0 means that this specifies a GDT segment, 1 means an
+                        LDT Segment.
+
+  3-15 Offset (Index)   Offset within descriptor table.
+-------------------------------------------------------------------------------
+
+Table: Table 5-2: The layout of segment selectors.
 
 The offset is added to the start of the GDT to get the address of the segment
 descriptor: `0x08` for the first descriptor and `0x10` for the second, since
