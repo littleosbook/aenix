@@ -1,7 +1,8 @@
 CSS = book.css
 HTML_TEMPLATE = template.html
 TEX_HEADER = header.tex
-CHAPTERS = title.txt introduction.md environment_and_booting.md references.md
+CHAPTERS = title.txt introduction.md environment_and_booting.md \
+		   segmentation.md references.md
 BIB = bibliography.bib
 CITATION = citation_style.csl
 
