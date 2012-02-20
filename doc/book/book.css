@@ -157,8 +157,17 @@ pre {
   letter-spacing: 0;
 }
 
-table {
+.figure .caption {
+    font-style: italic;
+}
+
+table thead, table tbody {
     font-size: 12px;
+}
+
+table caption {
+    font-style: italic;
+    text-align: left;
 }
 
 table thead {
