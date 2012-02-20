@@ -165,9 +165,17 @@ table thead, table tbody {
     font-size: 12px;
 }
 
+table {
+    position: relative;
+    padding-bottom: 30px;
+}
+
 table caption {
     font-style: italic;
     text-align: left;
+    position: absolute;
+    bottom: 3px;
+    left: 0px;
 }
 
 table thead {
