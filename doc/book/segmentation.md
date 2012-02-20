@@ -84,10 +84,10 @@ Since we are now executing in kernel mode (PL0), the DPL should be 0.
 Segment descriptors needed:
 
   index   offset   name                 address range             type   DPL
- ------  -------   -------------------  -----------------------   -----  ----
-      0     0x00   null descriptor
-      1     0x08   kernel code segment  0x00000000 - 0xFFFFFFFF   RX     PL0
-      2     0x10   kernel data segment  0x00000000 - 0xFFFFFFFF   RW     PL0
+ ------  -------   -------------------  ------------------------- -----  ----
+      0   `0x00`   null descriptor
+      1   `0x08`   kernel code segment  `0x00000000 - 0xFFFFFFFF` RX     PL0
+      2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
 
 Note that the segments overlap - they both encompass the entire linear address
 space. In our minimal setup we'll only use segmenation for privilege levels.
