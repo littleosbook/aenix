@@ -8,6 +8,8 @@ technique, and we'll implement it in the next chapter. Some use of segmentation
 is still necessary (to allow for code to execute under different privilege
 levels), so we'll use a minimal segmentation setup.
 
+Segmentation and paging is described in [@intel3a], chapter 3.
+
 ## Segmentation
 
 Segmentation means accessing the memory through segments. Segments are portions
@@ -73,7 +75,7 @@ because the descriptor contains more information than just the base and limit
 fields. The two most relevant fields here are the Type field and the Descriptor
 Privilege Level (DPL) field.
 
-The table 3-1, chapter 3, in @intel3a specifies the values for the Type field,
+The table 3-1, chapter 3, in [@intel3a] specifies the values for the Type field,
 and it is because of this that we need at least two descriptors: One to execute
 code (to put in `cs`) (Execute-only or Execute-Read) and one to read and write
 data (Read/Write) (to put in the other segment registers).
@@ -90,7 +92,7 @@ Segment descriptors needed:
       2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
 
 Note that the segments overlap - they both encompass the entire linear address
-space. In our minimal setup we'll only use segmenation for privilege levels.
+space. In our minimal setup we'll only use segmentation for privilege levels.
 See the Intel manual for details on the other fields.
 
 ### Creating and loading the GDT
@@ -136,7 +138,7 @@ To load `cs` we have do make a "far jump":
     flush_cs:
         ; now we've changed cs to 0x08
 
-A far jump is a jump where we explicily specify the full 48-bit logical
+A far jump is a jump where we explicitly specify the full 48-bit logical
 address: The segment selector to use, and the absolute address to jump to. It
 will first set `cs` to `0x08`, and then jump to `.flush_cs` using its absolute
 address.
@@ -148,7 +150,7 @@ processor.
 ## Why doing segmentation?
 
 The reason we want segmentation is because the `cs` segment selector specifies
-what privilige level the processor executes as. This is needed to make sure
+what privilege level the processor executes as. This is needed to make sure
 that user-space processes (PL3) cannot read/execute kernel-space (PL0) data.
 The actual memory protection is done through paging, but to set up the
-different privilege leveles, x86 requires us to use segmentation.
+different privilege levels, x86 requires us to use segmentation.
