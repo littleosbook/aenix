@@ -48,7 +48,7 @@ The translation of linear addresses to physical addresses is described in
 figure 7-1.
 
 It is also possible to use 4MB pages. A PDE then points directly to a 4MB page
-frame, which needs to be aligned on a 4MB page boundary. The address
+frame, which needs to be aligned on a 4MB address boundary. The address
 translation is almost the same as in figure 7-1, with just the page table step
 removed. It is possible to mix 4MB and 4KB pages.
 

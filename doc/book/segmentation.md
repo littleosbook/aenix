@@ -117,8 +117,8 @@ If `eax` has an address to such a struct, we can just to the following:
 ~~~
 
 Now that the processor knows where to look for the segment descriptors we need
-to load the segment registers. The content of a segment selector is described
-in table 6-2.
+to load the segment registers with the corresponding segment selectors. The
+content of a segment selector is described in table 6-2.
 
 -------------------------------------------------------------------------------
   Bits Name             Description
