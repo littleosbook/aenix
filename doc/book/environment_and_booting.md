@@ -24,10 +24,10 @@ The packages needed can then be installed by running
 
 ### Programming languages
 The operating system will be developed using the C programming language
-[@wiki:c]. The reason for using C is because developing and OS
-requires a very precise control of the generated code, something which C
-enables. Other languages can be used that does the same, for example C++, can
-also be used, but this book will only cover C.
+[@wiki:c]. The reason for using C is because developing and OS requires a very
+precise control of the generated code and direct access to the memory,
+something which C enables. Other languages can be used that does the same, for
+example C++, can also be used, but this book will only cover C.
 
 The code will make use of one type attribute that is specific for GCC [@gcc]
 
