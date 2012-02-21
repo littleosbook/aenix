@@ -77,4 +77,10 @@ successfully started a program in our OS!
 
 ## The beginning of user mode
 
-This is too simplistic...
+The program we've written now runs in the same mode as the kernel, we've just
+entered it in a somewhat peculiar way. Do enable applications to really execute
+in user mode, we'll need to do segmentation (chapter XXX), paging (chapter
+YYY) and allocate page frames (chapter ZZZ).
+
+It's quite a lot of work and technical details to go through. But in a few
+chapters we'll have working user mode programs.
