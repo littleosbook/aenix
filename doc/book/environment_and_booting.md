@@ -100,6 +100,7 @@ To start with, a shell script will be created as a wrapper around Bochs. The
 script will clean up some log files, write the Bochs configuration file and
 finally start Bochs itself.
 
+~~~ {.bash}
     #!/bin/bash
     # Starts bochs using the iso created by create_iso.sh
 
@@ -143,6 +144,7 @@ finally start Bochs itself.
     bochs -f $BOCHS_CONFIG -q
 
     exit 0
+~~~
 
 You might have to edit the variables `$BOCHS_BIOS_PATH` to point to a different
 folder. If you downloaded the `.tar.gz` release Bochs from the Bochs homepage,
