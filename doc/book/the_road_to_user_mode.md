@@ -17,13 +17,19 @@ quick-and-dirty start.
 
 ## Loading a program
 
-Where do we get the application from?
-
-TODO:
+Where do we get the application from? Somehow we need to load the code we want
+to execute into memory. Real operating systems of course have file systems and
+ways to read from hard drives, cd-roms and other devices.  We'll do file
+systems in chapter ??????. But for now we can actually ask GRUB to load the
+program as a "module" for us.
 
 ### GRUB Modules
 
+GRUB can load other files besides the kernel executable.
+
 TODO:
+Place it in memory. Part of multiboot. Download `multiboot.h`. Use it, parse
+data structures.
 
 ## Executing the program
 
