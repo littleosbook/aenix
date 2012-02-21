@@ -1,20 +1,5 @@
 # Segmentation
 
-## Virtual memory
-
-In the x86 architecture, virtual memory can be accomplished in two ways:
-Segmentation and paging. Paging is by far the most common and versatile
-technique, and we'll implement it in the next chapter. Some use of segmentation
-is still necessary (to allow for code to execute under different privilege
-levels), so we'll use a minimal segmentation setup.
-
-It might be interesting to note that in x86\_64, segmentation is almost
-completely removed.
-
-Segmentation and paging is described in [@intel3a], chapter 3.
-
-## Segmentation
-
 Segmentation in x86 means accessing the memory through segments. Segments are
 portions of the address space, possibly overlapping, specified by a base
 address and a limit. To address a byte in segmented memory, you use a 48-bit
@@ -28,6 +13,9 @@ address** space, and the physical memory can be accessed.
 
 ![Figure 5-1: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
+
+It might be interesting to note that in x86\_64, segmentation is almost
+completely removed.
 
 To enable segmentation you need to set up a table that describes each segment -
 a segment descriptor table. In x86, there are two types of descriptor tables:
@@ -85,7 +73,14 @@ and it is because of this that we need at least two descriptors: One to execute
 code (to put in `cs`) (Execute-only or Execute-Read) and one to read and write
 data (Read/Write) (to put in the other segment registers).
 
-The DPL specifies the privilege levels required to execute in this segment.
+The DPL specifies the privilege levels required to execute in this segment. x86
+allows for four privilege levels (PL), 0 to 3, where PL0 is the most
+privileged. In most operating systems (eg. Linux and Windows), only PL0 and PL3
+are used (although MINIX uses all levels). The kernel should be able to do
+anything, so it "runs in PL0" (uses segments with DPL set to 0), and user-mode
+processes should run in PL3. The current privilege level (CPL) is determined by
+the segment selector in `cs`.
+
 Since we are now executing in kernel mode (PL0), the DPL should be 0. The
 segments we need are described in table 5-1.
 
@@ -125,7 +120,7 @@ in table 5-2.
 -------------------------------------------------------------------------------
   Bits Name             Description
 ------ ---------------- -------------------------------------------------------
-   0-1 RPL              Requested Privilege Level.
+   0-1 RPL              Requested Privilege Level - we want to execute in PL0.
 
      2 Table Indicator  0 means that this specifies a GDT segment, 1 means an
                         LDT Segment.
@@ -165,11 +160,6 @@ Whenever we load a new segment selector into a segment register, the processor
 reads the entire descriptor and stores it in shadow registers within the
 processor.
 
-## Why segmentation?
+## Further reading
 
-The reason we want segmentation is because the `cs` segment selector specifies
-what privilege level the processor executes as. Without segments there is no
-concept of different privilege levels, and privilege levels are needed to make
-sure that user-space processes (PL3) cannot read/execute kernel-space (PL0)
-data. The actual memory protection is done through paging, but to set up the
-different privilege levels x86 requires us to use segmentation.
+- The Intel manual [@intel3a] is quite good; low-level and technical.
