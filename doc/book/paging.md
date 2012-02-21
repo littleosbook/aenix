@@ -229,9 +229,21 @@ somewhat trickier. The page directory and one page table can be in `.data`
 mappings at runtime. The size of the kernel can be determined by exporting
 labels from the linker script [@ldcmdlang].
 
-## Further reading
+## Why paging is nice for virtual memory
 
-TODO:
+Paging does two things that is nice for virtual memory. First, it allows for
+quite fine-grained access control to memory. You can mark pages as read-only,
+read-write, execute, only for PL0 etc. Second, it creates the illusion of
+contiguous memory. User mode processes, and the kernel, can access memory as if
+it were contiguous, and the contiguous memory can be extended without the need
+to move stuff around. Also, we can allow the user mode programs to access all
+memory below 3GB, but unless they actually use it, we don't have to assign page
+frames to the pages. This allows processes to have code located near
+`0x00000000` and the stack at just below `0xC0000000`, and not require more than
+two actual pages.
+
+
+## Further reading
 
 - More details on the ELF format can be found in this pdf:
   <http://flint.cs.yale.edu/cs422/doc/ELF_Format.pdf>

@@ -14,9 +14,6 @@ address** space, and the physical memory can be accessed.
 ![Figure 6-1: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
 
-It might be interesting to note that in x86\_64, segmentation is almost
-completely removed.
-
 To enable segmentation you need to set up a table that describes each segment -
 a segment descriptor table. In x86, there are two types of descriptor tables:
 The global descriptor table (GDT) and local descriptor tables (LDT). An LDT is
@@ -117,6 +114,7 @@ If `eax` has an address to such a struct, we can just to the following:
 
 ~~~ {.nasm}
     lgdt [eax]
+~~~
 
 Now that the processor knows where to look for the segment descriptors we need
 to load the segment registers. The content of a segment selector is described
@@ -169,6 +167,22 @@ address.
 Whenever we load a new segment selector into a segment register, the processor
 reads the entire descriptor and stores it in shadow registers within the
 processor.
+
+## Why not use segmentation for virtual memory?
+
+You could skip paging entirely and just use segmentation for virtual memory.
+Each user mode process would get its own segment, with base address and limit
+properly set up so that no process can see the others. A problem with this is
+that all memory for a process needs to be contiguous. Either we need to know
+in advance how much memory the program will require (unlikely), or we can move
+the memory segments to places where they can grow when the limit is reached
+(expensive, causes fragmentation - can result in "out of memory" even though
+enough memory is available, but in too small chunks).
+
+Paging solves both these problems.
+
+It might be interesting to note that in x86\_64, segmentation is almost
+completely removed.
 
 ## Further reading
 
