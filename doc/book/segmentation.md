@@ -6,12 +6,12 @@ address and a limit. To address a byte in segmented memory, you use a 48-bit
 **logical address**: 16 bits that specifies the segment, and 32-bits to specify
 what offset within that segment you want. The offset is added to the base
 address of the segment, and the resulting linear address is checked against the
-segment's limit - see figure 5-1. If everything checks out fine, (including
+segment's limit - see figure 6-1. If everything checks out fine, (including
 access-right-checks ignored for now), this results in a **linear address**. If
 paging is disabled, this linear address space is mapped 1:1 on the **physical
 address** space, and the physical memory can be accessed.
 
-![Figure 5-1: Translation of logical addresses to linear addresses.
+![Figure 6-1: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
 
 It might be interesting to note that in x86\_64, segmentation is almost
@@ -24,7 +24,7 @@ set up and managed by user-space processes, and each process have their own LDT.
 LDT's can be used if a more complex segmentation model is desired - we won't
 use it. The GDT shared by everyone - it's global.
 
-### Accessing memory
+## Accessing memory
 
 Most of the time when we access memory we don't have to explicitly specify the
 segment we want to use. The processor has six 16-bit segment registers: `cs`,
@@ -36,21 +36,25 @@ processes wish (we will set them, but not use them).
 
 Implicit use of segment registers:
 
+~~~ {.nasm}
     func:
         mov eax, [esp+4]
         mov ebx, [eax]
         add ebx, 8
         mov [eax], ebx
         ret
+~~~
 
 Explicit version:
 
+~~~ {.nasm}
     func:
         mov eax, [ss:esp+4]
         mov ebx, [ds:eax]
         add ebx, 8
         mov [ds:eax], ebx
         ret
+~~~
 
 (You don't need to use `ss` when accessing the stack, or `ds` when accessing
 other memory. But it is convenient, and makes it possible to use the implicit
@@ -58,7 +62,7 @@ style above.)
 
 Segment descriptors and their fields are described in figure 3-8 in [@intel3a].
 
-### The Global Descriptor Table (GDT)
+## The Global Descriptor Table (GDT)
 
 A GDT/LDT is an array of 8-byte segment descriptors. The first descriptor in
 the GDT is always a null descriptor, and can never be used to access memory. We
@@ -82,7 +86,7 @@ processes should run in PL3. The current privilege level (CPL) is determined by
 the segment selector in `cs`.
 
 Since we are now executing in kernel mode (PL0), the DPL should be 0. The
-segments we need are described in table 5-1.
+segments we need are described in table 6-1.
 
   Index   Offset   Name                 Address range             Type   DPL
 -------  -------   -------------------  ------------------------- -----  ----
@@ -90,13 +94,13 @@ segments we need are described in table 5-1.
       1   `0x08`   kernel code segment  `0x00000000 - 0xFFFFFFFF` RX     PL0
       2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
 
-Table: Table 5-1: The segment descriptors needed.
+Table: Table 6-1: The segment descriptors needed.
 
 Note that the segments overlap - they both encompass the entire linear address
 space. In our minimal setup we'll only use segmentation to get privilege levels.
 See the [@intel3a], chapter 3, for details on the other descriptor fields.
 
-### Creating and loading the GDT
+## Creating and loading the GDT
 
 Creating the GDT can easily be done both in C and assembler. A static
 fixed-size array should do the trick.
@@ -111,16 +115,18 @@ We have three entries.
 
 If `eax` has an address to such a struct, we can just to the following:
 
+~~~ {.nasm}
     lgdt [eax]
 
 Now that the processor knows where to look for the segment descriptors we need
 to load the segment registers. The content of a segment selector is described
-in table 5-2.
+in table 6-2.
 
 -------------------------------------------------------------------------------
   Bits Name             Description
 ------ ---------------- -------------------------------------------------------
-   0-1 RPL              Requested Privilege Level - we want to execute in PL0.
+   0-1 RPL              Requested Privilege Level - we want to execute in PL0
+                        for now.
 
      2 Table Indicator  0 means that this specifies a GDT segment, 1 means an
                         LDT Segment.
@@ -128,7 +134,7 @@ in table 5-2.
   3-15 Offset (Index)   Offset within descriptor table.
 -------------------------------------------------------------------------------
 
-Table: Table 5-2: The layout of segment selectors.
+Table: Table 6-2: The layout of segment selectors.
 
 The offset is added to the start of the GDT to get the address of the segment
 descriptor: `0x08` for the first descriptor and `0x10` for the second, since
@@ -138,18 +144,22 @@ since we want to remain in PL0.
 Loading the segment selector registers is easy for the data registers - just
 copy the correct offsets into the registers:
 
+~~~ {.nasm}
     mov ds, 0x10
     mov ss, 0x10
     mov es, 0x10
     ; ...
+~~~
 
 To load `cs` we have to do a "far jump":
 
+~~~ {.nasm}
         ; using previous cs
         jmp 0x08:flush_cs
 
     flush_cs:
         ; now we've changed cs to 0x08
+~~~
 
 A far jump is a jump where we explicitly specify the full 48-bit logical
 address: The segment selector to use, and the absolute address to jump to. It
