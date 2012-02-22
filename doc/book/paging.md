@@ -89,7 +89,7 @@ mov cr0, ebx        ; update cr0
 ; now paging is enabled
 ~~~
 
-### Now what?
+### A few details
 
 It is important to note that all addresses within the page directory, page
 tables and in `cr3` needs to be physical addresses to the structures, never
@@ -110,23 +110,21 @@ Example:
 invlpg [0]
 ~~~
 
-- "Temporarily map in pages" (should be in chapter on PFA)
-
 ## Higher-half kernel
 
 When GRUB loads our kernel into memory, it places the kernel at the physical
 memory starting at 1MB. With identity mapping, this is also the virtual address
 of the kernel.
 
-### Does it matter at which virtual address the kernel is placed?
+### The reason to not identity map the kernel
 
-Yes, it does. If the kernel is placed at the beginning of the virtual address -
-that is, the virtual address `0x00000000` to `"size of kernel"` will map to the
-location of the kernel in memory - there will be issues when linking the user
-mode process code. Normally, during linking, the linker assumes that the code
-will be loaded into the memory position `0x00000000`. Therefore, when resolving
-absolute references, `0x00000000` will be the base address for calculating the
-exact position. But if the kernel is mapped onto the virtual address space
+If the kernel is placed at the beginning of the virtual address - that is, the
+virtual address `0x00000000` to `"size of kernel"` will map to the location of
+the kernel in memory - there will be issues when linking the user mode process
+code. Normally, during linking, the linker assumes that the code will be loaded
+into the memory position `0x00000000`. Therefore, when resolving absolute
+references, `0x00000000` will be the base address for calculating the exact
+position. But if the kernel is mapped onto the virtual address space
 (`0x00000000`, `"size of kernel"`), the user mode process cannot be loaded at
 virtual address `0x00000000` - it must be placed somewhere else. Therefore, the
 assumption from the linker that the user mode process is loaded into memory at
@@ -140,7 +138,7 @@ syscalls we don't have to change any paging structures to get access to the
 kernels code and data. (The kernel pages should be marked as for PL0 only, of
 course.)
 
-### At which virtual address should the kernel then be placed?
+### The virtual address for the kernel
 
 Preferably, the kernel should be placed at a very high virtual memory address,
 for example `0xC000000` (3GB). The user mode process is not likely to
@@ -209,12 +207,12 @@ implement this:
         *(.bss)             /* all bss sections from all files */
     }
 
-### Now everything is cool, right?
-Not yet! When GRUB jumps to the kernel code, there is no paging table.
-Therefore, all references to `0xC0100000 + X` won't be mapped to the correct
-physical address, and will therefore cause a general protection exception (GPE)
-at the very best, otherwise (if the user has more than 3GB of memory) the OS
-will just crash.
+### Entering the higher half
+
+When GRUB jumps to the kernel code, there is no paging table.  Therefore, all
+references to `0xC0100000 + X` won't be mapped to the correct physical address,
+and will therefore cause a general protection exception (GPE) at the very best,
+otherwise (if the user has more than 3GB of memory) the OS will just crash.
 
 Therefore, some assembly that doesn't use absolute jumps must set up the page
 table and add one entry for the first 4MB of the virtual address space that
@@ -244,13 +242,14 @@ The entry mapping the first 4MB of virtual memory to the first 4MB of
 physical can be removed from the page table, and its corresponding entry in
 the TLB invalidated with `invlpg [0]`.
 
-### Phew, that was all?
+### Running in the higher half
 
-Yes, that was all. However, we must now take care when using memory mapped I/O
-that uses very specific memory locations. For example, the frame buffer is
-located at `0x000B8000`, but since there is no entry in the page table for the
-address `0x000B8000` any longer, the address `0xC00B8000` must be used, since
-the virtual address `0xC0000000` maps to the physical address`0x00000000`.
+There are a few details we must deal with when using a higher-half kernel. We
+must now take care when using memory mapped I/O that uses very specific memory
+locations. For example, the frame buffer is located at `0x000B8000`, but since
+there is no entry in the page table for the address `0x000B8000` any longer,
+the address `0xC00B8000` must be used, since the virtual address `0xC0000000`
+maps to the physical address`0x00000000`.
 
 Any explicit references to addresses within the multiboot structure needs to be
 changed to reflect the new virtual addresses as well.
@@ -263,7 +262,7 @@ mappings at runtime. The size of the kernel can be determined by exporting
 labels from the linker script [@ldcmdlang], which we'll need to do later
 anyway when writing the [page frame allocator](#how-much-memory-is-there).
 
-## Why paging is nice for virtual memory
+## Virtual memory through paging
 
 Paging does two things that is nice for virtual memory. First, it allows for
 quite fine-grained access control to memory. You can mark pages as read-only,

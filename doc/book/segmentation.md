@@ -168,7 +168,7 @@ Whenever we load a new segment selector into a segment register, the processor
 reads the entire descriptor and stores it in shadow registers within the
 processor.
 
-## Why not use segmentation for virtual memory?
+## Virtual memory through segmentation?
 
 You could skip paging entirely and just use segmentation for virtual memory.
 Each user mode process would get its own segment, with base address and limit
