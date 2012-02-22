@@ -1,7 +1,7 @@
 CSS = book.css
 HTML_TEMPLATE = template.html
 TEX_HEADER = header.tex
-CHAPTERS = title.txt introduction.md environment_and_booting.md \
+CHAPTERS = title.txt introduction.md environment_and_booting.md io.md \
 		   the_road_to_user_mode.md virtual_memory.md segmentation.md \
 		   paging.md references.md
 BIB = bibliography.bib

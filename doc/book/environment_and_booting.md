@@ -1,9 +1,9 @@
-# Booting up
+# First steps
 
 Developing an operating system (OS) is no easy task, and the question " Where
 do I start?" is likely to come up several times during the course of the
-project.  This chapter will help you set up your development environment as
-well as printing the famous `"Hello, world!"` on the console of the computer.
+project.  This chapter will help you set up your development environment and
+booting a very small (and boring) operating system.
 
 ## Requirements
 In this book, we will assume that you are familiar with the C programming
