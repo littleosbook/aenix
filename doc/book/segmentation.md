@@ -34,23 +34,23 @@ processes wish (we will set them, but not use them).
 Implicit use of segment registers:
 
 ~~~ {.nasm}
-    func:
-        mov eax, [esp+4]
-        mov ebx, [eax]
-        add ebx, 8
-        mov [eax], ebx
-        ret
+func:
+    mov eax, [esp+4]
+    mov ebx, [eax]
+    add ebx, 8
+    mov [eax], ebx
+    ret
 ~~~
 
 Explicit version:
 
 ~~~ {.nasm}
-    func:
-        mov eax, [ss:esp+4]
-        mov ebx, [ds:eax]
-        add ebx, 8
-        mov [ds:eax], ebx
-        ret
+func:
+    mov eax, [ss:esp+4]
+    mov ebx, [ds:eax]
+    add ebx, 8
+    mov [ds:eax], ebx
+    ret
 ~~~
 
 (You don't need to use `ss` when accessing the stack, or `ds` when accessing
@@ -113,7 +113,7 @@ We have three entries.
 If `eax` has an address to such a struct, we can just to the following:
 
 ~~~ {.nasm}
-    lgdt [eax]
+lgdt [eax]
 ~~~
 
 Now that the processor knows where to look for the segment descriptors we need
@@ -143,20 +143,20 @@ Loading the segment selector registers is easy for the data registers - just
 copy the correct offsets into the registers:
 
 ~~~ {.nasm}
-    mov ds, 0x10
-    mov ss, 0x10
-    mov es, 0x10
-    ; ...
+mov ds, 0x10
+mov ss, 0x10
+mov es, 0x10
+; ...
 ~~~
 
 To load `cs` we have to do a "far jump":
 
 ~~~ {.nasm}
-        ; using previous cs
-        jmp 0x08:flush_cs
+    ; using previous cs
+    jmp 0x08:flush_cs
 
-    flush_cs:
-        ; now we've changed cs to 0x08
+flush_cs:
+    ; now we've changed cs to 0x08
 ~~~
 
 A far jump is a jump where we explicitly specify the full 48-bit logical

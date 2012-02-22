@@ -59,17 +59,19 @@ NASM code can now read these labels directly, and perhaps push them onto the
 stack so we can use them from C:
 
 ~~~ {.nasm}
-    extern kernel_virtual_start
-    extern kernel_virtual_end
-    extern kernel_physical_start
-    extern kernel_physical_end
+extern kernel_virtual_start
+extern kernel_virtual_end
+extern kernel_physical_start
+extern kernel_physical_end
 
-    push kernel_physical_end
-    push kernel_physical_start
-    push kernel_virtual_end
-    push kernel_virtual_start
+; ...
 
-    call some_function
+push kernel_physical_end
+push kernel_physical_start
+push kernel_virtual_end
+push kernel_virtual_start
+
+call some_function
 ~~~
 
 There is no clean way to take the address of a label directly from C. One way
@@ -77,11 +79,11 @@ to do it is to declare the label as a function and take the address of the
 function:
 
 ~~~ {.c}
-    void kernel_virtual_start(void);
+void kernel_virtual_start(void);
 
-    /* ... */
+/* ... */
 
-    unsigned int vaddr = (unsigned int) &kernel_virtual_start;
+unsigned int vaddr = (unsigned int) &kernel_virtual_start;
 ~~~
 
 If we use GRUB modules we also need to make sure they are marked as "in use" as
@@ -89,7 +91,10 @@ well.
 
 Note that not all available memory needs to be contiguous. In the first 1MB
 there are several I/O-mapped memory sections, as well as memory used by GRUB
-and the BIOS. Other parts of the memory be similarly unavailable.
+and the BIOS. Other parts of the memory might be similarly unavailable.
+
+The memory sections need also be divided up into complete page frames. This is
+easy to do by just .....
 
 ### Free lists...
 

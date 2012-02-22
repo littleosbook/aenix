@@ -74,19 +74,19 @@ then setting bit 31 (the PG "paging-enable" bit) of `cr0` to `1`. If you want 4M
 pages, set the PSE bit (Page Size Extensions, bit 4) of `cr4`.
 
 ~~~ {.nasm}
-    ; eax has the address of the page directory
-    ; or eax, "paging confiuration"
-    mov cr3, eax
+; eax has the address of the page directory
+; or eax, "paging confiuration"
+mov cr3, eax
 
-    mov ebx, cr4        ; read current cr4
-    or  ebx, 0x00000010 ; set PSE
-    mov cr4, ebx        ; update cr4
+mov ebx, cr4        ; read current cr4
+or  ebx, 0x00000010 ; set PSE
+mov cr4, ebx        ; update cr4
 
-    mov ebx, cr0        ; read current cr0
-    or  ebx, 0x80000000 ; set PG
-    mov cr0, ebx        ; update cr0
+mov ebx, cr0        ; read current cr0
+or  ebx, 0x80000000 ; set PG
+mov cr0, ebx        ; update cr0
 
-    ; now paging is enabled
+; now paging is enabled
 ~~~
 
 ### Now what?
@@ -106,8 +106,8 @@ entries in the TLB to be invalidated.
 Example:
 
 ~~~ {.nasm}
-    ; invalidate any TLB references to linear address 0
-    invlpg [0]
+; invalidate any TLB references to linear address 0
+invlpg [0]
 ~~~
 
 - "Temporarily map in pages" (should be in chapter on PFA)
@@ -225,17 +225,17 @@ enabled when trying to fetch the next instruction from memory. When the table
 is created, an indirect jump can be done to a label, like
 
 ~~~ {.nasm}
-    ; assembly code executing at around 0x00100000
-    ; enable paging for both actual location of kernel
-    ; and its higher half location
+; assembly code executing at around 0x00100000
+; enable paging for both actual location of kernel
+; and its higher half location
 
-    lea ebx, [higher_half] ; load the address of the label in ebx
-    jmp ebx                ; jump to the label
+lea ebx, [higher_half] ; load the address of the label in ebx
+jmp ebx                ; jump to the label
 
-    higher_half:
-        ; code here executes in the higher half kernel
-        ; eip is larger than 0xC0000000
-        ; can continue kernel initialisation, calling C code, etc.
+higher_half:
+    ; code here executes in the higher half kernel
+    ; eip is larger than 0xC0000000
+    ; can continue kernel initialisation, calling C code, etc.
 ~~~
 
 Now `eip` will point to a memory location somewhere right after `0xC0100000` -

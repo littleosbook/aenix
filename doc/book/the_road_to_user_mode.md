@@ -40,12 +40,12 @@ outside, a very short program that writes a value to a register suffices.
 Halting Bochs and reading its log should verify that the program has run.
 
 ~~~ {.nasm}
-    ; set eax to some distinguishable number, to read from the log afterwards
-    mov eax, 0xDEADBEEF
+; set eax to some distinguishable number, to read from the log afterwards
+mov eax, 0xDEADBEEF
 
-    ; enter infinite loop, nothing more to do
-    ; $ means "beginning of line", ie. the same instruction
-    jmp $
+; enter infinite loop, nothing more to do
+; $ means "beginning of line", ie. the same instruction
+jmp $
 ~~~
 
 ### Compiling
@@ -64,11 +64,11 @@ Since it is easier to parse the multiboot-structure in C, calling the code from
 C is more convenient, but it can of course be done in assembler as well.
 
 ~~~ {.c}
-    typedef void (*call_module_t)(void);
-    /* ... */
-    call_module_t start_program = (call_module_t) address_of_module;
-    start_program();
-    /* we'll never get here */
+typedef void (*call_module_t)(void);
+/* ... */
+call_module_t start_program = (call_module_t) address_of_module;
+start_program();
+/* we'll never get here */
 ~~~
 
 If we start the kernel, wait until it has run and entered the infinite loop in
@@ -79,8 +79,8 @@ successfully started a program in our OS!
 
 The program we've written now runs in the same mode as the kernel, we've just
 entered it in a somewhat peculiar way. Do enable applications to really execute
-in user mode, we'll need to do segmentation (chapter XXX), paging (chapter
-YYY) and allocate page frames (chapter ZZZ).
+in user mode, we'll need to do [segmentation](#segmentation), [paging](#paging)
+and [allocate page frames](#page-frame-allocation).
 
 It's quite a lot of work and technical details to go through. But in a few
 chapters we'll have working user mode programs.
