@@ -74,9 +74,9 @@ push kernel_virtual_start
 call some_function
 ~~~
 
-There is no clean way to take the address of a label directly from C. One way
-to do it is to declare the label as a function and take the address of the
-function:
+This way we get them as argument to a C funciton. There is no clean way to take
+the address of a label directly from C. One way to do it is to declare the
+label as a function and take the address of the function:
 
 ~~~ {.c}
 void kernel_virtual_start(void);
@@ -93,22 +93,56 @@ Note that not all available memory needs to be contiguous. In the first 1MB
 there are several I/O-mapped memory sections, as well as memory used by GRUB
 and the BIOS. Other parts of the memory might be similarly unavailable.
 
-The memory sections need also be divided up into complete page frames. This is
-easy to do by just .....
+The memory sections need also be divided up into complete page frames.
 
-### Free lists...
+### Managing available memory
 
-TODO:
-Lists, bitmaps, etc...
+How do we know which page frames are in use? The page frame allocator needs to
+keep track of which are free and which aren't. There are several ways to do
+this: Bitmaps, linked lists, trees, the Buddy System (used by Linux) etc. See
+<http://wiki.osdev.org/Page_Frame_Allocation> for more details.
+
+TODO: suggest bitmaps as easiest?
 
 ## How can we access a page frame?
 
-TODO: temporarily map it in...
+When we use our page frame allocator to allocate page frames, it gives us the
+physical start address of the page frame. This page frame is not mapped in -
+no part of the paging hierarchy points to the frame. (If we mapped an entire
+4MB chunk for the kernel, and the page frame lies somewhere in there, it will
+be mapped in.) How can we read and write data to the frame?
+
+We need to map the page frame into virtual memory. Just update the PDT and/or
+PT used by the kernel.
+
+But what if all page tables available are full? Then we can't map the page
+frame into memory, because we'd need a new page table - which takes up an
+entire page frame - and to write to this page frame we'd need to map it in...
+
+One solution is to reserve part of the first page table used by the kernel (or
+some other higher-half page table) for temporarily mapping in page frames so
+that we can write to them. If the kernel is mapped in at `0xC0000000` (page
+directory entry with index `768`), and we've used 4KB page frames, the kernel
+has at least one page table. If we assume, or limit us to, a kernel of size
+less than 4MB - 4KB, we can dedicate the last entry (entry 1023) of this page
+table for temporary mappings. The virtual address of pages mapped in like this
+will be:
+
+    (768 << 22) | (1023 << 12) | 0x000 = 0xC03FF000
+
+After we've temporarily mapped in the page frame we want to use as a page
+table, and set it up to map in our first page frame, we can add it to the
+paging hierarchy, and remove the temporary mapping. (This leads to the quite
+nice property that no paging tables need to be mapped in unless we need to
+change them).
 
 ## kmalloc()
 
 TODO: 
 
 ## Further reading
+
+- The OSDev wiki page on page frame allocation:
+  <http://wiki.osdev.org/Page_Frame_Allocation>
 
 TODO: there should be quite a lot to link to...
