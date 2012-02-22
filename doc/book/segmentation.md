@@ -64,10 +64,11 @@ Segment descriptors and their fields are described in figure 3-8 in [@intel3a].
 A GDT/LDT is an array of 8-byte segment descriptors. The first descriptor in
 the GDT is always a null descriptor, and can never be used to access memory. We
 need at least two segment descriptors (plus the null descriptor) for our GDT
-(and two more later when we enter user mode, see ??????????????). This is
-because the descriptor contains more information than just the base and limit
-fields. The two most relevant fields here are the Type field and the Descriptor
-Privilege Level (DPL) field.
+(and two more later when we enter [user mode](#user-mode), see the [segments
+for user mode](#segments-for-user-mode) section). This is because the
+descriptor contains more information than just the base and limit fields. The
+two most relevant fields here are the Type field and the Descriptor Privilege
+Level (DPL) field.
 
 The table 3-1, chapter 3, in [@intel3a] specifies the values for the Type field,
 and it is because of this that we need at least two descriptors: One to execute

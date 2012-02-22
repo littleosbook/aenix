@@ -11,8 +11,9 @@ technique, and we'll implement it in chapter 7. Some use of segmentation
 is still necessary (to allow for code to execute under different privilege
 levels), so we'll set up a minimal segmentation structure in the next chapter.
 
-Managing memory is a big part of what an operating system does. Paging and page
-frame allocation (chapter ????) deals with that.
+Managing memory is a big part of what an operating system does.
+[Paging](#paging) and [page frame allocation](#page-frame-allocation) deals
+with that.
 
 Segmentation and paging is described in the Intel manual [@intel3a], chapter 3
 and 4.
