@@ -149,16 +149,16 @@ kernel.
 
 If the user mode process is larger than 3GB, some pages will need to be
 swapped out by the kernel. Swapping pages will not be part of this book.
-
-### Is placing the kernel at `0xC000000` hard?
-No, but it does require some thought. This is once again a linking problem.
-When the linker resolves all absolute references in the kernel, it will assume
+extern
+extern### Is placing the kernel at `0xC000000` hard?
+externNo, but it does require some thought. This is once again a linking problem.
+externWhen the linker resolves all absolute references in the kernel, it will assume
 that our kernel is loaded at physical memory location `0x00100000`, not
-`0x00000000`, since we tell it so in our linker script (see chapter ????????).
-However, we want the jumps to be resolved to `0xC0100000` as base, since
-otherwise a kernel jump will jump straight into the user mode process code
-(remember that the user mode process is loaded at virtual memory `0x00000000`
-and up).
+`0x00000000`, since we tell it so in our linker script (see the section on
+[linking the kernel](#linking-the-kernel).  However, we want the jumps to be
+resolved to `0xC0100000` as base, since otherwise a kernel jump will jump
+straight into the user mode process code (remember that the user mode process
+is loaded at virtual memory `0x00000000` and up).
 
 But, we can't simply tell the linker to assume that the kernel starts (is
 loaded) at `0xC01000000`, since we want it to be placed at 1 MB. The reason for
@@ -171,9 +171,43 @@ This can be solved by using both relocation (`.=0xC01000000`) and the `AT`
 instruction in the linker script. Relocation specifies that non-relative
 memory-references should should use the relocation address as base in address
 calculations. `AT` specifies where the kernel should be loaded into memory.
-Relocation is done as link time by `ld` [@ldcmdlang], the load address specified by
-`AT` is handled by GRUB when loading the kernel, and is part of the ELF format
-[@wiki:elf].
+Relocation is done as link time by `ld` [@ldcmdlang], the load address
+specified by `AT` is handled by GRUB when loading the kernel, and is part of
+the ELF format [@wiki:elf].
+
+### Higher-half linker script
+
+We can modify the linker script from [chapter one](#linking-the-kernel) to
+implement this:
+
+    ENTRY(loader)           /* the name of the entry symbol */
+
+    . = 0xC0100000          /* the code should be relocated to 3GB + 1MB */
+
+    /* align at 4KB and load at 1MB */
+    .text ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
+    {
+        *(.text)            /* all text sections from all files */
+    }
+
+    /* align at 4KB and load at 1MB + . */
+    .rodata ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
+    {
+        *(.rodata*)         /* all read-only data sections from all files */
+    }
+
+    /* align at 4KB and load at 1MB + . */
+    .data ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
+    {
+        *(.data)            /* all data sections from all files */
+    }
+
+    /* align at 4KB and load at 1MB + . */
+    .bss ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
+    {
+        *(COMMON)           /* all COMMON sections from all files */
+        *(.bss)             /* all bss sections from all files */
+    }
 
 ### Now everything is cool, right?
 Not yet! When GRUB jumps to the kernel code, there is no paging table.
@@ -218,12 +252,16 @@ located at `0x000B8000`, but since there is no entry in the page table for the
 address `0x000B8000` any longer, the address `0xC00B8000` must be used, since
 the virtual address `0xC0000000` maps to the physical address`0x00000000`.
 
+Any explicit references to addresses within the multiboot structure needs to be
+changed to reflect the new virtual addresses as well.
+
 Mapping entire 4MB pages for the kernel is very simple, but wastes quite some
 memory. Doing an higher-half kernel mapped in as 4KB pages is doable, but
 somewhat trickier. The page directory and one page table can be in `.data`
 (assuming your kernel is smaller than 4MB), but you need to configure the
 mappings at runtime. The size of the kernel can be determined by exporting
-labels from the linker script [@ldcmdlang].
+labels from the linker script [@ldcmdlang], which we'll need to do later
+anyway when writing the [page frame allocator](#how-much-memory-is-there).
 
 ## Why paging is nice for virtual memory
 

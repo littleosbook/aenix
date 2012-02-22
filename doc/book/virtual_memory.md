@@ -16,3 +16,7 @@ frame allocation (chapter ????) deals with that.
 
 Segmentation and paging is described in the Intel manual [@intel3a], chapter 3
 and 4.
+
+## Further reading
+
+- LWN.net has an article on virtual memory: <http://lwn.net/Articles/253361/>
