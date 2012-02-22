@@ -107,10 +107,10 @@ TODO: suggest bitmaps as easiest?
 ## How can we access a page frame?
 
 When we use our page frame allocator to allocate page frames, it gives us the
-physical start address of the page frame. This page frame is not mapped in -
-no part of the paging hierarchy points to the frame. (If we mapped an entire
-4MB chunk for the kernel, and the page frame lies somewhere in there, it will
-be mapped in.) How can we read and write data to the frame?
+physical start address of the page frame. This page frame is not mapped in - no
+page table points to the frame. (If we mapped an entire 4MB chunk for the
+kernel, and the page frame lies somewhere in there, it will be mapped in.) How
+can we read and write data to the frame?
 
 We need to map the page frame into virtual memory. Just update the PDT and/or
 PT used by the kernel.
@@ -121,10 +121,10 @@ entire page frame - and to write to this page frame we'd need to map it in...
 
 One solution is to reserve part of the first page table used by the kernel (or
 some other higher-half page table) for temporarily mapping in page frames so
-that we can write to them. If the kernel is mapped in at `0xC0000000` (page
-directory entry with index `768`), and we've used 4KB page frames, the kernel
+that we can access to them. If the kernel is mapped in at `0xC0000000` (page
+directory entry with index 768), and we've used 4KB page frames, the kernel
 has at least one page table. If we assume, or limit us to, a kernel of size
-less than 4MB - 4KB, we can dedicate the last entry (entry 1023) of this page
+at most 4MB - 4KB, we can dedicate the last entry (entry 1023) of this page
 table for temporary mappings. The virtual address of pages mapped in like this
 will be:
 
@@ -132,9 +132,9 @@ will be:
 
 After we've temporarily mapped in the page frame we want to use as a page
 table, and set it up to map in our first page frame, we can add it to the
-paging hierarchy, and remove the temporary mapping. (This leads to the quite
+paging directory, and remove the temporary mapping. (This leads to the quite
 nice property that no paging tables need to be mapped in unless we need to
-change them).
+edit them).
 
 ## kmalloc()
 
