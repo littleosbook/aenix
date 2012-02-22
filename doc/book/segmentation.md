@@ -186,4 +186,8 @@ completely removed.
 
 ## Further reading
 
-- The Intel manual [@intel3a] is quite good; low-level and technical.
+- Chapter 3 of the Intel manual [@intel3a] is quite good; low-level and
+  technical.
+- The OSDev wiki can be useful: <http://wiki.osdev.org/Segmentation>
+- The Wikipedia page on x86 segmentation might be worth looking into:
+  <http://en.wikipedia.org/wiki/X86_memory_segmentation>

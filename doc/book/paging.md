@@ -4,10 +4,6 @@ Segmentation translates a logical address into a linear address. Paging
 translates these linear addresses onto the physical address space, and
 determines access rights and how the memory should be cached.
 
-## Some theory
-
-TODO: Link to some websites and/or books...
-
 ## Why paging?
 
 Paging is the most common technique used in x86 to enable virtual memory.
@@ -245,7 +241,11 @@ two actual pages.
 
 ## Further reading
 
+- Chapter 4 (and a little in chapter 3) of the Intel manual [@intel3a] is your
+  definitive source for the details about paging.
+- Wikipedia as a page on paging: <http://en.wikipedia.org/wiki/Paging>
+- The OSDev wiki has a page on paging: <http://wiki.osdev.org/Paging> and a
+  tutorial for making a higher-half kernel:
+  <http://wiki.osdev.org/Higher_Half_bare_bones>
 - More details on the ELF format can be found in this pdf:
   <http://flint.cs.yale.edu/cs422/doc/ELF_Format.pdf>
-- A tutorial for making an higher-half kernel can be found on osdev at
-  <http://wiki.osdev.org/Higher_Half_bare_bones>
