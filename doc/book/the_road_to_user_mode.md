@@ -61,7 +61,8 @@ This is all we need.
 
 What we'd like to do now is just jump to the address of the GRUB-loaded module.
 Since it is easier to parse the multiboot-structure in C, calling the code from
-C is more convenient, but it can of course be done in assembler as well.
+C is more convenient, but it can of course be done with `jmp` (or `call`) in
+assembler as well.
 
 ~~~ {.c}
 typedef void (*call_module_t)(void);
