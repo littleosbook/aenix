@@ -117,7 +117,7 @@ When GRUB loads our kernel into memory, it places the kernel at the physical
 memory starting at 1MB. With identity mapping, this is also the virtual address
 of the kernel.
 
-### The reason to not identity map the kernel
+### Reasons to not identity map the kernel
 
 If the kernel is placed at the beginning of the virtual address - that is, the
 virtual address `0x00000000` to `"size of kernel"` will map to the location of
@@ -149,15 +149,16 @@ kernel.
 If the user mode process is larger than 3GB, some pages will need to be
 swapped out by the kernel. Swapping pages will not be part of this book.
 
-### Is placing the kernel at `0xC000000` hard?
-No, but it does require some thought. This is once again a linking problem.
-When the linker resolves all absolute references in the kernel, it will assume
-that our kernel is loaded at physical memory location `0x00100000`, not
-`0x00000000`, since we tell it so in our linker script (see the section on
-[linking the kernel](#linking-the-kernel).  However, we want the jumps to be
-resolved to `0xC0100000` as base, since otherwise a kernel jump will jump
-straight into the user mode process code (remember that the user mode process
-is loaded at virtual memory `0x00000000` and up).
+### Placing the kernel at `0xC000000`
+
+It isn't too hard, but it does require some thought. This is once again a
+linking problem.  When the linker resolves all absolute references in the
+kernel, it will assume that our kernel is loaded at physical memory location
+`0x00100000`, not `0x00000000`, since we tell it so in our linker script (see
+the section on [linking the kernel](#linking-the-kernel).  However, we want the
+jumps to be resolved to `0xC0100000` as base, since otherwise a kernel jump
+will jump straight into the user mode process code (remember that the user mode
+process is loaded at virtual memory `0x00000000` and up).
 
 But, we can't simply tell the linker to assume that the kernel starts (is
 loaded) at `0xC01000000`, since we want it to be placed at 1 MB. The reason for

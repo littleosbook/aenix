@@ -1,6 +1,8 @@
 # User Mode
 
-TODO:
+User mode is finally almost within our reach. There's just a few more steps
+required. They don't seem too much work on paper, but they can take quite a few
+hours to get right in code and design.
 
 ## Segments for user mode
 
@@ -14,15 +16,28 @@ segmentation](#segmentation).
       3   `0x18`   user code segment    `0x00000000 - 0xFFFFFFFF` RX     PL3
       4   `0x20`   user data segment    `0x00000000 - 0xFFFFFFFF` RW     PL3
 
-Table: Table 6-1: The segment descriptors needed for user mode.
+Table: The segment descriptors needed for user mode.
+
+The difference is the DPL, which now allows code to execute in PL3. It can
+still be used to address the entire address space, so just using these segments
+for user mode code will not protect the kernel. For that we need paging.
 
 ## Setting up for user mode
 
-TODO:
+There are a few things every user mode process needs:
 
-- allocate two page frames, one for code, one for stack
-- copy code to code pf
-- set up a PDT with PT's. map in the code and stack
+- Page frames for code, data and stack. For now we can just allocate one page frame
+  for the stack, and enough page frames to fit the code and fixed-size data.
+
+- We need to copy the binary from the GRUB modules to the appropriate frames.
+
+- We need a page directory and page tables to map these page frames into
+  memory. At least two page tables are needed, because the code and data should
+  be mapped in at `0x00000000` and increasing, and the stack should start just
+  below the kernel, at `0xBFFFFFFB`, growing to lower addresses.
+
+It might be convenient to store these in a struct of some kind, dynamically
+allocated with the kernel `malloc`. 
 
 ## Entering user mode
 
@@ -35,20 +50,31 @@ inter-level interrupt. The stack should look like this:
 
     [esp + 16]  ss      ; the stack segment selector we want for user mode
     [esp + 12]  esp     ; the user mode stack pointer
-    [esp +  8]  eflags  ; the control flags for user mode
+    [esp +  8]  eflags  ; the control flags we want to use in user mode
     [esp +  4]  cs      ; the code segment selector
     [esp +  0]  eip     ; the instruction pointer of user mode code to execute
 
 (source: The Intel manual [@intel3a], section 6.2.1, figure 6-4)
 
 Before we execute `iret` we need to change to the page directory we setup for
-the user mode process. Important to remember here is that, to continue executing
-kernel code after we've switched PDT, the kernel needs to be mapped in. One way
-to accomplish this is to have a "kernel PDT", which maps in all kernel data at
-`0xC0000000` and above, and merge it with the user PDT (which only maps below
-`0xC0000000`) when we set it.
+the user mode process. Important to remember here is that, to continue
+executing kernel code after we've switched PDT, the kernel needs to be mapped
+in. One way to accomplish this is to have a "kernel PDT", which maps in all
+kernel data at `0xC0000000` and above, and merge it with the user PDT (which
+only maps below `0xC0000000`) when we do the switch. Also, remember that we
+need to use the physical address for the page directory when we set `cr3`.
 
-TODO: talk about `eflags`
+`eflags` is a register for a set of different flags, specified in section 2.3
+of the Intel manual [@intel3a]. Most important for us is the interrupt enable
+(IF) flag. When in PL3 we aren't allowed to use `sti` like we'd normally do to
+enable interrupts. If interrupts are disabled when we enter user mode, we can't
+enable them when we get there. When we use `iret` to enter user mode it will
+set `eflags` for us, so setting the IF flag on the stack will enable interrupt
+in user mode.
+
+For now, we should have interrupts disabled, as it requires a little more
+twiddling to get inter-privilege level interrupts to work properly. See the
+section on system calls/TSS (?????).
 
 The `eip` should point to the entry point for the user code - `0x00000000` in
 our case. `esp` should be where the stack should start - `0xBFFFFFFB`.
@@ -61,6 +87,9 @@ want to enter PL3, so the RPL of `cs` and `ss` should be 3.
 
     cs = 0x18 | 0x3
     ss = 0x20 | 0x3
+
+`ds` - and the other segment register - should be set to the same segment
+selector as `ss`. They can be set in the regular way with `mov`.
 
 Now we are ready to execute `iret`. If everything has been set up right, we now
 have a kernel that can enter user mode. Yay!
@@ -98,7 +127,7 @@ section .text
 
 Linker script (`link.ld`) to place it first:
 
-    OUTPUT_FORMAT("binary")
+    OUTPUT_FORMAT("binary")    /* output flat binary */
 
     SECTIONS
     {
@@ -140,7 +169,7 @@ And these `LDFLAGS`:
 ### Lib C
 
 It might now be interesting to start thinking about writing a short libc for
-your programs. Some of the functionality requires system calls (?????) to work,
+your programs. Some of the functionality require system calls (?????) to work,
 but some, such as the `string.h` functions, does not.
 
 ## Further reading

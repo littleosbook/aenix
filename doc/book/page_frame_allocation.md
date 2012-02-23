@@ -136,9 +136,20 @@ paging directory, and remove the temporary mapping. (This leads to the quite
 nice property that no paging tables need to be mapped in unless we need to
 edit them).
 
-## kmalloc()
+## A kernel heap
 
-TODO: 
+So far we've been able to work with only fixed-size data, or directly with raw
+memory. Now that we have a page frame allocator we can implement `malloc` and
+`free` to use in the kernel.
+
+Kernigan and Ritchie have an example implementation in [@knr] that we can draw
+inspiration from. The only real modifications we need to do is to remove calls
+to `sbrk`/`brk`, and directly ask the page frame allocator for the page frames,
+and the paging system to map them in.
+
+This can be done quick and dirty. A real implementation should also give back
+page frames to the page frame allocator on `free`, whenever sufficiently large
+blocks are freed.
 
 ## Further reading
 
