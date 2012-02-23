@@ -3,13 +3,13 @@
 Segmentation in x86 means accessing the memory through segments. Segments are
 portions of the address space, possibly overlapping, specified by a base
 address and a limit. To address a byte in segmented memory, you use a 48-bit
-**logical address**: 16 bits that specifies the segment, and 32-bits to specify
+*logical address*: 16 bits that specifies the segment, and 32-bits to specify
 what offset within that segment you want. The offset is added to the base
 address of the segment, and the resulting linear address is checked against the
 segment's limit - see the figure below. If everything checks out fine,
-(including access-right-checks ignored for now), this results in a **linear
-address**. If paging is disabled, this linear address space is mapped 1:1 on
-the **physical address** space, and the physical memory can be accessed.
+(including access-right-checks ignored for now), this results in a *linear
+address*. If paging is disabled, this linear address space is mapped 1:1 on
+the *physical address* space, and the physical memory can be accessed.
 
 ![Figure: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
