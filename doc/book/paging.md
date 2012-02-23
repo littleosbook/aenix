@@ -41,14 +41,14 @@ rights and other configurations. 4 bytes * 1024 equals 4096 bytes, so a page
 directory and page table both fit in a page frame themselves.
 
 The translation of linear addresses to physical addresses is described in
-figure 7-1.
+the figure below.
 
 It is also possible to use 4MB pages. A PDE then points directly to a 4MB page
 frame, which needs to be aligned on a 4MB address boundary. The address
-translation is almost the same as in figure 7-1, with just the page table step
+translation is almost the same as in the figure, with just the page table step
 removed. It is possible to mix 4MB and 4KB pages.
 
-![Figure 7-1: Translating linear addresses to physical addresses.
+![Figure: Translating linear addresses to physical addresses.
 ](images/intel_4_2_linear_address_translation.png)
 
 The 20 bits pointing to the current PDT is stored in the `cr3` register, with
@@ -94,7 +94,8 @@ mov cr0, ebx        ; update cr0
 It is important to note that all addresses within the page directory, page
 tables and in `cr3` needs to be physical addresses to the structures, never
 virtual. This will be more relevant in later sections where we dynamically
-update the paging structures, such as in chapter (????? User mode).
+update the paging structures, such as in the chapter on [user
+mode](#user-mode).
 
 An instruction that is useful when changing doing paging is `invlpg`. It
 invalidates the TLB (Translation Lookaside Buffer) for an address. This is only
@@ -106,7 +107,7 @@ entries in the TLB to be invalidated.
 Example:
 
 ~~~ {.nasm}
-; invalidate any TLB references to linear address 0
+; invalidate any TLB references to virtual address 0
 invlpg [0]
 ~~~
 
@@ -147,10 +148,10 @@ kernel.
 
 If the user mode process is larger than 3GB, some pages will need to be
 swapped out by the kernel. Swapping pages will not be part of this book.
-extern
-extern### Is placing the kernel at `0xC000000` hard?
-externNo, but it does require some thought. This is once again a linking problem.
-externWhen the linker resolves all absolute references in the kernel, it will assume
+
+### Is placing the kernel at `0xC000000` hard?
+No, but it does require some thought. This is once again a linking problem.
+When the linker resolves all absolute references in the kernel, it will assume
 that our kernel is loaded at physical memory location `0x00100000`, not
 `0x00000000`, since we tell it so in our linker script (see the section on
 [linking the kernel](#linking-the-kernel).  However, we want the jumps to be
@@ -175,8 +176,7 @@ the ELF format [@wiki:elf].
 
 ### Higher-half linker script
 
-We can modify the linker script from [chapter one](#linking-the-kernel) to
-implement this:
+We can modify the [first linker script](#linking-the-kernel) to implement this:
 
     ENTRY(loader)           /* the name of the entry symbol */
 
@@ -225,7 +225,7 @@ is created, an indirect jump can be done to a label, like
 ~~~ {.nasm}
 ; assembly code executing at around 0x00100000
 ; enable paging for both actual location of kernel
-; and its higher half location
+; and its higher-half virtual location
 
 lea ebx, [higher_half] ; load the address of the label in ebx
 jmp ebx                ; jump to the label
@@ -266,15 +266,14 @@ anyway when writing the [page frame allocator](#how-much-memory-is-there).
 
 Paging does two things that is nice for virtual memory. First, it allows for
 quite fine-grained access control to memory. You can mark pages as read-only,
-read-write, execute, only for PL0 etc. Second, it creates the illusion of
-contiguous memory. User mode processes, and the kernel, can access memory as if
-it were contiguous, and the contiguous memory can be extended without the need
-to move stuff around. Also, we can allow the user mode programs to access all
-memory below 3GB, but unless they actually use it, we don't have to assign page
-frames to the pages. This allows processes to have code located near
-`0x00000000` and the stack at just below `0xC0000000`, and not require more than
-two actual pages.
-
+read-write, only for PL0 etc. Second, it creates the illusion of contiguous
+memory. User mode processes, and the kernel, can access memory as if it were
+contiguous, and the contiguous memory can be extended without the need to move
+stuff around. Also, we can allow the user mode programs to access all memory
+below 3GB, but unless they actually use it, we don't have to assign page frames
+to the pages. This allows processes to have code located near `0x00000000` and
+the stack at just below `0xC0000000`, and not require more than two actual
+pages.
 
 ## Further reading
 
@@ -284,5 +283,6 @@ two actual pages.
 - The OSDev wiki has a page on paging: <http://wiki.osdev.org/Paging> and a
   tutorial for making a higher-half kernel:
   <http://wiki.osdev.org/Higher_Half_bare_bones>
+- Details on the linker command language can be found in [@ldcmdlang].
 - More details on the ELF format can be found in this pdf:
   <http://flint.cs.yale.edu/cs422/doc/ELF_Format.pdf>

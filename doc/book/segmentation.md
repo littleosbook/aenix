@@ -6,12 +6,12 @@ address and a limit. To address a byte in segmented memory, you use a 48-bit
 **logical address**: 16 bits that specifies the segment, and 32-bits to specify
 what offset within that segment you want. The offset is added to the base
 address of the segment, and the resulting linear address is checked against the
-segment's limit - see figure 6-1. If everything checks out fine, (including
-access-right-checks ignored for now), this results in a **linear address**. If
-paging is disabled, this linear address space is mapped 1:1 on the **physical
-address** space, and the physical memory can be accessed.
+segment's limit - see the figure below. If everything checks out fine,
+(including access-right-checks ignored for now), this results in a **linear
+address**. If paging is disabled, this linear address space is mapped 1:1 on
+the **physical address** space, and the physical memory can be accessed.
 
-![Figure 6-1: Translation of logical addresses to linear addresses.
+![Figure: Translation of logical addresses to linear addresses.
 ](images/intel_3_5_logical_to_linear.png)
 
 To enable segmentation you need to set up a table that describes each segment -
@@ -57,7 +57,8 @@ func:
 other memory. But it is convenient, and makes it possible to use the implicit
 style above.)
 
-Segment descriptors and their fields are described in figure 3-8 in [@intel3a].
+Segment descriptors and their fields are described in figure 3-8 in the Intel
+manual [@intel3a].
 
 ## The Global Descriptor Table (GDT)
 
@@ -70,10 +71,11 @@ descriptor contains more information than just the base and limit fields. The
 two most relevant fields here are the Type field and the Descriptor Privilege
 Level (DPL) field.
 
-The table 3-1, chapter 3, in [@intel3a] specifies the values for the Type field,
-and it is because of this that we need at least two descriptors: One to execute
-code (to put in `cs`) (Execute-only or Execute-Read) and one to read and write
-data (Read/Write) (to put in the other segment registers).
+The table 3-1, chapter 3, in the Intel manual [@intel3a] specifies the values
+for the Type field, and it is because of this that we need at least two
+descriptors: One to execute code (to put in `cs`) (Execute-only or
+Execute-Read) and one to read and write data (Read/Write) (to put in the other
+segment registers).
 
 The DPL specifies the privilege levels required to execute in this segment. x86
 allows for four privilege levels (PL), 0 to 3, where PL0 is the most
@@ -84,7 +86,7 @@ processes should run in PL3. The current privilege level (CPL) is determined by
 the segment selector in `cs`.
 
 Since we are now executing in kernel mode (PL0), the DPL should be 0. The
-segments we need are described in table 6-1.
+segments we need are described in the table below.
 
   Index   Offset   Name                 Address range             Type   DPL
 -------  -------   -------------------  ------------------------- -----  ----
@@ -92,7 +94,7 @@ segments we need are described in table 6-1.
       1   `0x08`   kernel code segment  `0x00000000 - 0xFFFFFFFF` RX     PL0
       2   `0x10`   kernel data segment  `0x00000000 - 0xFFFFFFFF` RW     PL0
 
-Table: Table 6-1: The segment descriptors needed.
+Table: The segment descriptors needed.
 
 Note that the segments overlap - they both encompass the entire linear address
 space. In our minimal setup we'll only use segmentation to get privilege levels.
@@ -119,7 +121,7 @@ lgdt [eax]
 
 Now that the processor knows where to look for the segment descriptors we need
 to load the segment registers with the corresponding segment selectors. The
-content of a segment selector is described in table 6-2.
+content of a segment selector is described in the table below.
 
 -------------------------------------------------------------------------------
   Bits Name             Description
@@ -133,7 +135,7 @@ content of a segment selector is described in table 6-2.
   3-15 Offset (Index)   Offset within descriptor table.
 -------------------------------------------------------------------------------
 
-Table: Table 6-2: The layout of segment selectors.
+Table: The layout of segment selectors.
 
 The offset is added to the start of the GDT to get the address of the segment
 descriptor: `0x08` for the first descriptor and `0x10` for the second, since
