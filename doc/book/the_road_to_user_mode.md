@@ -69,7 +69,7 @@ typedef void (*call_module_t)(void);
 /* ... */
 call_module_t start_program = (call_module_t) address_of_module;
 start_program();
-/* we'll never get here */
+/* we'll never get here, unless the module code returns */
 ~~~
 
 If we start the kernel, wait until it has run and entered the infinite loop in

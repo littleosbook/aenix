@@ -18,9 +18,10 @@ segmentation](#segmentation).
 
 Table: The segment descriptors needed for user mode.
 
-The difference is the DPL, which now allows code to execute in PL3. It can
-still be used to address the entire address space, so just using these segments
-for user mode code will not protect the kernel. For that we need paging.
+The difference is the DPL, which now allows code to execute in PL3. The
+segments can still be used to address the entire address space, so just using
+these segments for user mode code will not protect the kernel. For that we need
+paging.
 
 ## Setting up for user mode
 
@@ -56,20 +57,21 @@ inter-level interrupt. The stack should look like this:
 
 (source: The Intel manual [@intel3a], section 6.2.1, figure 6-4)
 
-Before we execute `iret` we need to change to the page directory we setup for
-the user mode process. Important to remember here is that, to continue
-executing kernel code after we've switched PDT, the kernel needs to be mapped
-in. One way to accomplish this is to have a "kernel PDT", which maps in all
-kernel data at `0xC0000000` and above, and merge it with the user PDT (which
-only maps below `0xC0000000`) when we do the switch. Also, remember that we
-need to use the physical address for the page directory when we set `cr3`.
+`iret` will then read these values from the stack and fill in the corresponding
+registers. Before we execute `iret` we need to change to the page directory we
+setup for the user mode process. Important to remember here is that, to
+continue executing kernel code after we've switched PDT, the kernel needs to be
+mapped in. One way to accomplish this is to have a "kernel PDT", which maps in
+all kernel data at `0xC0000000` and above, and merge it with the user PDT
+(which only maps below `0xC0000000`) when we do the switch. Also, remember that
+we need to use the physical address for the page directory when we set `cr3`.
 
 `eflags` is a register for a set of different flags, specified in section 2.3
 of the Intel manual [@intel3a]. Most important for us is the interrupt enable
 (IF) flag. When in PL3 we aren't allowed to use `sti` like we'd normally do to
 enable interrupts. If interrupts are disabled when we enter user mode, we can't
 enable them when we get there. When we use `iret` to enter user mode it will
-set `eflags` for us, so setting the IF flag on the stack will enable interrupt
+set `eflags` for us, so setting the IF flag on the stack will enable interrupts
 in user mode.
 
 For now, we should have interrupts disabled, as it requires a little more
@@ -88,8 +90,8 @@ want to enter PL3, so the RPL of `cs` and `ss` should be 3.
     cs = 0x18 | 0x3
     ss = 0x20 | 0x3
 
-`ds` - and the other segment register - should be set to the same segment
-selector as `ss`. They can be set in the regular way with `mov`.
+`ds` - and the other data segment registers - should be set to the same segment
+selector as `ss`. They can be set the ordinary way, with `mov`.
 
 Now we are ready to execute `iret`. If everything has been set up right, we now
 have a kernel that can enter user mode. Yay!
@@ -105,12 +107,12 @@ If we implement an ELF parser, we can compile the user mode programs into ELF
 binaries as well. We leave this as an exercise for the reader.
 
 One thing we can do to make it easier to develop user mode programs is to allow
-them to be written in C (but still compile them to flat binaries). In C, the
+them to be written in C but still compile them to flat binaries. In C the
 layout of the generated code is more unpredictable and the entry point
 (`main()`) might not be at offset 0.
 
-One way to solve this is to add a few assembler lines is placed at offset 0,
-and which calls `main()`.
+One way to work around this is to add a few assembler lines is placed at offset
+0, and which calls `main()`.
 
 Assembler code (`start.s`):
 
@@ -155,9 +157,9 @@ Note: `*(.text)` will not include the `.text` section of `start.o` again. See
 
 With this script we can write programs in C or assembler (or any other language
 that compiles to object files linkable with `ld`), and it is easy to load and
-map in for the kernel. (.rodata will not be mapped in as read-only, though.)
+map in for the kernel. (`.rodata` will be mapped in as writeable, though.)
 
-We want the usual `CFLAGS`:
+When we compile user programs we want the usual `CFLAGS`:
 
     -m32 -nostdlib -nostdinc -fno-builtin -fno-stack-protector -nostartfiles
     -nodefaultlibs
