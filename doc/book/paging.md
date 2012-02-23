@@ -279,7 +279,7 @@ pages.
 
 - Chapter 4 (and to some extent chapter 3) of the Intel manual [@intel3a] are
   your definitive sources for the details about paging.
-- Wikipedia as a page on paging: <http://en.wikipedia.org/wiki/Paging>
+- Wikipedia has an article on paging: <http://en.wikipedia.org/wiki/Paging>
 - The OSDev wiki has a page on paging: <http://wiki.osdev.org/Paging> and a
   tutorial for making a higher-half kernel:
   <http://wiki.osdev.org/Higher_Half_bare_bones>
