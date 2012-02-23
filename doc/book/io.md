@@ -30,7 +30,7 @@ communicating with the hardware the same as one communicate with a server using
 sockets. For example, the cursor (the blinking rectangle) of the framebuffer is
 controlled via I/O ports.
 
-### The framebuffer
+## The framebuffer
 The framebuffer is a hardware device that is capable of displaying a buffer of
 memory on the screen [@wiki:fb]. The framebuffer has 80 columns and 25 rows,
 and their indices start at 0 (so rows are labelled 0 - 24).
@@ -60,7 +60,9 @@ ASCII table, one can see that A corresponds to 65 or `0x41`. Therefore, to
 write the character A with a green foreground (2) and dark grey background (8),
 the following assembly instruction is used
 
-    mov [0x000B8000], 0x4128
+~~~ {.nasm}
+mov [0x000B8000], 0x4128
+~~~
 
 The second cell then corresponds to row zero, column one and it's address is
 
@@ -70,8 +72,10 @@ This can all be done a lot easier in C by treating the address `0x000B8000` as
 a char pointer, `char *fb = (char *) 0x000B8000`. Then, writing A to at place
 (0,0) with green foreground and dark grey background becomes:
 
-    fb[0] = 'A';
-    fb[1] = 0x28;
+~~~ {.nasm}
+fb[0] = 'A';
+fb[1] = 0x28;
+~~~
 
 This can of course be wrapped into a nice function
 
@@ -107,9 +111,9 @@ To set the cursor at row one, column zero (position `80 = 0x0050`), one would
 use the following assembly instructions
 
 ~~~ {.nasm}
-out 0x3D4, 14      ; 14 tells the framebuffer that we will now send the highest 8 bits
+out 0x3D4, 14      ; 14 tells the framebuffer to expect the highest 8 bits
 out 0x3D5, 0x00    ; sending the highest 8 bits of 0x0050
-out 0x3D4, 15      ; 15 tells the framebuffer that we will now send the lowest 8 bits
+out 0x3D4, 15      ; 15 tells the framebuffer to expect the lowest 8 bits
 out 0x3D5, 0x50    ; sending the lowest 8 bits of 0x0050
 ~~~
 
@@ -172,4 +176,131 @@ void fb_move_cursor(unsigned short pos)
 ~~~
 
 ### The driver
-HELINO_RESUME
+Now that the basic functions, it's time to think about a driver interface for
+the framebuffer. There is no right or wrong about what functionality the
+interface should provide, but one suggestion is to have a `write` function with
+the declaration:
+
+    int write(char *buf, unsigned int len);
+
+The `write` function would automatically advance the cursor after a character
+has been written and also scroll the screen if necessary.
+
+## The serial ports
+The serial port [@wiki:serial] is an interface for communicating between
+hardware devices, and it's usually not found on computer any longer. However,
+the serial port is easy to use, and more importantly, can be used as a logging
+utility together with BOCHS. A computer usually has several serial ports, but
+we will only make use of one of the ports, since we only will use it for
+logging. The serial ports are controlled completely via I/O ports.
+
+### Configuring the serial port
+The first data that needs to be sent to the serial port is some configuration
+data. In order for two hardware devices to be able to talk each other, they
+must agree upon some things. These things include:
+
+- The speed used when sending data (bit or baud rate)
+- If any error checking is used for the data (parity bit, stop bits)
+- The number of bits that represents a unit of data (data bits)
+
+### Configuring the line
+Configuring the line means to configure how data is being sent over the line.
+The serial port has an I/O port, the _line command port_ that is used for
+configuring the line.
+
+First, the speed for sending data will be set. The serial port has an internal
+clock that runs at 115200 Hz. Setting the speed means sending a divisor to the
+serial port, for example sending 2 results in a speed of `115200 / 2 = 57600`
+Hz.
+
+The divisor is a 16 bit number, but we can only send 8 bits at a time.
+Therefore, we must first send an instruction telling the serial port to expect
+first the highest 8 bits, then the lowest. This is done by sending `0x80` to
+the send line command port. The code then becomes:
+
+~~~ {.c}
+#include "io.h" /* io.h is implement in the section "Moving the cursor" */
+
+/* The I/O ports */
+
+/* All the I/O ports are calculated relative to the data port. This is because
+ * all serial ports (COM1, COM2, COM3, COM4) have their ports in the same
+ * order, but they start at different values.
+ /
+
+#define SERIAL_COM1_BASE                0x3F8      /* COM1 base port */
+
+#define SERIAL_DATA_PORT(base)          (base)
+#define SERIAL_FIFO_COMMAND_PORT(base)  (base + 2)
+#define SERIAL_LINE_COMMAND_PORT(base)  (base + 3)
+#define SERIAL_MODEM_COMMAND_PORT(base) (base + 4)
+
+/* The I/O port commands */
+
+/* SERIAL_LINE_ENABLE_DLAB:
+ * Tells the serial port to expect first the highest 8 bits on the data port,
+ * then the lowest 8 bits will follow
+ */
+#define SERIAL_LINE_ENABLE_DLAB         0x80
+
+/** serial_configure_baud_rate:
+ *  Sets the speed of the data being sent. The default speed of a serial
+ *  port is 115200 bits/s. The argument is a divisor of that number, hence
+ *  the resulting speed becomes (115200 / divisor) bits/s.
+ *
+ *  @param com      The COM port to configure
+ *  @param divisor  The divisor
+ */
+void serial_configure_baud_rate(unsigned short com, unsigned short divisor)
+{
+    outb(SERIAL_LINE_COMMAND_PORT(com),
+         SERIAL_LINE_ENABLE_DLAB);
+    outb(SERIAL_DATA_PORT(com),
+         (divisor >> 8) & 0x00FF);
+    outb(SERIAL_DATA_PORT(com),
+         divisor & 0x00FF);
+}
+~~~
+
+Next, the way data is being sent must be configured, this is also done via the
+line command port by sending 8 bits. The layout of the 8 bits are as follows
+
+    Bit:     | 7 | 6 | 5 4 3 | 2 | 1 0 |
+    Content: | d | b | prty  | s | exp |
+
+The content is
+
+ Name Description
+----- ------------
+    d Enables (`d = 1`) or disables (`d = 0`) DLAB
+    b If break control is enabled (`b = 1`) or disabled (`b = 0`)
+ prty The number of parity bits to use (`prty = 0, 1, 2 or 3`)
+    s The number of stop bits to use (`s = 0` equals 1, `s = 1` equals 1.5 or 2)
+  exp Describes the length of the data, the length is `2^exp` (`exp = 3` results in 8 bits)
+
+We will use the mostly standard value `0x03` [@osdev:serial], meaning a length
+of 8 bits, no parity bit, one stop bit and break control disabled. This is sent
+to the line command port, resulting in
+
+~~~ {.c}
+/** serial_configure_line:
+ *  Configures the line of the given serial port. The port is set to have a
+ *  data length of 8 bits, no parity bits, one stop bit and break control
+ *  disabled.
+ *
+ *  @param com  The serial port to configure
+ */
+void serial_configure_line(unsigned short com)
+{
+    /* Bit:     | 7 | 6 | 5 4 3 | 2 | 1 0 |
+     * Content: | d | b | prty  | s | exp |
+     * Value:   | 0 | 0 | 0 0 0 | 0 | 1 1 | = 0x03
+     */
+    outb(SERIAL_LINE_COMMAND_PORT(com), 0x03);
+}
+~~~
+
+For a more in-depth explanation of the values, see [@osdev:serial].
+
+### Configuring the FIFO queues
+### Configuring the modem

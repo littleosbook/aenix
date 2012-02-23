@@ -218,11 +218,11 @@ and be placed in the `iso/boot/grub/` folder. The `iso` folder should now look
 like:
 
     iso
-    └── boot
-        ├── grub
-        │   ├── menu.lst
-        │   └── stage2_eltorito
-        └── kernel.elf
+    |---- boot
+        |---- grub
+        |   |---- menu.lst
+        |   |---- stage2_eltorito
+        |---- kernel.elf
 
 The ISO image can now be generated with the command
 
