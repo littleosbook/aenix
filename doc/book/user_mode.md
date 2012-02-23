@@ -168,7 +168,7 @@ And these `LDFLAGS`:
 
     -T link.ld -melf_i386
 
-### Lib C
+### A C library
 
 It might now be interesting to start thinking about writing a short libc for
 your programs. Some of the functionality require system calls (?????) to work,
@@ -176,4 +176,5 @@ but some, such as the `string.h` functions, does not.
 
 ## Further reading
 
-TODO: 
+- Gustavo Duarte has an article on privilege levels:
+  <http://duartes.org/gustavo/blog/post/cpu-rings-privilege-and-protection>

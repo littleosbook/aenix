@@ -284,6 +284,8 @@ pages.
 - The OSDev wiki has a page on paging: <http://wiki.osdev.org/Paging> and a
   tutorial for making a higher-half kernel:
   <http://wiki.osdev.org/Higher_Half_bare_bones>
+- Gustavo Duarte's article on how a kernel manages memory is read-worthy:
+  <http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory>
 - Details on the linker command language can be found in [@ldcmdlang].
 - More details on the ELF format can be found in this pdf:
   <http://flint.cs.yale.edu/cs422/doc/ELF_Format.pdf>

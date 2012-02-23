@@ -21,3 +21,5 @@ and 4.
 ## Further reading
 
 - LWN.net has an article on virtual memory: <http://lwn.net/Articles/253361/>
+- So does Gustavo Duarte:
+  <http://duartes.org/gustavo/blog/post/memory-translation-and-segmentation>
