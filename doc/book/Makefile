@@ -2,7 +2,7 @@ CSS = book.css
 HTML_TEMPLATE = template.html
 TEX_HEADER = header.tex
 CHAPTERS = title.txt introduction.md environment_and_booting.md \
-		   getting_to_c.md io.md \
+		   getting_to_c.md output.md \
 		   the_road_to_user_mode.md virtual_memory.md segmentation.md \
 		   paging.md page_frame_allocation.md user_mode.md references.md
 BIB = bibliography.bib
