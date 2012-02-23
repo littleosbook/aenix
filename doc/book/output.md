@@ -303,4 +303,61 @@ void serial_configure_line(unsigned short com)
 For a more in-depth explanation of the values, see [@osdev:serial].
 
 ### Configuring the FIFO queues
+When data is transmitted via the serial port, it is placed in buffers, both
+when receiving and sending data. This way, if you sending data to the serial
+port faster than it can send it over the wire, it will be buffered. However, if
+you send too much data too fast, the buffer will be full and then data will be
+dropped. The FIFO queue configuration byte looks like
+
+    Bit:     | 7 6 | 5  | 4 | 3   | 2   | 1   | 0 |
+    Content: | lvl | 64 | r | dma | clt | clr | e |
+
+The content is
+
+ Name Description
+----- ------------
+  lvl How many bytes should be stored in the FIFO buffers
+   64 If the buffers should 16 or 64 bytes large
+    r Reserved
+  dma How the serial port data should be accessed
+  clt Clear the transmission FIFO buffer
+  clr Clear the receiver FIFO buffer
+    e If the FIFO buffer should be enabled or not
+
+We use the value `0xC7 = 11000111` that:
+
+    - Enables FIFO
+    - Clear both receiver and transmission FIFO
+    - Use 14 bytes as FIFO size
+
+For a more in-depth explanation of the values, see [@wikibook:serial]
+
 ### Configuring the modem
+The modem control register is used for very simple hardware flow control via
+the Ready To Transmit (RTS) and Data Terminal Ready (DTR) pins. When
+configuring the serial port before sending data, we want RTS and DTR to be 1.
+
+The modem configuration byte looks like
+
+    Bit:     | 7 | 6 | 5  | 4  | 3   | 2   | 1   | 0   |
+    Content: | r | r | af | lb | ao2 | ao1 | rts | dtr |
+
+The contents is
+
+ Name Description
+----- ------------
+    r Reserved
+   af Autoflow control enabled
+   lb Loopback mode (used for debugging serial ports)
+  ao2 Auxiliary output 2, used for receiving interrupts
+  ao1 Auxiliary output 1
+  rts Ready To Transmit
+  dtr Data Terminal Ready
+
+Since we don't need interrupts, since we won't handle the received data, we use 
+the configuration value `0x03 = 00000011`, that is, RTS is set to 1 and DTR is
+set to 1.
+
+## Writing to the serial port
+
+## The driver
