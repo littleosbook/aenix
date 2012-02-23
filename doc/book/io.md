@@ -1,4 +1,4 @@
-# Input and output (I/O)
+# Output
 
 After booting our very small operating system kernel, the next task will be to
 be able to display text on the console. In this chapter we will create our
@@ -10,8 +10,8 @@ create a driver for the serial port, since BOCHS can store output from the
 serial port in a file, effectively creating a logging mechanism for our
 operating system!
 
-## Different kinds of I/O
-There are usually two different ways to "talk" to the I/O hardware,
+## Different kinds of outputs
+There are usually two different ways to "talk" to the hardware,
 _memory-mapped I/O_ and _I/O ports_.
 
 If the hardware uses memory-mapped I/O, then one
