@@ -2,8 +2,7 @@
 
 Now that we have virtual memory with paging set up, we need to somehow allocate
 some of the available memory to use for the applications we want to run. How do
-we know what memory is free? That is the role of a page frame allocator, and
-we'll .....
+we know what memory is free? That is the role of a page frame allocator.
 
 ## Managing available memory
 
@@ -14,8 +13,8 @@ Perhaps the easiest way to do this is to read it from the multiboot [@multiboot]
 structure sent to us by GRUB. This will give us the information we need about
 the memory - what is reserved, I/O mapped, read-only etc. The rest is free to
 use. We must make sure that we don't mark the part of memory used by the kernel
-as free. An easy way to do this is to export labels at the beginning and end of
-the kernel binary from the linker script.
+as free. One way to do this is to export labels at the beginning and end of the
+kernel binary from the linker script.
 
 The updated linker script:
 
@@ -93,7 +92,8 @@ Note that not all available memory needs to be contiguous. In the first 1MB
 there are several I/O-mapped memory sections, as well as memory used by GRUB
 and the BIOS. Other parts of the memory might be similarly unavailable.
 
-The memory sections need also be divided up into complete page frames.
+It's convenient to divide the memory sections into complete page frames, as we
+can't map part of pages into memory.
 
 ### Managing available memory
 
@@ -102,7 +102,9 @@ keep track of which are free and which aren't. There are several ways to do
 this: Bitmaps, linked lists, trees, the Buddy System (used by Linux) etc. See
 <http://wiki.osdev.org/Page_Frame_Allocation> for more details.
 
-TODO: suggest bitmaps as easiest?
+Bitmaps are quite easy to implement. One bit for each page frame, and dedicate
+one (or more) page frames to store the bitmap. But other designs might be
+nicer and/or more fun.
 
 ## How can we access a page frame?
 
