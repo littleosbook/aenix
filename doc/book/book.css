@@ -165,16 +165,16 @@ table thead, table tbody {
     font-size: 12px;
 }
 
-table {
+table.has_caption {
     position: relative;
     padding-bottom: 30px;
 }
 
-table caption {
+table.has_caption caption {
     font-style: italic;
     text-align: left;
     position: absolute;
-    bottom: 3px;
+    bottom: 0px;
     left: 0px;
 }
 
