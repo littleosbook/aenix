@@ -18,6 +18,22 @@ with that.
 Segmentation and paging is described in the Intel manual [@intel3a], chapter 3
 and 4.
 
+## Virtual memory through segmentation?
+
+You could skip paging entirely and just use segmentation for virtual memory.
+Each user mode process would get its own segment, with base address and limit
+properly set up so that no process can see the others. A problem with this is
+that all memory for a process needs to be contiguous. Either we need to know
+in advance how much memory the program will require (unlikely), or we can move
+the memory segments to places where they can grow when the limit is reached
+(expensive, causes fragmentation - can result in "out of memory" even though
+enough memory is available, but in too small chunks).
+
+Paging solves both these problems.
+
+It might be interesting to note that in x86\_64, segmentation is almost
+completely removed.
+
 ## Further reading
 
 - LWN.net has an article on virtual memory: <http://lwn.net/Articles/253361/>

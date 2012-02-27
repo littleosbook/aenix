@@ -66,6 +66,44 @@ push dword 1            ; arg1
 call sum_of_three       ; call the function, the result will be in eax
 ~~~
 
+### Packing structs
+In the rest of book, you will often come across "configuration bytes" that are
+a collection of bits in a very specific order. For example, a configuration
+could look like
+
+    Bit:     | 31           16 | 15     8 | 7     0 |
+    Content: | address         | index    | config  |
+
+Instead of using a unsigned integer `unsigned int` for handling such
+configurations, it is much more convenient to use "packed structures". When
+creating the following struct in C:
+
+~~~ {.C}
+struct example {
+    unsigned char config;
+    unsigned char index;
+    unsigned short address;
+};
+~~~
+
+there is no guarantee that the size of the `struct` will be exactly 32 bits,
+the compiler can add some padding in order to speed up element access. When
+using a `struct` to represent configuration bytes, it is very important that
+the size does _not_ get padded, since the struct will eventually be treated as
+an unsigned integer by the hardware. To force GCC to _not_ add any padding, the
+attribute `packed` can be used in the following way:
+
+~~~ {.C}
+struct example {
+    unsigned char config;
+    unsigned char index;
+    unsigned short address;
+} __attribute__((packed));
+~~~
+
+Note that `__attribute__((packed))` is not part of the C standard, so it might
+not work with all compilers (it works with GCC and Clang).
+
 ## Compiling C code
 When compiling the C code for the OS, quite a lot of flags to GCC has to be
 used. The reason for this is that the C code should _not_ assume the presence

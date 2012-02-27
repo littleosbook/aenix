@@ -171,22 +171,6 @@ Whenever we load a new segment selector into a segment register, the processor
 reads the entire descriptor and stores it in shadow registers within the
 processor.
 
-## Virtual memory through segmentation?
-
-You could skip paging entirely and just use segmentation for virtual memory.
-Each user mode process would get its own segment, with base address and limit
-properly set up so that no process can see the others. A problem with this is
-that all memory for a process needs to be contiguous. Either we need to know
-in advance how much memory the program will require (unlikely), or we can move
-the memory segments to places where they can grow when the limit is reached
-(expensive, causes fragmentation - can result in "out of memory" even though
-enough memory is available, but in too small chunks).
-
-Paging solves both these problems.
-
-It might be interesting to note that in x86\_64, segmentation is almost
-completely removed.
-
 ## Further reading
 
 - Chapter 3 of the Intel manual [@intel3a] is quite good; low-level and
