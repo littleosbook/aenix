@@ -14,8 +14,8 @@
 #define PIC1_ICW1   0x11 /* Initialize the PIC and enable ICW4 */
 #define PIC2_ICW1   PIC1_ICW2
 
-#define PIC1_ICW2   0x20 /* IRQ 0-7 will be remapped to IDT index 20 - 27 */
-#define PIC2_ICW2   0x28 /* IRQ 8-15 will be remapped to IDT index 28 - 35 */
+#define PIC1_ICW2   0x20 /* IRQ 0-7 will be remapped to IDT index 32 - 39 */
+#define PIC2_ICW2   0x28 /* IRQ 8-15 will be remapped to IDT index 40 - 47 */
 
 #define PIC1_ICW3   0x04 /* PIC1 is connected to PIC2 via IRQ2 */
 #define PIC2_ICW3   0x02 /* PIC2 is connected to PIC1 via IRQ1 */
