@@ -171,11 +171,14 @@ table.has_caption {
 }
 
 table.has_caption caption {
-    font-style: italic;
-    text-align: left;
     position: absolute;
     bottom: 0px;
     left: 0px;
+}
+
+table caption {
+    font-style: italic;
+    text-align: left;
 }
 
 table thead {
