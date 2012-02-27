@@ -11,10 +11,10 @@ Virtual memory means that the each process will get the impression that the
 available memory range is `0x00000000` - `0xFFFFFFFF` even though the actual
 size of the memory is way less. It also means that when a process addresses a
 byte of memory, they will use a virtual address (linear address) instead of
-physical one (although the code in the user process won't notice any
-difference). The linear address will then get translated to a physical address
-by the MMU and the page table. If the virtual address isn't mapped to a
-physical address, the CPU will raise a page fault interrupt.
+physical one. The code in the user process won't notice any difference (except
+for execution delays...). The linear address will then get translated to a
+physical address by the MMU and the page table. If the virtual address isn't
+mapped to a physical address, the CPU will raise a page fault interrupt.
 
 Paging is optional, and some operating systems don't need it. But if we want
 memory access control (so that we can have processes running in different
@@ -25,20 +25,20 @@ privilege levels), paging is the neatest way to do it.
 x86 paging (chapter 4 in the Intel manual [@intel3a]) consists of a page
 directory (PDT) that can contain references to 1024 page tables (PT), each of
 which can point to 1024 sections of physical memory called page frames (PF);
-Each page frame is 4096 byte large. In a linear address, the highest 10 bits
-specifies the offset of a page directory entry (PDE) in the current PDT, the
-next highest 10 bits the offset of a page table entry (PTE)  within the page
-table pointed to by that PDE. The lowest 12 bits in the address is the offset
-within the page frame to be addressed.
+Each page frame is 4096 byte large. In a virtual address (linear address), the
+highest 10 bits specifies the offset of a page directory entry (PDE) in the
+current PDT, the next highest 10 bits the offset of a page table entry (PTE)
+within the page table pointed to by that PDE. The lowest 12 bits in the address
+is the offset within the page frame to be addressed.
 
 All page directories, page tables and page frames need to be aligned on 4096
 byte addresses. This makes it possible to address a PDT, PT or PF with just the
 highest 20 bits of a 32 bit address, since the lowest 12 need to be zero.
 
 The PDE and PTE structure is very similar to each other: 32 bits (4 bytes),
-where the highest 20 bits points to a PTE or PF, and the lowest control access
-rights and other configurations. 4 bytes * 1024 equals 4096 bytes, so a page
-directory and page table both fit in a page frame themselves.
+where the highest 20 bits points to a PTE or PF, and the lowest 12 bits control
+access rights and other configurations. 4 bytes * 1024 equals 4096 bytes, so a
+page directory and page table both fit in a page frame themselves.
 
 The translation of linear addresses to physical addresses is described in
 the figure below.
@@ -48,13 +48,13 @@ frame, which needs to be aligned on a 4MB address boundary. The address
 translation is almost the same as in the figure, with just the page table step
 removed. It is possible to mix 4MB and 4KB pages.
 
-![Figure: Translating linear addresses to physical addresses.
+![Figure: Translating virtual addresses (linear addresses) to physical addresses.
 ](images/intel_4_2_linear_address_translation.png)
 
 The 20 bits pointing to the current PDT is stored in the `cr3` register, with
 lower bytes doing some configuration.
 
-More details on the paging structures, see chapter 4 in the Intel manual
+For more details on the paging structures, see chapter 4 in the Intel manual
 [@intel3a]. The most interesting bits are U/S, which determine what privilege
 levels can access this page (PL0 or PL3), and R/W, which makes the memory in
 the page read-write or read-only.
@@ -63,8 +63,8 @@ the page read-write or read-only.
 
 The simplest kind of paging is when we map each virtual address onto the same
 physical address. This can be done at compile time by, for instance, creating a
-page table where each entry points to its corresponding 4MB frame. In NASM this
-can be done with macros and commands (`%rep`, `times` and `dd`), or just
+page table where each entry points to its corresponding 4MB frame. In NASM we
+can do this with macros and commands (`%rep`, `times` and `dd`), or just
 ordinary assembler instructions.
 
 ### Enabling paging
@@ -75,7 +75,7 @@ pages, set the PSE bit (Page Size Extensions, bit 4) of `cr4`.
 
 ~~~ {.nasm}
 ; eax has the address of the page directory
-; or eax, "paging confiuration"
+; optional: or eax, "paging confiuration"
 mov cr3, eax
 
 mov ebx, cr4        ; read current cr4
@@ -98,11 +98,11 @@ update the paging structures, such as in the chapter on [user
 mode](#user-mode).
 
 An instruction that is useful when changing doing paging is `invlpg`. It
-invalidates the TLB (Translation Lookaside Buffer) for an address. This is only
-required when changing a PDE or PTE that was previously mapped to something
-else. If it had previously been marked as not present (bit 0 was set to `0`),
-doing `invlpg` is unnecessary. Also, changing the value of `cr3` will cause all
-entries in the TLB to be invalidated.
+invalidates the TLB (Translation Lookaside Buffer) for a virtual address. This
+is only required when changing a PDE or PTE that was previously mapped to
+something else. If it had previously been marked as not present (bit 0 was set
+to 0), doing `invlpg` is unnecessary. Also, changing the value of `cr3` will
+cause all entries in the TLB to be invalidated.
 
 Example:
 

@@ -73,7 +73,7 @@ push kernel_virtual_start
 call some_function
 ~~~
 
-This way we get them as argument to a C funciton. There is no clean way to take
+This way we get them as arguments to a C function. There is no clean way to take
 the address of a label directly from C. One way to do it is to declare the
 label as a function and take the address of the function:
 
@@ -85,8 +85,8 @@ void kernel_virtual_start(void);
 unsigned int vaddr = (unsigned int) &kernel_virtual_start;
 ~~~
 
-If we use GRUB modules we also need to make sure they are marked as "in use" as
-well.
+If we use GRUB modules we also need to make sure the memory they use is marked
+as "in use" as well.
 
 Note that not all available memory needs to be contiguous. In the first 1MB
 there are several I/O-mapped memory sections, as well as memory used by GRUB
@@ -126,7 +126,7 @@ some other higher-half page table) for temporarily mapping in page frames so
 that we can access to them. If the kernel is mapped in at `0xC0000000` (page
 directory entry with index 768), and we've used 4KB page frames, the kernel
 has at least one page table. If we assume, or limit us to, a kernel of size
-at most 4MB - 4KB, we can dedicate the last entry (entry 1023) of this page
+at most 4MB minus 4KB, we can dedicate the last entry (entry 1023) of this page
 table for temporary mappings. The virtual address of pages mapped in like this
 will be:
 
@@ -157,5 +157,3 @@ blocks are freed.
 
 - The OSDev wiki page on page frame allocation:
   <http://wiki.osdev.org/Page_Frame_Allocation>
-
-TODO: there should be quite a lot to link to...

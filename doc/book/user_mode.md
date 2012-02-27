@@ -35,7 +35,8 @@ There are a few things every user mode process needs:
 - We need a page directory and page tables to map these page frames into
   memory. At least two page tables are needed, because the code and data should
   be mapped in at `0x00000000` and increasing, and the stack should start just
-  below the kernel, at `0xBFFFFFFB`, growing to lower addresses.
+  below the kernel, at `0xBFFFFFFB`, growing to lower addresses. Make sure the
+  U/S flag is set to allow PL3 access.
 
 It might be convenient to store these in a struct of some kind, dynamically
 allocated with the kernel `malloc`. 
@@ -111,8 +112,8 @@ them to be written in C but still compile them to flat binaries. In C the
 layout of the generated code is more unpredictable and the entry point
 (`main()`) might not be at offset 0.
 
-One way to work around this is to add a few assembler lines is placed at offset
-0, and which calls `main()`.
+One way to work around this is to add a few assembler lines placed at offset 0
+which calls `main()`.
 
 Assembler code (`start.s`):
 
@@ -127,7 +128,7 @@ section .text
     jmp  $    ; loop forever
 ~~~
 
-Linker script (`link.ld`) to place it first:
+Linker script (`link.ld`) to place `start.o` first:
 
     OUTPUT_FORMAT("binary")    /* output flat binary */
 
