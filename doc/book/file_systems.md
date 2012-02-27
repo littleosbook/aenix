@@ -73,4 +73,5 @@ media such as hard drives and CD-roms could be interesting.
 - The original paper on the concept of vnodes and a virtual file system is
   quite interesting:
   <http://www.arl.wustl.edu/~fredk/Courses/cs523/fall01/Papers/kleiman86vnodes.pdf>
-- TODO: devfs
+- Poul-Henning Kamp discusses the idea of a special file system for `/dev` in
+  <http://static.usenix.org/publications/library/proceedings/bsdcon02/full_papers/kamp/kamp_html/index.html>
