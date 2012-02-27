@@ -1,10 +1,10 @@
 # File systems
 
 We are not required to have file systems in our operating system, but it is
-quite convenient, and often plays a central part in many operations of several
-existing OS's, especially UNIX-like systems. Before we start the process of
-supporting multiple processes (:D) and system calls, we might want to consider
-implementing a simple file system. 
+quite convenient, and it often plays a central part in many operations of
+several existing OS's, especially UNIX-like systems. Before we start the
+process of supporting multiple processes and system calls, we might want to
+consider implementing a simple file system. 
 
 ## Why a file system?
 
@@ -12,8 +12,8 @@ How do we specify what programs to run in our OS? Which is the first program to
 run? How do programs output data? Read input?
 
 In UNIX-like systems, with their almost-everything-is-a-file convention, these
-problems are solved by the file systems. It might also be interesting here to
-read about the Plan 9 project, which takes this idea one step further (See
+problems are solved by the file systems. It might also be interesting to read a
+bit about the Plan 9 project, which takes this idea one step further (See
 further reading ????? below).
 
 ## A simple file system
@@ -22,9 +22,9 @@ The most simple file system possible might be what we already have - one
 "file", existing only in RAM, loaded by GRUB before the kernel starts. When our
 kernel and operating system grows, this is probably too limiting.
 
-A next step could be do add structure to this GRUB-loaded module. With a
-utility program - called `mkfs`, perhaps - which is run when we build the ISO
-which we boot from, we can create our file system in this file.
+A next step could be to add structure to this GRUB-loaded module. With a
+utility program - perhaps called `mkfs` - which we run at build time, we can
+create our file system in this file.
 
 `mkfs` can traverse a directory on our host system and add all subdirectories
 and files as part of our target file system. Each object in the file system
@@ -32,10 +32,13 @@ and files as part of our target file system. Each object in the file system
 file is the actual file and the body of a directory is a list of entries -
 names and "addresses" of other files and directories.
 
-Each object in this file system will become contiguous, so it will be easy to
+Each object in this file system will become contiguous, so they will be easy to
 read from our kernel. All objects will also have a fixed size (except for the
-last one, which can grow), it might be difficult to add new or modify existing
+last one, which can grow); it might be difficult to add new or modify existing
 files. We can make the file system read-only.
+
+`mmap` is a handy system call that makes writing the "file system-in-a-file"
+easier.
 
 ## Inodes and writable file systems
 
@@ -47,11 +50,11 @@ might want to look into the concept of inodes. See further reading ????.
 What abstraction should we use for reading and writing to devices such as the
 screen and the keyboard?
 
-With a virtual file system (VFS) we create an abstraction on top of any actual
+With a virtual file system (VFS) we create an abstraction on top of any real
 file systems we might have. The VFS mainly supplies the path system and file
-hierarchy, and delegates actually dealing with files to the real file systems.
-The original paper on VFS is succinct, concrete, and well worth a read. See
-further reading ????.
+hierarchy, and delegates actually dealing with files to the underlying file
+systems. The original paper on VFS is succinct, concrete, and well worth a
+read. See further reading ????.
 
 With a VFS we can mount a special file system on `/dev`, which handles all
 devices such as keyboards and the screen. Or we can take the traditional UNIX
@@ -60,7 +63,7 @@ for our devices.
 
 ## Persistent media
 
-Writing the driver code to make it possible to have a file system on persistent
+Writing driver code to make it possible to have a file system on persistent
 media such as hard drives and CD-roms could be interesting.
 
 ## Further reading
