@@ -5,7 +5,7 @@ we do? Usually, a kernel is not supposed to do the application logic itself,
 but leave that for actual applications. The kernel creates the proper
 abstractions (for memory, files, devices, etc.) so that application development
 becomes easier, performs tasks on behalf of applications (system calls), and
-schedules processes.
+[schedules processes](#scheduling).
 
 User mode, in contrast with kernel mode, is how the user's programs executes.
 It is less privileged than the kernel, and will prevent badly written user
@@ -20,8 +20,8 @@ quick-and-dirty start.
 Where do we get the application from? Somehow we need to load the code we want
 to execute into memory. Real operating systems of course have file systems and
 ways to read from hard drives, cd-roms and other devices.  We'll do file
-systems in a [later section](#file-systems). But for now we can actually ask GRUB to load the
-program as a "module" for us.
+systems in a [later section](#file-systems). But for now we can actually ask
+GRUB to load the program as a "module" for us.
 
 ### GRUB Modules
 
