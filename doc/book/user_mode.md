@@ -77,7 +77,7 @@ in user mode.
 
 For now, we should have interrupts disabled, as it requires a little more
 twiddling to get inter-privilege level interrupts to work properly. See the
-section on system calls/TSS (?????).
+section on [system calls](#system-calls).
 
 The `eip` should point to the entry point for the user code - `0x00000000` in
 our case. `esp` should be where the stack should start - `0xBFFFFFFB`.
@@ -172,8 +172,8 @@ And these `LDFLAGS`:
 ### A C library
 
 It might now be interesting to start thinking about writing a short libc for
-your programs. Some of the functionality require system calls (?????) to work,
-but some, such as the `string.h` functions, does not.
+your programs. Some of the functionality require [system calls](#system-calls)
+to work, but some, such as the `string.h` functions, does not.
 
 ## Further reading
 

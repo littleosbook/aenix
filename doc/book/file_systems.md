@@ -14,7 +14,7 @@ run? How do programs output data? Read input?
 In UNIX-like systems, with their almost-everything-is-a-file convention, these
 problems are solved by the file systems. It might also be interesting to read a
 bit about the Plan 9 project, which takes this idea one step further (See
-further reading ????? below).
+[further reading](#further-reading-6) below).
 
 ## A simple file system
 
@@ -43,7 +43,8 @@ easier.
 ## Inodes and writable file systems
 
 When we decide that we want a more complex - and realistic - file system, we
-might want to look into the concept of inodes. See further reading ????.
+might want to look into the concept of inodes. See [further
+reading](#further-reading-6).
 
 ## A virtual file system and devfs
 
@@ -54,7 +55,7 @@ With a virtual file system (VFS) we create an abstraction on top of any real
 file systems we might have. The VFS mainly supplies the path system and file
 hierarchy, and delegates actually dealing with files to the underlying file
 systems. The original paper on VFS is succinct, concrete, and well worth a
-read. See further reading ????.
+read. See [further reading](#further-reading-6).
 
 With a VFS we can mount a special file system on `/dev`, which handles all
 devices such as keyboards and the screen. Or we can take the traditional UNIX

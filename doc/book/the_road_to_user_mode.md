@@ -20,7 +20,7 @@ quick-and-dirty start.
 Where do we get the application from? Somehow we need to load the code we want
 to execute into memory. Real operating systems of course have file systems and
 ways to read from hard drives, cd-roms and other devices.  We'll do file
-systems in chapter ??????. But for now we can actually ask GRUB to load the
+systems in a [later section](#file-systems). But for now we can actually ask GRUB to load the
 program as a "module" for us.
 
 ### GRUB Modules

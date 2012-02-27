@@ -5,6 +5,7 @@ CHAPTERS = title.txt introduction.md environment_and_booting.md \
 		   getting_to_c.md output.md segmentation.md interrupts.md \
 		   the_road_to_user_mode.md virtual_memory.md \
 		   paging.md page_frame_allocation.md user_mode.md file_systems.md \
+		   syscalls.md \
 		   references.md
 BIB = bibliography.bib
 CITATION = citation_style.csl
