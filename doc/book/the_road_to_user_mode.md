@@ -119,9 +119,15 @@ int kmain(..., unsigned int ebx)
 }
 ~~~
 
+However, before just blindly following the pointer, you should check that the
+module got loaded correctly. This can be done by checking the `flags` field of
+the `multiboot_info_t` stucture. You should also check the field `mods_count`
+to make sure it's exactly 1. For more details about the multiboot structure,
+see [@multiboot].
+
 ### Jumping to the code
 What we'd like to do now is just jump to the address of the GRUB-loaded module.
-Since it is easier to parse the multiboot-structure in C, calling the code from
+Since it is easier to parse the multiboot structure in C, calling the code from
 C is more convenient, but it can of course be done with `jmp` (or `call`) in
 assembler as well.
 
