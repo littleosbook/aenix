@@ -13,9 +13,11 @@ the vast (and often excellent) expanse of material and tutorials out there, on
 the web and otherwise, and add our own insights into the problems we
 encountered and struggled with.
 
-The starting chapters are naturally more detailed than later chapters, as more
-and more of the implementation and design becomes up to the reader. At the end
-of some chapters there are links for further reading, which might be
+The starting chapters are naturally quite detailed and explicit, to quickly get
+you into coding. Later chapters give more of an outline of what is needed, as
+more and more of the implementation and design becomes up to the reader, who
+should now be more familiar with the world of kernel development. At the
+end of some chapters there are links for further reading, which might be
 interesting and give a deeper understanding of the topics covered.
 
 ## The reader
@@ -37,6 +39,12 @@ TODO: perhaps "number munchers".
 
 Most of the CSS formatting of the book is based on the work by Scott Chacon for
 the book Pro Git, <http://progit.org/>.
+
+## Changes and corrections
+
+This book is hosted on Github - if you have any suggestions, comments or
+corrections, just fork the book, write your changes, and send us a pull
+request. We'll happily incorporate anything that makes this book better.
 
 ## License
 
