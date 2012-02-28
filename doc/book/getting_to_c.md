@@ -185,3 +185,8 @@ If your directory now looks like
 then you should be able to start the OS in BOCHS with the simple command
 
     make run
+
+## Further reading
+
+- Kernigan & Richies book, _The C Programming Language, Second Edition_, [@knr]
+  is great for learning about all the aspects of C

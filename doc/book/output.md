@@ -234,6 +234,7 @@ the send line command port. The code then becomes:
 #define SERIAL_FIFO_COMMAND_PORT(base)  (base + 2)
 #define SERIAL_LINE_COMMAND_PORT(base)  (base + 3)
 #define SERIAL_MODEM_COMMAND_PORT(base) (base + 4)
+#define SERIAL_LINE_STATUS_PORT(base)   (base + 5)
 
 /* The I/O port commands */
 
@@ -358,6 +359,74 @@ Since we don't need interrupts, since we won't handle the received data, we use
 the configuration value `0x03 = 00000011`, that is, RTS is set to 1 and DTR is
 set to 1.
 
-## Writing to the serial port
+### Writing to the serial port
 
-## The driver
+Writing to the serial port is done via the data I/O port. However, before
+writing, we must first ensure that the transmit FIFO queue is empty (so that
+all previous writes has been done). This is done by checking bit 5 of the line
+status I/O port.
+
+Reading the contents of an I/O port is done via the `int` assembly
+instruction. There is no way to use the `int` instruction from C, so it has to
+be wrapped (the same way as the `out` instruction):
+
+~~~ {.nasm}
+global inb
+
+; inb - reads a byte from the given I/O port
+; stack: [esp + 4] The address of the I/O port
+;        [esp    ] The return address
+inb:
+    mov dx, [esp + 4]       ; move the address of the I/O port to the dx register
+    in  al, dx              ; read a byte from the I/O port and store it in the al register
+    ret                     ; return the read byte
+~~~
+
+~~~ {.c}
+/* in file io.h */
+
+/** inb:
+ *  Read a byte from an I/O port.
+ *
+ *  @param port The address of the I/O port
+ *  @return The read byte
+ */
+unsigned char inb(unsigned short port);
+~~~
+
+Checking if the transmit FIFO is empty is now trivial
+
+~~~ {.c}
+#include "io.h"
+
+/** serial_is_transmit_fifo_empty:
+ *  Checks whether the transmit FIFO queue is empty or not for the given COM
+ *  port.
+ *
+ *  @param com The COM port
+ *  @return 0 if the transmit FIFO queue is not empty
+ *          1 if the transmit FIFO is empty
+ */
+int serial_is_transmit_fifo_empty(unsigned int com)
+{
+    /* 0x20 = 0001 0000 */
+    return inb(SERIAL_LINE_STATUS_PORT(com)) & 0x20;
+}
+~~~
+
+Now, the writing to serial port means spinning while the transmit FIFO queue
+isn't empty, and then writing to the data port.
+
+### The driver
+
+We recommend that you try to write a `printf` like function, see section 7.3 in
+[@knr]. We also recommend that you create some way of distinguish the
+severeness of log message, for example by prepending the messages with `DEBUG`,
+`INFO` or `ERROR`.
+
+## Further reading
+- The book "Serial programming" (available on WikiBooks) has a great section on
+  programming the serial port,
+  <http://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#UART_Registers>
+- The OSDev wiki has a page with a lot of information about the serial ports,
+  <http://wiki.osdev.org/Serial_ports>

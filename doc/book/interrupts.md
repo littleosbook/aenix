@@ -237,24 +237,11 @@ interrupts to start at number 32, the interrupt number for the keyboard will be
 33.
 
 The keyboard does not generate ASCII characters, instead it generates scan
-codes. A scan code represents a button. To read which button was pressed, the
-`in` assembly instruction must be used to read a byte from the keyboards data
-port
-
-~~~ {.nasm}
-KBD_DATA_PORT equ 0x60      ; the keyboards I/O port for data is 0x60
-
-read_scan_code:
-    in  al, KBD_DATA_PORT   ; read the scan code from the keyboard
-    ret                     ; return the read scan code
-~~~
-
-Just as the assembly `out` instruction was wrapped so that it can be used from
-C, the same can be done for the `in` instruction. Then, the scan code can be
-read from C:
+codes. A scan code represents a button. The scan code representing the recently
+pressed button can be read from the keyboard data I/O port:
 
 ~~~ {.c}
-#include "io.h" /* now defines the `inb` function that reads from an I/O port */
+#include "io.h"
 
 #define KBD_DATA_PORT   0x60
 
@@ -276,3 +263,10 @@ codes and keyboard buttons correlates.
 
 Remember, since the keyboard interrupt is raised by the PIC, you must call
 `pic_acknowledge` at the end of the keyboard interrupt handler!
+
+## Further reading
+
+- The OSDev wiki has a great page on interrupts,
+  <http://wiki.osdev.org/Interrupts>
+- Chapter 6 of Intel Manual 3a [@intel3a] describes everything there is to know
+  about interrupts.
