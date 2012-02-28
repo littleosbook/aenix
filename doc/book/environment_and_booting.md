@@ -117,18 +117,20 @@ to be written in assembly, since C requires a stack, which isn't available at
 this point, since GRUB doesn't set one up. The code for the kernel then is:
 
 ~~~ {.nasm}
-global loader               ; the entry symbol for ELF
+global loader                   ; the entry symbol for ELF
 
-MAGIC_NUMBER equ 0x1BADB002 ; define the magic number constant
+MAGIC_NUMBER equ 0x1BADB002     ; define the magic number constant
+CHECKSUM     equ -MAGIC_NUMBER  ; calculate the checksum (magic number + checksum should equal 0)
 
-section .text:              ; start of the text (code) section
-align 4                     ; the code must be 4 byte aligned
-    dd MAGIC_NUMBER         ; write the magic number
+section .text:                  ; start of the text (code) section
+align 4                         ; the code must be 4 byte aligned
+    dd MAGIC_NUMBER             ; write the magic number
+    dd CHECKSUM                 ; write the checksum
 
-loader:                     ; the loader label
-    mov eax, 0xCAFEBABE     ; place the number 0xCAFEBABE in the register eax
+loader:                         ; the loader label
+    mov eax, 0xCAFEBABE         ; place the number 0xCAFEBABE in the register eax
 .loop:
-    jmp .loop               ; loop forever
+    jmp .loop                   ; loop forever
 ~~~
 
 The only thing the kernel will do is write the very specific number
