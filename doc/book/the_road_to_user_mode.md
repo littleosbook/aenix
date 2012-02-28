@@ -29,7 +29,7 @@ feature in GRUB called modules to load our program.
 ### GRUB Modules
 
 GRUB can load arbitrary files into memory from the ISO image and these files are
-usually refereed to as modules. To make GRUB load a module, edit the file
+usually referred to as modules. To make GRUB load a module, edit the file
 `iso/boot/grub/menu.lst` and add the following line at the end of the file
 
     module /modules/program
