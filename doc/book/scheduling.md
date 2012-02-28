@@ -1,5 +1,5 @@
 # Scheduling
-How do you make multiple process appear to run at the same time? Today, this
+How do you make multiple processes appear to run at the same time? Today, this
 question has two answers:
 
 - With the availability of multi-core processors, or on system with multiple
@@ -18,13 +18,14 @@ called the _scheduler_.
 ## Creating new processes
 Creating new processes is usually done with two different system calls: `fork`
 and `exec`. `fork` creates an exact copy of the currently running process,
-while the `exec` creates a new process, often specified by a path to the
-programs location in the file system. Of these two, we recommend that you start
-implementing `exec`, since this system call will do almost exactly the same
-steps as described in ["Setting up for user mode"](#setting-up-for-user-mode).
+while `exec` replaces the current process with another, often specified by a
+path to the programs location in the file system. Of these two, we recommend
+that you start implementing `exec`, since this system call will do almost
+exactly the same steps as described in ["Setting up for user
+mode"](#setting-up-for-user-mode).
 
 ## Cooperative scheduling with yielding
-The easiest way to achieve the rapid switching between processes if the
+The easiest way to achieve the rapid switching between processes is if the
 processes themselves are responsible for the switching. That is, the processes
 runs for a while and then tells the OS (via a syscall) that it can now switch
 to another process. Giving up the control of CPU to another process is called
