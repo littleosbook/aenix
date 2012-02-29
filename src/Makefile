@@ -71,4 +71,4 @@ clean:
 	@echo '-> Cleaning libc'
 	@make --no-print-directory -C libc clean
 	@echo ''
-	rm -rf mkfs aenix.iso fs
+	rm -rf mkfs aenix.iso fs rdaefs
