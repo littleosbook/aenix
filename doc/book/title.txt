@@ -1,3 +1,0 @@
-% The little book about OS development
-% Erik Helin, Adam Renberg
-% 28th of February, 2012
