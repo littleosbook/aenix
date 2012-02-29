@@ -62,7 +62,22 @@ new one. This way, the processes themselves don't need to think about
 scheduling.
 
 ### Programmable interval timer
-TODO: write about how to implement a driver for the timer
+To be able to do preemptive scheduling, the programmable interval timer (PIT)
+must be first be configured to raise interrupts every _x_ milliseconds, where
+_x_ should be configurable.
+
+The configuration of the PIT is very similar to the configuration of other
+hardware devices, you send a byte to an I/O port. The command port of the PIT
+is located at `0x43`. To read about all the configuration options, see
+[@osdev:pit]. We use the following options:
+
+- Raise interrupts (use channel 0)
+- Send the divider as low byte then high byte (see next section for an
+  explanation)
+- Use a square wave
+- Use binary mode
+
+This results in the configuration byte `00110110`.
 
 ### Separate kernel stacks for processes
 When the yield system calls is used, a privilege level change will occur, since
@@ -112,3 +127,5 @@ value of `esp` with the one placed on the stack, you must update `esp`
 yourself.
 
 ## Further reading
+- For more information about different scheduling algorithms, see
+  <http://wiki.osdev.org/Scheduling_Algorithms>
