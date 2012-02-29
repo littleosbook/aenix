@@ -33,10 +33,18 @@ _yielding_ and when the processes themselves are responsible for the
 scheduling, it's called _cooperative scheduling_, since all the processes must
 cooperate with each other.
 
+When a process yields, the process entire state must be saved (all the
+registers), preferably in the kernel heap in a structure that represents a
+process. When changing to a new process, all the registers must be updated with
+the saved values.
+
 In order to implement scheduling, you must keep a list of which processes are
-running. The system call "yield" should then run the next process in the list.
-New processes are loaded the same way as user mode was entered, via `iret`.
-This was explained in the section ["Entering user mode"](#entering-user-mode).
+running. The system call "yield" should then run the next process in the list
+and puts the current one last (other schemes are possible, but this is a simple
+one).
+The transfer of control to the new process is done via `iret` in exactly the
+same way as explained in the section
+["Entering user mode"](#entering-user-mode).
 
 We __strongly__ recommend that you start to implement support for multiple
 processes by implementing cooperative scheduling. We further recommend that you
@@ -72,6 +80,35 @@ same way that each process have their own user mode stack. When switching
 process, the TSS must then be updated to point to the new process kernel stack.
 
 ### Difficulties with preemptive scheduling
-TODO: write about switching from kernel mode, user mode etc
+When using preemptive scheduling, one problem arises that doesn't exist with
+cooperative scheduling. With cooperative scheduling, every time a process
+yields, it must be in user mode (privilege level 3), since yield is a system
+call. With preemptive scheduling, the processes can be interrupted in either
+user mode or kernel mode (privilege level 0), since the process itself does not 
+control when it gets interrupted.
+
+Interrupting a process in kernel mode is a little bit different than
+interrupting a process in user mode, due to the way the CPU sets up the stack
+at interrupts. If a privilege level change occurs (the process was interrupted
+in user mode), then the CPU will push the value of the process `eip` and `esp`
+register on the stack. If no privilege level change occurs (the process was
+interrupted in kernel mode), then the CPU won't push the `esp` register on the
+stack. Furthermore, if there is no privilege level change, the CPU won't change
+stack to the one defined it the TSS (this is actually an advantage, see the
+section below).
+
+To fix this, you must yourself calculate what the value of `esp` was _before_
+the interrupt. Since you know that the CPU pushes 3 things on the stack when no
+privilege change happens and you know how much you have pushed on the stack,
+you can calculate what the value of `esp` was at the time of the interrupt.
+This is possible since the CPU won't change stacks if there is no privilege
+level change, so the content of `esp` will be the same as at the time of the
+interrupt.
+
+To further complicate things, you must think of how to handle case when
+switching to a new process that should be running in kernel mode. Since you are
+then using `iret` without a privilege level change, the CPU won't update the
+value of `esp` with the one placed on the stack, you must update `esp`
+yourself.
 
 ## Further reading
