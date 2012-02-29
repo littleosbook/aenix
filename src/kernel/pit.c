@@ -27,12 +27,9 @@ void pit_init(void)
 /* interval is in ms */
 void pit_set_interval(uint32_t interval)
 {
-    UNUSED_ARGUMENT(interval);
-    /*uint32_t frequency = 1000 / interval;*/
-    /*uint16_t divider = (uint16_t) (PIT_FREQUENCY / frequency);*/
+    uint32_t frequency = 1000 / interval;
+    uint16_t divider = (uint16_t) (PIT_FREQUENCY / frequency);
 
-    /*outb(PIT_CHANNEL_0_DATA, (uint8_t) divider); [> the low byte <]*/
-    /*outb(PIT_CHANNEL_0_DATA, (uint8_t) (divider >> 8)); [> the high byte <]*/
-    outb(PIT_CHANNEL_0_DATA, 0);
-    outb(PIT_CHANNEL_0_DATA, 0);
+    outb(PIT_CHANNEL_0_DATA, (uint8_t) divider);
+    outb(PIT_CHANNEL_0_DATA, (uint8_t) (divider >> 8));
 }

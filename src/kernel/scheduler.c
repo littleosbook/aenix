@@ -11,7 +11,7 @@
 #include "pic.h"
 #include "common.h"
 
-#define SCHEDULER_PIT_INTERVAL 1 /* in ms */
+#define SCHEDULER_PIT_INTERVAL 2 /* in ms */
 #define SCHEDULER_TIME_SLICE   (5 * SCHEDULER_PIT_INTERVAL) /* in ms */
 
 uint32_t ms = 0;
