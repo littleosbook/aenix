@@ -18,7 +18,7 @@ book.html: $(CHAPTERS) $(CSS) $(HTML_TEMPLATE) $(BIB) $(CITATION)
 		   $(CHAPTERS) -o $@
 
 book.pdf: $(CHAPTERS) $(TEX_HEADER) $(BIB) $(CITATION)
-	pandoc --toc -H $(TEX_HEADER) --latex-engine=pdflatex \
+	pandoc --toc -H $(TEX_HEADER) --latex-engine=pdflatex --chapters \
 		   --bibliography $(BIB) --csl $(CITATION) $(CHAPTERS) -o $@
 
 ff: book.html
