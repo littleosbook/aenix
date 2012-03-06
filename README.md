@@ -24,7 +24,7 @@ If you are running Ubuntu 10.10 or later, these can all be installed by running
     make run
 
 ## Documentation
-The book [The little book about OS development](littleosbook.github.com) is
+The book [The little book about OS development](http://littleosbook.github.com) is
 based on our experience writing aenix. Everything described in the book is used
 in aenix.
 
