@@ -11,5 +11,5 @@ align 4
 syscall:
     add esp, 4	; do not send the return address to the kernel
     int 0xAE	; trap into the kernel
-    sub esp, 4	; restore the return address (given that kernel didn't fuck up)
+    sub esp, 4	; restore the return address (given that kernel didn't mess up)
     ret
